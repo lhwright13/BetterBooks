@@ -1,0 +1,7 @@
+TTS
+sounddevice
+numpy
+scipy
+faster-whisper
+ollama
+textual  # for future GUI
