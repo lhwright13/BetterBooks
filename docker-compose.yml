@@ -1,7 +1,8 @@
 version: "3.9"
 services:
   postgres:
-    image: postgres:15
+    # pgvector-enabled Postgres image
+    image: pgvector/pgvector:pg15
     restart: unless-stopped
     environment:
       POSTGRES_USER: betterbooks
