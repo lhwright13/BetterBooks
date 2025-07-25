@@ -1,0 +1,18 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Flutter build outputs
+mobile_app/build/
+
+# Virtual environments
+.venv/
+ENV/
+venv/
+
+# Terraform state
+infra/terraform/.terraform/
+*.tfstate*
+
+# Node modules (if any)
+node_modules/
