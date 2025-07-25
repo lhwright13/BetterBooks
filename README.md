@@ -14,10 +14,8 @@ mobile application and all backend microservices.
 - `proto/` – gRPC/Protobuf definitions.
 - `infra/` – Terraform and Helm deployment configurations.
 
-Each service is a small FastAPI application packaged with a Dockerfile.
-=======
-Each service currently provides a simple FastAPI stub with a `/health` endpoint
-and a Dockerfile for containerization.
+Each service is a small FastAPI application packaged with a Dockerfile and
+currently exposes only a simple `/health` endpoint.
 
 ## Running the stack locally
 
@@ -41,8 +39,9 @@ installed.
    - **LLM Gateway:** <http://localhost:8002>
    - **TTS Service:** <http://localhost:8003>
 
-   Postgres is exposed on port `5432` with the default credentials
-   `betterbooks`/`betterbooks` and database name `betterbooks`.
+  Postgres runs from the `pgvector/pgvector:pg15` image so the `pgvector`
+  extension is available. It is exposed on port `5432` with the default
+  credentials `betterbooks`/`betterbooks` and database name `betterbooks`.
 
 3. Stop the stack with `Ctrl+C` and remove containers with:
 
