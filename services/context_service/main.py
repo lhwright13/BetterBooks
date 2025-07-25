@@ -9,10 +9,17 @@ from pgvector.psycopg import register_vector
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/postgres")
 
 conn = psycopg.connect(DATABASE_URL)
-register_vector(conn)
 
+# Ensure the pgvector extension is available before registering the vector type
 with conn.cursor() as cur:
     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    conn.commit()
+
+# Register the vector type with psycopg
+register_vector(conn)
+
+# Create the embeddings table if it doesn't already exist
+with conn.cursor() as cur:
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS embeddings (
