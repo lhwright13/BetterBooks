@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tts-service.fullname" . }}
+  labels:
+    app: {{ include "tts-service.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "tts-service.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "tts-service.name" . }}
+    spec:
+      containers:
+        - name: tts-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8000
