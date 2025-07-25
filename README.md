@@ -14,5 +14,4 @@ mobile application and all backend microservices.
 - `proto/` – gRPC/Protobuf definitions.
 - `infra/` – Terraform and Helm deployment configurations.
 
-Each service currently provides a simple FastAPI stub with a `/health` endpoint
-and a Dockerfile for containerization.
+Each service is a small FastAPI application packaged with a Dockerfile.
