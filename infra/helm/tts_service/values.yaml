@@ -1,0 +1,6 @@
+image:
+  repository: betterbooks/tts-service
+  tag: latest
+service:
+  type: ClusterIP
+  port: 80
