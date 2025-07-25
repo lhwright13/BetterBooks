@@ -46,5 +46,21 @@ installed.
 3. Stop the stack with `Ctrl+C` and remove containers with:
 
    ```bash
-   docker-compose down
-   ```
+ docker-compose down
+  ```
+
+## Running tests
+
+Python unit tests cover the FastAPI services. Install the required
+dependencies and run `pytest` from the repository root:
+
+```bash
+pip install -r services/api_gateway/requirements.txt \
+    -r services/context_service/requirements.txt \
+    -r services/llm_gateway/requirements.txt
+pip install pgvector pytest
+pytest -q
+```
+
+The tests mock heavy external dependencies so no database, OpenAI key or
+TTS model download is required.
