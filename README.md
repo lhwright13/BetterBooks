@@ -72,5 +72,11 @@ Alternatively run:
 ./scripts/run_tests.sh
 ```
 
+=======
+    -r services/llm_gateway/requirements.txt
+pip install pgvector pytest
+pytest -q
+```
+
 The tests mock heavy external dependencies so no database, OpenAI key or
 TTS model download is required.
