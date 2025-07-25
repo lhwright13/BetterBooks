@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package betterbooks.llm;
+
+service LLMGateway {
+  rpc GenerateText (GenerateRequest) returns (GenerateResponse);
+}
+
+message GenerateRequest {
+  string context = 1;
+}
+
+message GenerateResponse {
+  string text = 1;
+}
