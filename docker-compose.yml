@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: betterbooks
+      POSTGRES_PASSWORD: betterbooks
+      POSTGRES_DB: betterbooks
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api_gateway:
+    build: ./services/api_gateway
+    environment:
+      CONTEXT_SERVICE_URL: http://context_service:8000
+      LLM_GATEWAY_URL: http://llm_gateway:8000
+      TTS_SERVICE_URL: http://tts_service:8000
+    depends_on:
+      - context_service
+      - llm_gateway
+      - tts_service
+    ports:
+      - "8000:8000"
+
+  context_service:
+    build: ./services/context_service
+    environment:
+      DATABASE_URL: postgres://betterbooks:betterbooks@postgres:5432/betterbooks
+    depends_on:
+      - postgres
+    ports:
+      - "8001:8000"
+
+  llm_gateway:
+    build: ./services/llm_gateway
+    ports:
+      - "8002:8000"
+
+  tts_service:
+    build: ./services/tts_service
+    ports:
+      - "8003:8000"
+
+volumes:
+  postgres_data:
