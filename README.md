@@ -30,7 +30,11 @@ installed.
    ```
 
    The command builds the service images (if necessary) and starts the full
-   stack.
+   stack. You can also start everything using the helper script:
+
+   ```bash
+   ./scripts/run_app.sh
+   ```
 
 2. Once running you can access the services on the following ports:
 
@@ -57,6 +61,18 @@ dependencies and run `pytest` from the repository root:
 ```bash
 pip install -r services/api_gateway/requirements.txt \
     -r services/context_service/requirements.txt \
+    -r services/llm_gateway/requirements.txt \
+    pgvector pytest
+pytest -q
+```
+
+Alternatively run:
+
+```bash
+./scripts/run_tests.sh
+```
+
+=======
     -r services/llm_gateway/requirements.txt
 pip install pgvector pytest
 pytest -q
