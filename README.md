@@ -75,3 +75,8 @@ Alternatively run:
 
 The tests mock heavy external dependencies so no database, OpenAI key or
 TTS model download is required.
+
+## Customization
+
+See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information on extending the UI, experimenting with models, adjusting prompts, collecting data and more.
+
