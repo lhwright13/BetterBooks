@@ -1,13 +1,14 @@
-"""Tiny wrapper around the OpenAI API used for text generation."""
+"""Tiny wrapper around the Gemini API used for text generation."""
 
 import os
+import types
 
 try:  # pragma: no cover - library may not be installed during tests
-    from openai import OpenAI, OpenAIError, RateLimitError
-except Exception:  # pragma: no cover - openai is replaced with a stub in tests
-    from openai import OpenAI  # type: ignore
-    OpenAIError = Exception  # type: ignore
-    RateLimitError = Exception  # type: ignore
+    import google.generativeai as genai
+    from google.generativeai.types import GenerationConfig
+except Exception:  # pragma: no cover - the library may be stubbed in tests
+    genai = types.SimpleNamespace(configure=lambda *a, **k: None, GenerativeModel=lambda *a, **k: None)  # type: ignore
+    GenerationConfig = dict  # type: ignore
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -20,10 +21,13 @@ try:  # pragma: no cover - import tested implicitly
 except ImportError:  # pragma: no cover - running as a script
     from prompt_modifier import modify_prompt
 
-# Create an OpenAI client using the API key provided in the environment.  When
-# running unit tests the key may not be set so we fall back to a dummy value to
-# avoid initialization errors.
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "sk-test"))
+from .config import load_config
+
+cfg = load_config()
+
+genai.configure(api_key=cfg["api_key"])
+model = genai.GenerativeModel(cfg["model"])
+gen_config_defaults = cfg.get("generation_config", {})
 
 # FastAPI application instance
 app = FastAPI()
@@ -43,25 +47,22 @@ class CompletionRequest(BaseModel):
 
 @app.post("/complete")
 def complete(req: CompletionRequest) -> dict:
-    """Call OpenAI to generate a text completion."""
+    """Call Gemini to generate a text completion."""
 
     prompt = modify_prompt(req.prompt)
     try:
-        resp = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=req.max_tokens,
+        config = GenerationConfig(
+            **{
+                **gen_config_defaults,
+                "max_output_tokens": req.max_tokens,
+            }
         )
-    except RateLimitError as exc:  # pragma: no cover - requires actual API call
-        # If the OpenAI API rejects the request due to usage limits or invalid
-        # credentials return a 429 to indicate the upstream service is
-        # unavailable. This normally happens in development when the API key is
-        # missing or exhausted.
-        raise HTTPException(status_code=429, detail=str(exc))
-    except OpenAIError as exc:  # pragma: no cover - requires actual API call
-        # Catch all other OpenAI related errors and return a generic 502 so the
-        # caller knows the request failed.
+        resp = model.generate_content(
+            prompt,
+            generation_config=config,
+        )
+    except Exception as exc:  # pragma: no cover - requires actual API call
         raise HTTPException(status_code=502, detail=str(exc))
 
-    return {"text": resp.choices[0].message.content.strip()}
+    return {"text": resp.text.strip()}
 
