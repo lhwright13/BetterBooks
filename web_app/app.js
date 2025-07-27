@@ -10,8 +10,7 @@ audioInput.addEventListener('change', (e) => {
   }
 });
 
-document.getElementById('sendText').addEventListener('click', async () => {
-  const prompt = document.getElementById('prompt').value;
+async function sendPrompt(prompt) {
   const respDiv = document.getElementById('response');
   respDiv.textContent = 'Loading...';
   try {
@@ -22,9 +21,28 @@ document.getElementById('sendText').addEventListener('click', async () => {
     });
     const data = await res.json();
     respDiv.textContent = data.text || JSON.stringify(data);
+
+    // Convert the response text to speech
+    if (data.text) {
+      const ttsRes = await fetch(`${apiBase}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: data.text })
+      });
+      const ttsData = await ttsRes.json();
+      if (ttsData.audio) {
+        audioPlayer.src = 'data:audio/wav;base64,' + ttsData.audio;
+        await audioPlayer.play();
+      }
+    }
   } catch (err) {
     respDiv.textContent = 'Error: ' + err;
   }
+}
+
+document.getElementById('sendText').addEventListener('click', async () => {
+  const prompt = document.getElementById('prompt').value;
+  sendPrompt(prompt);
 });
 
 const voiceBtn = document.getElementById('startVoice');
@@ -38,7 +56,9 @@ if (voiceBtn) {
     recognition.lang = 'en-US';
     recognition.onresult = function(event) {
       const transcript = event.results[0][0].transcript;
-      document.getElementById('prompt').value = transcript;
+      const promptInput = document.getElementById('prompt');
+      promptInput.value = transcript;
+      sendPrompt(transcript);
     };
     recognition.start();
   });
