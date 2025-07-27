@@ -23,11 +23,16 @@ This repository includes a `docker-compose.yml` file for spinning up all
 services along with a Postgres database. Docker and Docker Compose must be
 installed.
 
-1. From the repository root run:
+1. Export your OpenAI API key so it can be passed into the language model
+   service and then start the stack:
 
    ```bash
+   export OPENAI_API_KEY=your-key
    docker-compose up --build
    ```
+
+   You can confirm the key is available inside the container with
+   `docker-compose exec llm_gateway env | grep OPENAI_API_KEY`.
 
    The command builds the service images (if necessary) and starts the full
    stack. You can also start everything using the helper script:
