@@ -13,6 +13,7 @@ mobile application and all backend microservices.
   - `tts_service/` – Generates audio snippets.
 - `proto/` – gRPC/Protobuf definitions.
 - `infra/` – Terraform and Helm deployment configurations.
+- `llm_configs/` – Example personas and model settings selectable in the demo UI.
 
 Each service is a small FastAPI application packaged with a Dockerfile and
 currently exposes only a simple `/health` endpoint.
@@ -50,9 +51,9 @@ installed.
    - **Context Service:** <http://localhost:8001>
    - **LLM Gateway:** <http://localhost:8002>
    - **TTS Service:** <http://localhost:8003>
-   - **Web Demo:** <http://localhost:8080>
+  - **Web Demo:** <http://localhost:8080>
 
-  Open <http://localhost:8080> in your browser to view the simple demo page.
+  Open <http://localhost:8080> in your browser to view the simple demo page. A drop-down lets you choose any configuration from `llm_configs/` before sending a prompt.
 
   Postgres runs from the `pgvector/pgvector:pg15` image so the `pgvector`
   extension is available. It is exposed on port `5432` with the default
