@@ -27,6 +27,8 @@ except ImportError:  # pragma: no cover - running as a script
     from config import load_config
 
 cfg = load_config()
+prompt_options = cfg.get("prompt_options", {})
+base_preprompt = cfg.get("base_preprompt", "")
 
 genai.configure(api_key=cfg["api_key"])
 model = genai.GenerativeModel(cfg["model"])
@@ -52,7 +54,9 @@ class CompletionRequest(BaseModel):
 def complete(req: CompletionRequest) -> dict:
     """Call Gemini to generate a text completion."""
 
-    prompt = modify_prompt(req.prompt)
+    prompt = modify_prompt(req.prompt, prompt_options)
+    if base_preprompt:
+        prompt = f"{base_preprompt}\n\n{prompt}"
     try:
         config = GenerationConfig(
             **{

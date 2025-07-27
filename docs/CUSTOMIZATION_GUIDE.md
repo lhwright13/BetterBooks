@@ -8,11 +8,11 @@ The Flutter application lives under `mobile_app/`. Edit `lib/main.dart` or add n
 
 ## 2. Experiment with different language models
 
-The service responsible for interacting with the language model is `services/llm_gateway`. Modify `main.py` or adjust `config.json` to experiment with different models. The API Gateway forwards `/complete` requests directly to this service.
+The service responsible for interacting with the language model is `services/llm_gateway`. Modify `main.py` or adjust `llm_config.json` in the repository root to experiment with different models or pre‑prompt settings. The API Gateway forwards `/complete` requests directly to this service.
 
 ## 3. Change the preprompt
 
-A preprompt can be injected before the user prompt inside `services/llm_gateway/main.py`. Insert custom logic in the `complete` endpoint to prepend your preprompt to `req.prompt` before sending the request to the LLM.
+You can set a default preprompt in `llm_config.json` using the `base_preprompt` field. This text is prepended to every user prompt. Alternatively, modify `services/llm_gateway/main.py` to implement more advanced logic before the request is sent to the LLM.
 
 ## 4. Change how the story is read to the user
 
