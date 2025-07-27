@@ -47,5 +47,12 @@ services:
     ports:
       - "8003:8000"
 
+  web_app:
+    build: ./web_app
+    depends_on:
+      - api_gateway
+    ports:
+      - "8080:80"
+
 volumes:
   postgres_data:
