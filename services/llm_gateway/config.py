@@ -9,9 +9,18 @@ from typing import Any, Dict
 
 
 # Look for a global configuration file at the repository root.  Fall back to the
-# legacy local file if it doesn't exist.
-DEFAULT_ROOT_PATH = Path(__file__).resolve().parents[2] / "llm_config.json"
-DEFAULT_LOCAL_PATH = Path(__file__).with_name("config.json")
+# legacy local file if it doesn't exist. When this module is executed from a
+# Docker image built from just this directory, ``__file__`` only has two parent
+# directories and indexing ``parents[2]`` would raise ``IndexError``.  Handle
+# this gracefully by using the immediate parent as a fallback.
+
+_path = Path(__file__).resolve()
+_parents = _path.parents
+if len(_parents) > 2:
+    DEFAULT_ROOT_PATH = _parents[2] / "llm_config.json"
+else:  # running from a shallow directory structure
+    DEFAULT_ROOT_PATH = _path.parent / "llm_config.json"
+DEFAULT_LOCAL_PATH = _path.with_name("config.json")
 
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:
