@@ -17,6 +17,7 @@ async function loadConfigs() {
     });
   } catch (err) {
     console.error('Failed to load configs', err);
+    alert('Failed to load configs. Please check the console for details.');
   }
 }
 

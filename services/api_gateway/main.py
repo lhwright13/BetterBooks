@@ -49,6 +49,13 @@ class Text(BaseModel):
     text: str
 
 
+import logging
+
+# Create a logger
+logger = logging.getLogger(__name__)
+
+# Existing code...
+
 @app.post("/complete")
 def complete(prompt: Prompt) -> dict:
     """Proxy text completion requests to the LLM Gateway."""
@@ -56,7 +63,9 @@ def complete(prompt: Prompt) -> dict:
     resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict(exclude_none=True))
     try:
         resp.raise_for_status()
-    except httpx.HTTPStatusError:
+    except httpx.HTTPStatusError as e:
+        # Log the error
+        logger.error(f"LLM Gateway returned an error: {e}")
         # Bubble up the error from the LLM Gateway so the client receives a
         # meaningful status code instead of a generic 500 from this service.
         detail = resp.json().get("detail", resp.text)
