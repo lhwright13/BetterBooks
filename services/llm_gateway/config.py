@@ -9,8 +9,12 @@ from typing import Any, Dict
 
 
 # Look for a global configuration file at the repository root.  Fall back to the
-# legacy local file if it doesn't exist.
-DEFAULT_ROOT_PATH = Path(__file__).resolve().parents[2] / "llm_config.json"
+# legacy local file if it doesn't exist.  When running inside a Docker image
+# the service directory may be located at ``/app`` which doesn't have enough
+# parent directories for ``parents[2]``.  Guard against ``IndexError`` so the
+# fallback path works correctly in that scenario.
+_parents = Path(__file__).resolve().parents
+DEFAULT_ROOT_PATH = (_parents[2] if len(_parents) > 2 else _parents[-1]) / "llm_config.json"
 DEFAULT_LOCAL_PATH = Path(__file__).with_name("config.json")
 
 
