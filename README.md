@@ -42,6 +42,9 @@ installed.
    - **Context Service:** <http://localhost:8001>
    - **LLM Gateway:** <http://localhost:8002>
    - **TTS Service:** <http://localhost:8003>
+   - **Web Demo:** <http://localhost:8080>
+
+  Open <http://localhost:8080> in your browser to view the simple demo page.
 
   Postgres runs from the `pgvector/pgvector:pg15` image so the `pgvector`
   extension is available. It is exposed on port `5432` with the default
