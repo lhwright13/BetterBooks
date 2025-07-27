@@ -6,8 +6,10 @@ from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-# Create an OpenAI client using the API key provided in the environment.
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Create an OpenAI client using the API key provided in the environment.  When
+# running unit tests the key may not be set so we fall back to a dummy value to
+# avoid initialization errors.
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "sk-test"))
 
 # FastAPI application instance
 app = FastAPI()
@@ -30,7 +32,7 @@ def complete(req: CompletionRequest) -> dict:
     """Call OpenAI to generate a text completion."""
 
     resp = client.completions.create(
-        model="text-davinci-003",
+        model="gpt-3.5-turbo-instruct",
         prompt=req.prompt,
         max_tokens=req.max_tokens,
     )
