@@ -53,6 +53,7 @@ def complete(prompt: Prompt) -> dict:
     """Proxy text completion requests to the LLM Gateway."""
 
     resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict())
+    resp.raise_for_status()
     return resp.json()
 
 
