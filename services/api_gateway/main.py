@@ -68,8 +68,17 @@ def complete(prompt: Prompt) -> dict:
 @app.post("/tts")
 def tts(text: Text) -> dict:
     """Proxy text-to-speech synthesis requests to the TTS Service."""
+    resp = httpx.post(
+        f"{TTS_URL}/synthesize",
+        json=text.dict(),
+        timeout=30.0,
+    )
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError:
+        detail = resp.json().get("detail", resp.text)
+        raise HTTPException(status_code=resp.status_code, detail=detail)
 
-    resp = httpx.post(f"{TTS_URL}/synthesize", json=text.dict())
     return resp.json()
 
 
