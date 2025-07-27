@@ -41,6 +41,11 @@ installed.
    ./scripts/run_app.sh
    ```
 
+   The LLM Gateway uses version 1.x of the `openai` Python package. If the
+   image build installs an older release the gateway will fail to start with
+   an import error. Ensure the build has network access so `openai>=1.0` can be
+   installed.
+
 2. Once running you can access the services on the following ports:
 
    - **API Gateway:** <http://localhost:8000>
