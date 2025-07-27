@@ -13,15 +13,18 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Import the prompt modification helper. When the service runs inside Docker the
-# `main.py` file is executed directly (``uvicorn main:app``), so the relative
-# import fails. Fall back to an absolute import in that scenario to keep local
-# tests working.
+# ``main.py`` file is executed directly (``uvicorn main:app``). In that case the
+# module is executed as a script and relative imports fail. Fall back to
+# absolute imports so local tests keep working.
 try:  # pragma: no cover - import tested implicitly
     from .prompt_modifier import modify_prompt
 except ImportError:  # pragma: no cover - running as a script
     from prompt_modifier import modify_prompt
 
-from .config import load_config
+try:  # pragma: no cover - import tested implicitly
+    from .config import load_config
+except ImportError:  # pragma: no cover - running as a script
+    from config import load_config
 
 cfg = load_config()
 
