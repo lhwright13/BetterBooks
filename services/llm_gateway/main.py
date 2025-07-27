@@ -31,8 +31,11 @@ cfg = load_config()
 prompt_options = cfg.get("prompt_options", {})
 base_preprompt = cfg.get("base_preprompt", "")
 
-# Directory containing additional LLM configuration JSON files
-CONFIG_DIR = Path(__file__).resolve().parents[2] / "llm_configs"
+# Directory containing additional LLM configuration JSON files. When the service
+# is packaged into a Docker image the path may be shorter (e.g. ``/app``), so we
+# gracefully handle the case where ``parents[2]`` would raise an ``IndexError``.
+_parents = Path(__file__).resolve().parents
+CONFIG_DIR = (_parents[2] if len(_parents) > 2 else _parents[-1]) / "llm_configs"
 
 genai.configure(api_key=cfg["api_key"])
 model = genai.GenerativeModel(cfg["model"])
