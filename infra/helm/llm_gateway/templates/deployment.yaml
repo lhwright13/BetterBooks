@@ -20,8 +20,8 @@ spec:
           ports:
             - containerPort: 8000
           env:
-            - name: OPENAI_API_KEY
+            - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: openai-api-key
+                  name: gemini-api-key
                   key: key

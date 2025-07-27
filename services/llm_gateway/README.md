@@ -1,14 +1,17 @@
 # LLM Gateway
 
 Provides a REST endpoint that proxies requests to the configured language model
-(OpenAI by default).
+(Gemini by default).
 
 ### Running
 
 ```
-export OPENAI_API_KEY=your-key
+export GEMINI_API_KEY=your-key
 uvicorn main:app --reload
 ```
+
+Configuration options such as the model name and generation settings can be
+adjusted in `config.json`.
 
 ### Example
 

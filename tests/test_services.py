@@ -23,29 +23,31 @@ def test_api_gateway_health():
 
 
 def test_llm_gateway_health():
-    """Health check for the LLM Gateway with OpenAI mocked out."""
-    dummy_openai = types.ModuleType("openai")
-    dummy_openai.OpenAI = MagicMock
-    dummy_openai.resources = types.SimpleNamespace(
-        chat=types.SimpleNamespace(
-            completions=types.SimpleNamespace(
-                Completions=types.SimpleNamespace(create=lambda *a, **k: None)
-            )
-        )
-    )
+    """Health check for the LLM Gateway with Gemini mocked out."""
 
-    with patch.dict("sys.modules", {"openai": dummy_openai}):
-        with patch(
-            "openai.resources.chat.completions.Completions.create",
-            lambda *a, **kwargs: MagicMock(
-                choices=[MagicMock(message=MagicMock(content="hi"))]
-            ),
-        ):
-            mod = importlib.import_module("services.llm_gateway.main")
-            client = TestClient(mod.app)
-            resp = client.get("/health")
-            assert resp.status_code == 200
-            assert resp.json() == {"status": "ok"}
+    dummy_genai = types.ModuleType("google.generativeai")
+    dummy_types = types.ModuleType("google.generativeai.types")
+    dummy_genai.configure = lambda *a, **k: None
+
+    class DummyModel:
+        def __init__(self, *a, **k):
+            pass
+
+        def generate_content(self, *a, **k):
+            return types.SimpleNamespace(text="hi")
+
+    dummy_genai.GenerativeModel = DummyModel
+    dummy_types.GenerationConfig = MagicMock(return_value={})
+
+    with patch.dict(
+        "sys.modules",
+        {"google.generativeai": dummy_genai, "google.generativeai.types": dummy_types},
+    ):
+        mod = importlib.import_module("services.llm_gateway.main")
+        client = TestClient(mod.app)
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
 
 
 def test_context_service_health():
