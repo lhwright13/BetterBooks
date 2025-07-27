@@ -10,8 +10,8 @@ export GEMINI_API_KEY=your-key
 uvicorn main:app --reload
 ```
 
-Configuration options such as the model name and generation settings can be
-adjusted in `config.json`.
+Configuration options such as the model name, generation settings and default
+preprompt can be adjusted in `llm_config.json` at the repository root.
 
 ### Example
 
