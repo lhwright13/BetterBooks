@@ -34,19 +34,18 @@ class SynthesisRequest(BaseModel):
 def synthesize(req: SynthesisRequest) -> dict:
     """Generate speech audio from the supplied text."""
 
-    # Generate the waveform in memory
-    wav = tts.tts(req.text)
-
-    # Save the waveform to a temporary file so it can be base64 encoded
+    # Create a temporary file path for the synthesized audio
     fd, path = tempfile.mkstemp(suffix=".wav")
-    tts.save_wav(wav, path)
+    os.close(fd)  # Close the descriptor so the library can write to it
+
+    # Let the TTS library synthesize and write the audio directly to file
+    tts.tts_to_file(req.text, file_path=path)
 
     # Read the file back into memory and encode as base64 for transmission
     with open(path, "rb") as f:
         data = base64.b64encode(f.read()).decode()
 
     # Clean up the temporary file
-    os.close(fd)
     os.remove(path)
 
     return {"audio": data}
