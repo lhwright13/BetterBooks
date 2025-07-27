@@ -6,7 +6,14 @@ from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from .prompt_modifier import modify_prompt
+# Import the prompt modification helper. When the service runs inside Docker the
+# `main.py` file is executed directly (``uvicorn main:app``), so the relative
+# import fails. Fall back to an absolute import in that scenario to keep local
+# tests working.
+try:  # pragma: no cover - import tested implicitly
+    from .prompt_modifier import modify_prompt
+except ImportError:  # pragma: no cover - running as a script
+    from prompt_modifier import modify_prompt
 
 # Create an OpenAI client using the API key provided in the environment.  When
 # running unit tests the key may not be set so we fall back to a dummy value to
