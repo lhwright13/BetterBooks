@@ -40,6 +40,7 @@ class Prompt(BaseModel):
     """Request body for the `/complete` endpoint."""
 
     prompt: str
+    config: str | None = None
 
 
 class Text(BaseModel):
@@ -52,7 +53,7 @@ class Text(BaseModel):
 def complete(prompt: Prompt) -> dict:
     """Proxy text completion requests to the LLM Gateway."""
 
-    resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict())
+    resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict(exclude_none=True))
     try:
         resp.raise_for_status()
     except httpx.HTTPStatusError:
@@ -69,6 +70,14 @@ def tts(text: Text) -> dict:
     """Proxy text-to-speech synthesis requests to the TTS Service."""
 
     resp = httpx.post(f"{TTS_URL}/synthesize", json=text.dict())
+    return resp.json()
+
+
+@app.get("/configs")
+def list_configs() -> dict:
+    """Return available LLM configuration names."""
+
+    resp = httpx.get(f"{LLM_URL}/configs")
     return resp.json()
 
 
