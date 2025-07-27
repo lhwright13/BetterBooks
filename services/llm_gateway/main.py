@@ -9,6 +9,7 @@ try:  # pragma: no cover - library may not be installed during tests
 except Exception:  # pragma: no cover - the library may be stubbed in tests
     genai = types.SimpleNamespace(configure=lambda *a, **k: None, GenerativeModel=lambda *a, **k: None)  # type: ignore
     GenerationConfig = dict  # type: ignore
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -30,6 +31,9 @@ cfg = load_config()
 prompt_options = cfg.get("prompt_options", {})
 base_preprompt = cfg.get("base_preprompt", "")
 
+# Directory containing additional LLM configuration JSON files
+CONFIG_DIR = Path(__file__).resolve().parents[2] / "llm_configs"
+
 genai.configure(api_key=cfg["api_key"])
 model = genai.GenerativeModel(cfg["model"])
 gen_config_defaults = cfg.get("generation_config", {})
@@ -48,23 +52,39 @@ class CompletionRequest(BaseModel):
 
     prompt: str
     max_tokens: int = 50
+    config: str | None = None
 
 
 @app.post("/complete")
 def complete(req: CompletionRequest) -> dict:
     """Call Gemini to generate a text completion."""
 
-    prompt = modify_prompt(req.prompt, prompt_options)
-    if base_preprompt:
-        prompt = f"{base_preprompt}\n\n{prompt}"
+    # Load configuration based on the optional `config` parameter. Defaults
+    # to the main configuration loaded at startup.
+    cfg_local = cfg
+    if req.config:
+        cfg_path = CONFIG_DIR / f"{req.config}.json"
+        if not cfg_path.exists():
+            raise HTTPException(status_code=400, detail="Unknown config")
+        cfg_local = load_config(cfg_path)
+
+    local_prompt_options = cfg_local.get("prompt_options", {})
+    local_base_preprompt = cfg_local.get("base_preprompt", "")
+
+    prompt = modify_prompt(req.prompt, local_prompt_options)
+    if local_base_preprompt:
+        prompt = f"{local_base_preprompt}\n\n{prompt}"
     try:
+        genai.configure(api_key=cfg_local["api_key"])
+        model_local = genai.GenerativeModel(cfg_local["model"])
+        gen_config_defaults_local = cfg_local.get("generation_config", {})
         config = GenerationConfig(
             **{
-                **gen_config_defaults,
+                **gen_config_defaults_local,
                 "max_output_tokens": req.max_tokens,
             }
         )
-        resp = model.generate_content(
+        resp = model_local.generate_content(
             prompt,
             generation_config=config,
         )
@@ -72,4 +92,14 @@ def complete(req: CompletionRequest) -> dict:
         raise HTTPException(status_code=502, detail=str(exc))
 
     return {"text": resp.text.strip()}
+
+
+@app.get("/configs")
+def list_configs() -> dict:
+    """Return available configuration names found in ``llm_configs``."""
+
+    configs = []
+    if CONFIG_DIR.exists():
+        configs = [p.stem for p in CONFIG_DIR.glob("*.json")]
+    return {"configs": configs}
 
