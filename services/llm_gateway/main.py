@@ -2,8 +2,13 @@
 
 import os
 
-from openai import OpenAI
-from fastapi import FastAPI
+try:  # pragma: no cover - library may not be installed during tests
+    from openai import OpenAI, OpenAIError, RateLimitError
+except Exception:  # pragma: no cover - openai is replaced with a stub in tests
+    from openai import OpenAI  # type: ignore
+    OpenAIError = Exception  # type: ignore
+    RateLimitError = Exception  # type: ignore
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 # Import the prompt modification helper. When the service runs inside Docker the
@@ -41,10 +46,22 @@ def complete(req: CompletionRequest) -> dict:
     """Call OpenAI to generate a text completion."""
 
     prompt = modify_prompt(req.prompt)
-    resp = client.chat.completions.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=req.max_tokens,
-    )
+    try:
+        resp = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=req.max_tokens,
+        )
+    except RateLimitError as exc:  # pragma: no cover - requires actual API call
+        # If the OpenAI API rejects the request due to usage limits or invalid
+        # credentials return a 429 to indicate the upstream service is
+        # unavailable. This normally happens in development when the API key is
+        # missing or exhausted.
+        raise HTTPException(status_code=429, detail=str(exc))
+    except OpenAIError as exc:  # pragma: no cover - requires actual API call
+        # Catch all other OpenAI related errors and return a generic 502 so the
+        # caller knows the request failed.
+        raise HTTPException(status_code=502, detail=str(exc))
+
     return {"text": resp.choices[0].message.content.strip()}
 

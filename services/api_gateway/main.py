@@ -8,7 +8,7 @@ lightweight HTTP request to another service and returns the response verbatim.
 import os
 
 import httpx
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -53,7 +53,14 @@ def complete(prompt: Prompt) -> dict:
     """Proxy text completion requests to the LLM Gateway."""
 
     resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict())
-    resp.raise_for_status()
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError:
+        # Bubble up the error from the LLM Gateway so the client receives a
+        # meaningful status code instead of a generic 500 from this service.
+        detail = resp.json().get("detail", resp.text)
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+
     return resp.json()
 
 
