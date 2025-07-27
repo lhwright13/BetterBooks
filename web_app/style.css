@@ -1,19 +1,19 @@
 body {
   font-family: 'Inter', sans-serif;
-  background: #f4f4f9;
+  background: #121212;
   margin: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
-  color: #333;
+  color: #e0e0e0;
 }
 
 .container {
-  background: #fff;
+  background: #1e1e1e;
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
   width: 400px;
 }
 
@@ -21,6 +21,7 @@ h1 {
   margin-top: 0;
   font-weight: 600;
   text-align: center;
+  color: #d0b3ff;
 }
 
 textarea {
@@ -30,8 +31,10 @@ textarea {
   padding: 0.5rem;
   font-size: 1rem;
   border-radius: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid #444;
   resize: vertical;
+  background-color: #1e1e1e;
+  color: #e0e0e0;
 }
 
 button {
@@ -39,7 +42,7 @@ button {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  background-color: #4c6ef5;
+  background-color: #9b5de5;
   color: #fff;
   cursor: pointer;
   font-weight: 600;
@@ -47,19 +50,23 @@ button {
 }
 
 button:hover {
-  background-color: #364fc7;
+  background-color: #7b2cbf;
 }
 
 #response {
   margin-top: 1rem;
-  background: #f1f3f5;
+  background: #2c2c2c;
   padding: 1rem;
   border-radius: 4px;
   white-space: pre-wrap;
+  color: #e0e0e0;
 }
 
 input[type="file"] {
   margin-top: 1rem;
+  color: #e0e0e0;
+  background-color: #1e1e1e;
+  border: 1px solid #444;
 }
 
 audio {
