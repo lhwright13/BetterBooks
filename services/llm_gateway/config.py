@@ -18,7 +18,7 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     if cfg_path.exists():
         with open(cfg_path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-    data.setdefault("model", "gemini-pro")
+    data.setdefault("model", "gemini-2.0-flash")
     data.setdefault("generation_config", {"temperature": 0.7})
     env_key = os.getenv("GEMINI_API_KEY")
     if env_key:

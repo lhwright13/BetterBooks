@@ -1,7 +1,7 @@
 # LLM Gateway
 
-Provides a REST endpoint that proxies requests to the configured language model
-(Gemini by default).
+Provides a REST endpoint that proxies requests to the configured Gemini
+language model. By default it uses the `gemini-2.0-flash` model.
 
 ### Running
 
