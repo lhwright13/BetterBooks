@@ -1,0 +1,13 @@
+{
+  "api_key": "",
+  "model": "gemini-2.0-flash",
+  "generation_config": {
+    "temperature": 0.7
+  },
+  "prompt_options": {
+    "tone": "helpful",
+    "length": "concise",
+    "persona": "friendly assistant"
+  },
+  "base_preprompt": "You are speaking to an audiobook enthusiast using the BetterBooks platform."
+}

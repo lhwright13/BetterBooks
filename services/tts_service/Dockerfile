@@ -1,15 +1,16 @@
 FROM python:3.11-slim
 WORKDIR /app
 
-# Install system libraries required by Coqui TTS
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         libsndfile1 \
         espeak-ng \
         g++ \
-        cargo \
-        rustc \
+        curl \
+    && curl https://sh.rustup.rs -sSf | sh -s -- -y \
     && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.cargo/bin:$PATH"
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

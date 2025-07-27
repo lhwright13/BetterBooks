@@ -1,4 +1,4 @@
-# TTS Service
+# TTS Service (text to speech)
 
 Generates speech audio using [Coqui TTS](https://github.com/coqui-ai/TTS).
 
