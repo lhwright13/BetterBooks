@@ -9,6 +9,7 @@ import os
 
 import httpx
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Base URLs for the other services. These can be overridden via environment
@@ -19,6 +20,15 @@ TTS_URL = os.getenv("TTS_SERVICE_URL", "http://tts_service:8000")
 
 # Main FastAPI application used by the unit tests and docker-compose setup
 app = FastAPI()
+
+# Allow requests from the web demo running on a different port. Without CORS
+# the browser would block calls from the 8080 UI to the gateway on 8000.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health() -> dict:

@@ -39,6 +39,8 @@ services:
 
   llm_gateway:
     build: ./services/llm_gateway
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
       - "8002:8000"
 
