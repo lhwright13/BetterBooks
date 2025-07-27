@@ -6,6 +6,8 @@ from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+from .prompt_modifier import modify_prompt
+
 # Create an OpenAI client using the API key provided in the environment.  When
 # running unit tests the key may not be set so we fall back to a dummy value to
 # avoid initialization errors.
@@ -31,10 +33,11 @@ class CompletionRequest(BaseModel):
 def complete(req: CompletionRequest) -> dict:
     """Call OpenAI to generate a text completion."""
 
-    resp = client.completions.create(
-        model="gpt-3.5-turbo-instruct",
-        prompt=req.prompt,
+    prompt = modify_prompt(req.prompt)
+    resp = client.chat.completions.create(
+        model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+        messages=[{"role": "user", "content": prompt}],
         max_tokens=req.max_tokens,
     )
-    return {"text": resp.choices[0].text.strip()}
+    return {"text": resp.choices[0].message.content.strip()}
 

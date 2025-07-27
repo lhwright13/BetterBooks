@@ -25,8 +25,10 @@ def test_llm_gateway_health():
     """Health check for the LLM Gateway with OpenAI mocked out."""
 
     with patch(
-        "openai.resources.completions.Completions.create",
-        lambda *a, **kwargs: MagicMock(choices=[MagicMock(text="hi")]),
+        "openai.resources.chat.completions.Completions.create",
+        lambda *a, **kwargs: MagicMock(
+            choices=[MagicMock(message=MagicMock(content="hi"))]
+        ),
     ):
         mod = importlib.import_module("services.llm_gateway.main")
         client = TestClient(mod.app)
