@@ -23,16 +23,16 @@ This repository includes a `docker-compose.yml` file for spinning up all
 services along with a Postgres database. Docker and Docker Compose must be
 installed.
 
-1. Export your OpenAI API key so it can be passed into the language model
+1. Export your Gemini API key so it can be passed into the language model
    service and then start the stack:
 
    ```bash
-   export OPENAI_API_KEY=your-key
+   export GEMINI_API_KEY=your-key
    docker-compose up --build
    ```
 
    You can confirm the key is available inside the container with
-   `docker-compose exec llm_gateway env | grep OPENAI_API_KEY`.
+   `docker-compose exec llm_gateway env | grep GEMINI_API_KEY`.
 
    The command builds the service images (if necessary) and starts the full
    stack. You can also start everything using the helper script:
@@ -41,10 +41,8 @@ installed.
    ./scripts/run_app.sh
    ```
 
-   The LLM Gateway uses version 1.x of the `openai` Python package. If the
-   image build installs an older release the gateway will fail to start with
-   an import error. Ensure the build has network access so `openai>=1.0` can be
-   installed.
+   The LLM Gateway relies on the `google-generativeai` package. Ensure the
+   image build has network access so the latest version can be installed.
 
 2. Once running you can access the services on the following ports:
 

@@ -8,7 +8,7 @@ The Flutter application lives under `mobile_app/`. Edit `lib/main.dart` or add n
 
 ## 2. Experiment with different language models
 
-The service responsible for interacting with the language model is `services/llm_gateway`. Modify `main.py` or replace the OpenAI client with a different provider to try other models. The API Gateway forwards `/complete` requests directly to this service.
+The service responsible for interacting with the language model is `services/llm_gateway`. Modify `main.py` or adjust `config.json` to experiment with different models. The API Gateway forwards `/complete` requests directly to this service.
 
 ## 3. Change the preprompt
 
