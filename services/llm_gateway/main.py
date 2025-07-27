@@ -2,12 +2,12 @@
 
 import os
 
-import openai
+from openai import OpenAI
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-# Configure the OpenAI SDK using the API key provided in the environment.
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Create an OpenAI client using the API key provided in the environment.
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # FastAPI application instance
 app = FastAPI()
@@ -29,7 +29,7 @@ class CompletionRequest(BaseModel):
 def complete(req: CompletionRequest) -> dict:
     """Call OpenAI to generate a text completion."""
 
-    resp = openai.Completion.create(
+    resp = client.completions.create(
         model="text-davinci-003",
         prompt=req.prompt,
         max_tokens=req.max_tokens,
