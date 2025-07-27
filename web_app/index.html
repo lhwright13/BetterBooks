@@ -3,21 +3,23 @@
 <head>
   <meta charset="utf-8">
   <title>BetterBooks Demo</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
-    textarea { width: 300px; height: 80px; display:block; margin-top:1rem; }
-    #response { margin-top: 1rem; white-space: pre-wrap; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>BetterBooks Demo</h1>
-  <input type="file" id="audioFile" accept="audio/*" />
-  <br/>
-  <audio id="audioPlayer" controls></audio>
-  <textarea id="prompt" placeholder="Ask a question"></textarea>
-  <button id="sendText">Send</button>
-  <button id="startVoice">Speak</button>
-  <div id="response"></div>
+  <div class="container">
+    <h1>BetterBooks Demo</h1>
+    <input type="file" id="audioFile" accept="audio/*" />
+    <audio id="audioPlayer" controls></audio>
+    <textarea id="prompt" placeholder="Ask a question"></textarea>
+    <div>
+      <button id="sendText">Send</button>
+      <button id="startVoice">Speak</button>
+    </div>
+    <div id="response"></div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
