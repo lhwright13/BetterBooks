@@ -1,3 +1,5 @@
+"""REST service that manages embeddings in a Postgres database."""
+
 import os
 from typing import List
 
@@ -6,8 +8,13 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from pgvector.psycopg import register_vector
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/postgres")
+# Connection string for the Postgres instance. The default is compatible with
+# the docker-compose configuration.
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:postgres@localhost/postgres"
+)
 
+# Establish a database connection when the service starts
 conn = psycopg.connect(DATABASE_URL)
 
 # Ensure the pgvector extension is available before registering the vector type
@@ -15,10 +22,11 @@ with conn.cursor() as cur:
     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
     conn.commit()
 
-# Register the vector type with psycopg
+# Register the custom pgvector type with psycopg
 register_vector(conn)
 
-# Create the embeddings table if it doesn't already exist
+# Create the embeddings table if it doesn't already exist. This table stores
+# 1536 dimensional embeddings keyed by an ID.
 with conn.cursor() as cur:
     cur.execute(
         """
@@ -30,25 +38,33 @@ with conn.cursor() as cur:
     )
     conn.commit()
 
+# FastAPI application instance
 app = FastAPI()
 
 @app.get("/health")
-def health():
+def health() -> dict:
+    """Basic liveness endpoint."""
+
     return {"status": "ok"}
 
 
 class EmbeddingItem(BaseModel):
+    """Model for inserting or updating an embedding."""
+
     id: str
     embedding: List[float]
 
 
 class SearchQuery(BaseModel):
+    """Query for similarity search."""
+
     embedding: List[float]
     top_k: int = 5
 
 
 @app.post("/embeddings")
-def add_embedding(item: EmbeddingItem):
+def add_embedding(item: EmbeddingItem) -> dict:
+    """Insert or update an embedding vector."""
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -63,7 +79,8 @@ def add_embedding(item: EmbeddingItem):
 
 
 @app.post("/search")
-def search_embeddings(query: SearchQuery):
+def search_embeddings(query: SearchQuery) -> dict:
+    """Find IDs of embeddings most similar to the query vector."""
     with conn.cursor() as cur:
         cur.execute(
             "SELECT id FROM embeddings ORDER BY embedding <-> %s LIMIT %s",

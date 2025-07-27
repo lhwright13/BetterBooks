@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
+# Run the Python unit tests in a clean environment.
+
+# Exit on errors and fail on unset variables.
 set -euo pipefail
 
-# Install lightweight dependencies required for the tests
+# Install only the dependencies required for the tests (lighter than the full
+# runtime set because the TTS service is mocked).
 pip install -r services/api_gateway/requirements.txt \
             -r services/context_service/requirements.txt \
             -r services/llm_gateway/requirements.txt \
             pgvector pytest
 
+# Execute pytest in quiet mode
 pytest -q

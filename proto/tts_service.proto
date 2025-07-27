@@ -1,3 +1,5 @@
+// gRPC definitions for the TTS Service
+
 syntax = "proto3";
 
 package betterbooks.tts;
