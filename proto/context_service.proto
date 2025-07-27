@@ -1,3 +1,5 @@
+// gRPC definitions for the Context Service
+
 syntax = "proto3";
 
 package betterbooks.context;

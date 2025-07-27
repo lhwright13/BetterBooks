@@ -1,3 +1,5 @@
+<!-- Documentation for protobuf message definitions -->
+
 # Protobuf Definitions
 
 Shared gRPC definitions for communication between services.

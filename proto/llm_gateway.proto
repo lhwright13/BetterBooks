@@ -1,3 +1,5 @@
+// gRPC definitions for the LLM Gateway service
+
 syntax = "proto3";
 
 package betterbooks.llm;
