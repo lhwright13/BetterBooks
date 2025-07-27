@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 def complete(prompt: Prompt) -> dict:
     """Proxy text completion requests to the LLM Gateway."""
 
-    resp = httpx.post(f"{LLM_URL}/complete", json=prompt.dict(exclude_none=True))
+    resp = httpx.post(f"{LLM_URL}/complete", json=prompt.model_dump(exclude_none=True), timeout=60.0)
     try:
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
@@ -79,12 +79,14 @@ def tts(text: Text) -> dict:
     """Proxy text-to-speech synthesis requests to the TTS Service."""
     resp = httpx.post(
         f"{TTS_URL}/synthesize",
-        json=text.dict(),
+        json=text.model_dump(),
         timeout=30.0,
     )
     try:
         resp.raise_for_status()
-    except httpx.HTTPStatusError:
+    except httpx.HTTPStatusError as e:
+        # Log the error
+        logger.error(f"TTS Service returned an error: {e}")
         detail = resp.json().get("detail", resp.text)
         raise HTTPException(status_code=resp.status_code, detail=detail)
 

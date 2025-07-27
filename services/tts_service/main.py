@@ -47,16 +47,16 @@ def synthesize(req: SynthesisRequest) -> dict:
     # Let the TTS library synthesize and write the audio directly to file
     try:
         tts.tts_to_file(req.text, file_path=path)
+        
+        # Read the file back into memory and encode as base64 for transmission
+        with open(path, "rb") as f:
+            data = base64.b64encode(f.read()).decode()
     except RuntimeError as err:
-        os.remove(path)
         raise HTTPException(status_code=500, detail=str(err)) from err
-
-    # Read the file back into memory and encode as base64 for transmission
-    with open(path, "rb") as f:
-        data = base64.b64encode(f.read()).decode()
-
-    # Clean up the temporary file
-    os.remove(path)
+    finally:
+        # Always clean up the temporary file
+        if os.path.exists(path):
+            os.remove(path)
 
     return {"audio": data}
 

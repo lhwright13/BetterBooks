@@ -11,7 +11,7 @@ from pgvector.psycopg import register_vector
 # Connection string for the Postgres instance. The default is compatible with
 # the docker-compose configuration.
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://postgres:postgres@localhost/postgres"
+    "DATABASE_URL", "postgresql://betterbooks:betterbooks@postgres:5432/betterbooks"
 )
 
 # Establish a database connection when the service starts
@@ -83,7 +83,7 @@ def search_embeddings(query: SearchQuery) -> dict:
     """Find IDs of embeddings most similar to the query vector."""
     with conn.cursor() as cur:
         cur.execute(
-            "SELECT id FROM embeddings ORDER BY embedding <-> %s LIMIT %s",
+            "SELECT id FROM embeddings ORDER BY embedding <-> %s::vector LIMIT %s",
             (query.embedding, query.top_k),
         )
         rows = cur.fetchall()

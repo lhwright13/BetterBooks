@@ -1,5 +1,6 @@
 """Utility functions for customizing prompts before sending them to the LLM."""
 
+import re
 from typing import Any, Dict
 
 
@@ -34,7 +35,9 @@ def modify_prompt(prompt: str, options: Dict[str, Any] | None = None) -> str:
         extras.append(f"Respond as the {persona}.")
 
     if not extras:
-        return prompt
+        # Remove emojis and other non-TTS-friendly characters
+        return re.sub(r"[^\w\s.,!?'\"]", '', prompt)
 
     preprompt = " ".join(extras)
-    return f"{preprompt}\n\n{prompt}"
+    filtered_prompt = re.sub(r"[^\w\s.,!?'\"]", '', prompt)
+    return f"{preprompt}\n\n{filtered_prompt}"

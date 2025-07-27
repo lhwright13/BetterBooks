@@ -40,9 +40,11 @@ services:
   llm_gateway:
     build: ./services/llm_gateway
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8002:8000"
+    volumes:
+      - ./llm_configs:/app/llm_configs
 
   tts_service:
     build: ./services/tts_service
