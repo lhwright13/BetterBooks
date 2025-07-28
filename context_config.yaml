@@ -1,0 +1,29 @@
+context:
+  # Context extraction settings
+  duration_minutes: 1  # How many minutes of audio context to extract (reduced for faster processing)
+  overlap_seconds: 15   # Overlap with previous context window
+  
+  # Transcription settings
+  transcription:
+    enabled: true
+    service: "whisper"  # Options: whisper, google, azure
+    model: "tiny"       # Whisper model: tiny, base, small, medium, large (tiny is fastest)
+    language: "en"      # Language code for transcription
+    
+  # Context delivery settings
+  delivery:
+    max_context_tokens: 1000  # Maximum tokens to send as context
+    include_timestamps: true   # Include timestamps in context
+    include_speaker_info: false  # Detect and include speaker changes
+    
+  # Storage settings
+  storage:
+    cache_transcripts: true     # Cache transcripts to avoid re-processing
+    cache_duration_hours: 24    # How long to keep cached transcripts
+    transcript_format: "json"   # Format: json, txt, srt
+    
+  # Performance settings
+  processing:
+    chunk_size_mb: 10          # Process audio in chunks of this size
+    parallel_processing: true   # Process multiple chunks simultaneously
+    max_concurrent_jobs: 3      # Maximum concurrent transcription jobs

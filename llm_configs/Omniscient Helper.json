@@ -1,0 +1,28 @@
+{
+  "api_key": "",
+  "model": "gemini-2.0-flash",
+  "generation_config": {
+    "temperature": 0.7
+  },
+  "prompt_options": {
+    "tone": "helpful",
+    "length": "concise",
+    "persona": "friendly assistant"
+  },
+  "base_preprompt": "You are speaking to an audiobook enthusiast using the BetterBooks platform.",
+  "tts_config": {
+    "voice": {
+      "language_code": "en-US",
+      "name": "en-US-Neural2-F",
+      "ssml_gender": "FEMALE"
+    },
+    "audio_config": {
+      "audio_encoding": "MP3",
+      "speaking_rate": 1.2,
+      "pitch": 0.0,
+      "volume_gain_db": 2.0,
+      "sample_rate_hertz": 24000,
+      "effects_profile_id": ["headphone-class-device"]
+    }
+  }
+}

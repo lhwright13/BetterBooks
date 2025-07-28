@@ -5,10 +5,12 @@ import types
 
 try:  # pragma: no cover - library may not be installed during tests
     import google.generativeai as genai
-    from google.generativeai.types import GenerationConfig
+    from google.generativeai.types import GenerationConfig, HarmCategory, HarmBlockThreshold
 except Exception:  # pragma: no cover - the library may be stubbed in tests
     genai = types.SimpleNamespace(configure=lambda *a, **k: None, GenerativeModel=lambda *a, **k: None)  # type: ignore
     GenerationConfig = dict  # type: ignore
+    HarmCategory = types.SimpleNamespace()  # type: ignore
+    HarmBlockThreshold = types.SimpleNamespace()  # type: ignore
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -63,7 +65,7 @@ class CompletionRequest(BaseModel):
     """Schema for completion requests."""
 
     prompt: str
-    max_tokens: int = 50
+    max_tokens: int = 4000
     config: str | None = None
 
 
@@ -102,9 +104,19 @@ def complete(req: CompletionRequest) -> dict:
             }
         )
         print(f"Final prompt: {prompt}")
+        
+        # Safety settings to prevent truncation
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        
         resp = model_local.generate_content(
             prompt,
             generation_config=config,
+            safety_settings=safety_settings,
         )
     except Exception as exc:  # pragma: no cover - requires actual API call
         raise HTTPException(status_code=502, detail=str(exc))
