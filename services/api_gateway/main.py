@@ -6,10 +6,13 @@ lightweight HTTP request to another service and returns the response verbatim.
 """
 
 import os
+from pathlib import Path
+from typing import List
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 # Base URLs for the other services. These can be overridden via environment
@@ -17,6 +20,10 @@ from pydantic import BaseModel
 CONTEXT_URL = os.getenv("CONTEXT_SERVICE_URL", "http://context_service:8000")
 LLM_URL = os.getenv("LLM_GATEWAY_URL", "http://llm_gateway:8000")
 TTS_URL = os.getenv("TTS_SERVICE_URL", "http://tts_service:8000")
+TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription_service:8003")
+
+# Book files directory - will be mounted in Docker
+BOOK_FILES_DIR = Path("/app/book_files")
 
 # Main FastAPI application used by the unit tests and docker-compose setup
 app = FastAPI()
@@ -47,6 +54,15 @@ class Text(BaseModel):
     """Request body for the `/tts` endpoint."""
 
     text: str
+    config: str | None = None
+
+
+class ContextRequest(BaseModel):
+    """Request body for the `/context` endpoint."""
+    
+    book_name: str
+    chapter_name: str | None = None
+    current_position: float
 
 
 import logging
@@ -107,4 +123,145 @@ def search_context(query: dict) -> dict:
 
     resp = httpx.post(f"{CONTEXT_URL}/search", json=query)
     return resp.json()
+
+
+@app.post("/context")
+def get_context(request: ContextRequest) -> dict:
+    """Get contextual transcript around current playback position."""
+    resp = httpx.post(
+        f"{TRANSCRIPTION_URL}/context", 
+        json=request.model_dump(),
+        timeout=60.0
+    )
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Transcription Service returned an error: {e}")
+        detail = resp.json().get("detail", resp.text)
+        raise HTTPException(status_code=resp.status_code, detail=detail)
+    
+    return resp.json()
+
+
+@app.post("/books/upload")
+async def upload_book(file: UploadFile = File(...)):
+    """Upload a single MP3 audiobook file."""
+    if not file.filename.endswith('.mp3'):
+        raise HTTPException(status_code=400, detail="Only MP3 files are supported")
+    
+    # Ensure book files directory exists
+    BOOK_FILES_DIR.mkdir(exist_ok=True)
+    
+    # Save the uploaded file
+    file_path = BOOK_FILES_DIR / file.filename
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    
+    return {"message": f"Book '{file.filename}' uploaded successfully", "path": str(file_path)}
+
+
+@app.post("/books/upload-chapters")
+async def upload_chapters(book_name: str, files: List[UploadFile] = File(...)):
+    """Upload multiple MP3 chapter files for a book."""
+    # Validate all files are MP3
+    for file in files:
+        if not file.filename.endswith('.mp3'):
+            raise HTTPException(status_code=400, detail=f"File '{file.filename}' is not an MP3")
+    
+    # Create book directory
+    book_dir = BOOK_FILES_DIR / book_name
+    book_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save all chapter files
+    saved_files = []
+    for file in files:
+        file_path = book_dir / file.filename
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        saved_files.append(file.filename)
+    
+    return {
+        "message": f"Book '{book_name}' with {len(files)} chapters uploaded successfully",
+        "chapters": saved_files,
+        "path": str(book_dir)
+    }
+
+
+@app.get("/books/list")
+def list_books():
+    """List all available audiobooks (single files and chapter folders)."""
+    if not BOOK_FILES_DIR.exists():
+        return {"books": [], "chapters": []}
+    
+    single_books = []
+    chapter_books = []
+    
+    for item in BOOK_FILES_DIR.iterdir():
+        if item.is_file() and item.suffix == '.mp3':
+            single_books.append({
+                "name": item.stem,
+                "filename": item.name,
+                "type": "single",
+                "size": item.stat().st_size
+            })
+        elif item.is_dir():
+            mp3_files = list(item.glob("*.mp3"))
+            if mp3_files:
+                chapter_books.append({
+                    "name": item.name,
+                    "type": "chapters",
+                    "chapter_count": len(mp3_files),
+                    "chapters": [f.name for f in sorted(mp3_files)]
+                })
+    
+    return {"single_books": single_books, "chapter_books": chapter_books}
+
+
+@app.delete("/books/{book_name}")
+def delete_book(book_name: str):
+    """Delete a book (single file or chapter folder)."""
+    # Try single file first
+    single_file = BOOK_FILES_DIR / f"{book_name}.mp3"
+    if single_file.exists():
+        single_file.unlink()
+        return {"message": f"Single book '{book_name}' deleted successfully"}
+    
+    # Try chapter folder
+    chapter_dir = BOOK_FILES_DIR / book_name
+    if chapter_dir.exists() and chapter_dir.is_dir():
+        import shutil
+        shutil.rmtree(chapter_dir)
+        return {"message": f"Chapter book '{book_name}' deleted successfully"}
+    
+    raise HTTPException(status_code=404, detail="Book not found")
+
+
+@app.get("/books/play/{filename}")
+def play_single_book(filename: str):
+    """Serve a single MP3 book file."""
+    file_path = BOOK_FILES_DIR / filename
+    if not file_path.exists() or not file_path.suffix == '.mp3':
+        raise HTTPException(status_code=404, detail="Book file not found")
+    
+    return FileResponse(
+        path=file_path,
+        media_type="audio/mpeg",
+        filename=filename
+    )
+
+
+@app.get("/books/play/{book_name}/{chapter_filename}")
+def play_chapter(book_name: str, chapter_filename: str):
+    """Serve a chapter MP3 file from a chapter book."""
+    file_path = BOOK_FILES_DIR / book_name / chapter_filename
+    if not file_path.exists() or not file_path.suffix == '.mp3':
+        raise HTTPException(status_code=404, detail="Chapter file not found")
+    
+    return FileResponse(
+        path=file_path,
+        media_type="audio/mpeg",
+        filename=chapter_filename
+    )
 

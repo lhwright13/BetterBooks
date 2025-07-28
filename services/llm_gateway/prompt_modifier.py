@@ -39,5 +39,6 @@ def modify_prompt(prompt: str, options: Dict[str, Any] | None = None) -> str:
         return re.sub(r"[^\w\s.,!?'\"]", '', prompt)
 
     preprompt = " ".join(extras)
+    preprompt += " Do not use markdown formatting, asterisks, or special characters in your response. Use plain text only."
     filtered_prompt = re.sub(r"[^\w\s.,!?'\"]", '', prompt)
     return f"{preprompt}\n\n{filtered_prompt}"

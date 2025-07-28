@@ -16,3 +16,13 @@ infra/terraform/.terraform/
 
 # Node modules (if any)
 node_modules/
+
+# Book files - MP3 audiobooks should not be committed
+book_files/
+*.mp3
+
+# Transcription cache
+transcript_cache/
+
+CLAUDE.md
+.env

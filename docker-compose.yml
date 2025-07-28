@@ -21,12 +21,16 @@ services:
       CONTEXT_SERVICE_URL: http://context_service:8000
       LLM_GATEWAY_URL: http://llm_gateway:8000
       TTS_SERVICE_URL: http://tts_service:8000
+      TRANSCRIPTION_SERVICE_URL: http://transcription_service:8003
     depends_on:
       - context_service
       - llm_gateway
       - tts_service
+      - transcription_service
     ports:
       - "8000:8000"
+    volumes:
+      - ./book_files:/app/book_files
 
   context_service:
     build: ./services/context_service
@@ -48,8 +52,21 @@ services:
 
   tts_service:
     build: ./services/tts_service
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
-      - "8003:8000"
+      - "8004:8000"
+    volumes:
+      - ./llm_configs:/app/llm_configs
+
+  transcription_service:
+    build: ./services/transcription_service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./book_files:/app/book_files
+      - ./context_config.yaml:/context_config.yaml
+      - transcription_cache:/app/transcript_cache
 
   web_app:
     build: ./web_app
@@ -60,3 +77,4 @@ services:
 
 volumes:
   postgres_data:
+  transcription_cache:
