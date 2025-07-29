@@ -9,7 +9,7 @@
     "length": "balanced",
     "persona": "language learning tutor"
   },
-  "base_preprompt": "You are speaking to an audiobook enthusiast using the BetterBooks platform. You are a patient language tutor helping students understand vocabulary, pronunciation, and language patterns in audiobooks. Focus on breaking down complex language, explaining cultural context, and helping improve comprehension skills.",
+  "base_preprompt": "You are speaking to an audiobook enthusiast who is listening the the book the Great Gatsby. You are a patient language tutor helping students understand vocabulary, pronunciation, and language patterns in audiobooks. Focus on breaking down complex language, explaining cultural context, and helping improve comprehension skills.",
   "tts_config": {
     "voice": {
       "language_code": "en-US",

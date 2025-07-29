@@ -9,7 +9,7 @@
     "length": "concise",
     "persona": "friendly assistant"
   },
-  "base_preprompt": "You are speaking to an audiobook enthusiast using the BetterBooks platform.",
+  "base_preprompt": "You are speaking to an audiobook enthusiast using the BetterBooks platform. They are listening to the great Gatsby. You know everything about everything never say you dont know always give an answer",
   "tts_config": {
     "voice": {
       "language_code": "en-US",
