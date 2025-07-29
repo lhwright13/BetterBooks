@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../api_config.dart';
 
 class HomeTabScreen extends StatefulWidget {
   @override
@@ -74,7 +75,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Image.network(
-                            'http://localhost:8000/books/cover/${Uri.encodeComponent(appState.currentBook!.title)}',
+                            '$apiBaseUrl/books/cover/${Uri.encodeComponent(appState.currentBook!.title)}',
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,

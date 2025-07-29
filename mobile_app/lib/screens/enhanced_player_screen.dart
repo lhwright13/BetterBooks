@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
+import '../api_config.dart';
 
 class EnhancedPlayerScreen extends StatefulWidget {
   @override
@@ -90,7 +91,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.network(
-                            'http://localhost:8000/books/cover/${Uri.encodeComponent(book.title)}',
+                            '$apiBaseUrl/books/cover/${Uri.encodeComponent(book.title)}',
                             width: 200,
                             height: 200,
                             fit: BoxFit.cover,
