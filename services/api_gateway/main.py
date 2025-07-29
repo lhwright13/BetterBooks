@@ -42,7 +42,6 @@ def health() -> dict:
     """Simple liveness probe used by tests and Kubernetes."""
     return {"status": "ok"}
 
-
 class Prompt(BaseModel):
     """Request body for the `/complete` endpoint."""
 
@@ -69,8 +68,6 @@ import logging
 
 # Create a logger
 logger = logging.getLogger(__name__)
-
-# Existing code...
 
 @app.post("/complete")
 def complete(prompt: Prompt) -> dict:
@@ -264,4 +261,44 @@ def play_chapter(book_name: str, chapter_filename: str):
         media_type="audio/mpeg",
         filename=chapter_filename
     )
+
+
+@app.get("/books/cover/{book_name}")
+def get_book_cover(book_name: str):
+    """Serve a book cover image."""
+    # Direct path to the Gatsby cover
+    if book_name == "the Great Gatsby":
+        file_path = BOOK_FILES_DIR / "the Great Gatsby" / "GatsbyCover.jpg"
+        if file_path.exists():
+            return FileResponse(
+                path=file_path,
+                media_type="image/jpeg",
+                filename="GatsbyCover.jpg"
+            )
+    
+    # General logic for other books
+    book_dir = BOOK_FILES_DIR / book_name
+    if not book_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Book directory not found: {book_name}")
+    
+    # Try common image extensions
+    for ext in ['.jpg', '.jpeg', '.png', '.webp']:
+        # Try different common cover file names
+        for cover_name in ['cover', 'Cover', f'{book_name}Cover', f'{book_name.replace(" ", "")}Cover']:
+            file_path = book_dir / f"{cover_name}{ext}"
+            if file_path.exists():
+                media_type = {
+                    '.jpg': 'image/jpeg',
+                    '.jpeg': 'image/jpeg', 
+                    '.png': 'image/png',
+                    '.webp': 'image/webp'
+                }.get(ext.lower(), 'image/jpeg')
+                
+                return FileResponse(
+                    path=file_path,
+                    media_type=media_type,
+                    filename=f"{cover_name}{ext}"
+                )
+    
+    raise HTTPException(status_code=404, detail="Book cover not found")
 

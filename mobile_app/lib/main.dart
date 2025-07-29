@@ -1,20 +1,37 @@
-// Entry point for the Flutter application
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'providers/app_state.dart';
+import 'screens/main_home_screen.dart';
+import 'screens/library_screen.dart';
+import 'screens/enhanced_player_screen.dart';
+import 'screens/chat_screen.dart';
+import 'screens/user_settings_screen.dart';
 
-// The Flutter `main` function simply runs the `MyApp` widget.
 void main() {
-  runApp(const MyApp());
+  runApp(const BetterBooksApp());
 }
 
-// Basic placeholder widget displaying the app name on screen.
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class BetterBooksApp extends StatelessWidget {
+  const BetterBooksApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(child: Text('BetterBooks')),
+    return ChangeNotifierProvider(
+      create: (context) => AppState(),
+      child: MaterialApp(
+        title: 'BetterBooks',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => MainHomeScreen(),
+          '/library': (context) => LibraryScreen(),
+          '/player': (context) => EnhancedPlayerScreen(),
+          '/chat': (context) => ChatScreen(),
+          '/settings': (context) => UserSettingsScreen(),
+        },
       ),
     );
   }
