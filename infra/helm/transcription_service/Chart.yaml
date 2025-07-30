@@ -1,0 +1,5 @@
+apiVersion: v2
+name: transcription_service
+description: BetterBooks Transcription Service
+version: 1.0.0
+appVersion: "1.0.0"
