@@ -1,13 +1,19 @@
-import 'dart:js' as js;
 import 'dart:async';
 
+// Web-only imports
+import 'dart:js' as js;
+
 class WebSpeechService {
-  static js.JsObject? _recognition;
+  static dynamic _recognition;
   static Completer<String>? _completer;
   static bool _isListening = false;
 
   static bool get isSupported {
     try {
+      // Only supported on web platform
+      if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
+        return false;
+      }
       final hasWebkit = js.context.hasProperty('webkitSpeechRecognition');
       final hasStandard = js.context.hasProperty('SpeechRecognition');
       print('DEBUG: webkitSpeechRecognition: $hasWebkit, SpeechRecognition: $hasStandard');
