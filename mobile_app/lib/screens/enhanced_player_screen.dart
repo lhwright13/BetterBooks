@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:convert';
 import '../providers/app_state.dart';
-import '../services/api_service.dart';
 import '../api_config.dart';
+import '../widgets/css_ripple_widget.dart';
+import '../widgets/audio_input_handler.dart';
+import '../services/web_speech_service.dart';
+import '../services/api_service.dart';
+import '../services/audio_player_service.dart';
 
 class EnhancedPlayerScreen extends StatefulWidget {
   @override
   _EnhancedPlayerScreenState createState() => _EnhancedPlayerScreenState();
 }
 
+// Global question counter to persist across widget rebuilds
+int _globalQuestionIndex = 0;
+
 class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
   double _playbackSpeed = 1.0;
-  bool _isProcessingVoice = false;
   bool _wasPlayingBeforeVoice = false;
+  bool _isVoiceModeActive = false;
+  double _audioLevel = 0.0;
+  String _voiceStatus = 'Listening...';
 
   @override
   void initState() {
@@ -66,72 +74,84 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
             );
           }
 
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(24),
-                  child: Column(
-                    children: [
-                      // Book cover
-                      Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.network(
-                            '$apiBaseUrl/books/cover/${Uri.encodeComponent(book.title)}',
-                            width: 200,
-                            height: 200,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                width: 200,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.book,
-                                  size: 80,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                width: 200,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
+          return AudioInputHandler(
+            isListening: _isVoiceModeActive,
+            onAudioLevel: (level) {
+              setState(() {
+                _audioLevel = level;
+              });
+            },
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            // Book cover with shader ripple effect
+                            Container(
+                              width: 200,
+                              height: 200,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: CSSRippleWidget(
+                                  isActive: _isVoiceModeActive,
+                                  audioLevel: _audioLevel,
+                                  child: Image.network(
+                                    '$apiBaseUrl/books/cover/${Uri.encodeComponent(book.title)}',
+                                    width: 200,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: 200,
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Icon(
+                                          Icons.book,
+                                          size: 80,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      );
+                                    },
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        width: 200,
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress.expectedTotalBytes != null
+                                                ? loadingProgress.cumulativeBytesLoaded /
+                                                    loadingProgress.expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
+                              ),
+                            ),
                       SizedBox(height: 24),
                       
                       // Book title
@@ -269,18 +289,10 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         width: double.infinity,
                         height: 60,
                         child: ElevatedButton.icon(
-                          onPressed: _isProcessingVoice ? null : _startVoiceQuery,
-                          icon: _isProcessingVoice
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Icon(Icons.mic_none, size: 24),
+                          onPressed: _startVoiceQuery,
+                          icon: Icon(Icons.mic_none, size: 24),
                           label: Text(
-                            _isProcessingVoice
-                                ? 'Processing...'
-                                : 'Ask AI with voice',
+                            'Ask AI with voice',
                             style: TextStyle(fontSize: 16),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -371,7 +383,147 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                 ),
               ),
             ],
-          );
+          ),
+          
+          // Voice mode overlay - dims everything except the book cover
+          if (_isVoiceModeActive)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Book cover with ripples (larger in voice mode)
+                    Container(
+                      width: 280,
+                      height: 280,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.3),
+                            blurRadius: 20,
+                            spreadRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: CSSRippleWidget(
+                          isActive: true,
+                          audioLevel: _audioLevel,
+                          child: Consumer<AppState>(
+                            builder: (context, appState, child) {
+                              final book = appState.currentBook;
+                              return Image.network(
+                                '$apiBaseUrl/books/cover/${Uri.encodeComponent(book!.title)}',
+                                width: 280,
+                                height: 280,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 280,
+                                    height: 280,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Icon(
+                                      Icons.book,
+                                      size: 120,
+                                      color: Colors.white,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 40),
+                    
+                    // Status text
+                    Text(
+                      _voiceStatus,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w300,
+                      ),
+                    ),
+                    
+                    SizedBox(height: 20),
+                    
+                    // Audio level indicator
+                    Container(
+                      width: 200,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          width: 200 * _audioLevel,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 40),
+                    
+                    // Control buttons
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Type question button
+                        ElevatedButton(
+                          onPressed: _showQuickTextInput,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.keyboard, size: 20),
+                              SizedBox(width: 4),
+                              Text('Type'),
+                            ],
+                          ),
+                        ),
+                        
+                        // Stop button
+                        ElevatedButton(
+                          onPressed: _stopVoiceMode,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            shape: CircleBorder(),
+                            padding: EdgeInsets.all(20),
+                          ),
+                          child: Icon(Icons.stop, size: 32),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
         },
       ),
     );
@@ -394,124 +546,237 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
       appState.playPause();
     }
 
-    // Show voice input dialog (simulating speech-to-text for demonstration)
+    // Activate voice mode with dim screen and ripples
+    setState(() {
+      _isVoiceModeActive = true;
+      _voiceStatus = 'Listening... Speak now!';
+    });
+
+    try {
+      String voiceText;
+      
+      // Try Web Speech Recognition, but use fallback if it fails
+      try {
+        if (WebSpeechService.isSupported) {
+          setState(() {
+            _voiceStatus = 'Listening... Speak now! (or wait 5s for demo)';
+          });
+          
+          // Create a timeout to provide demo question if speech fails
+          voiceText = await Future.any([
+            WebSpeechService.startListening(),
+            Future.delayed(Duration(seconds: 5)).then((_) => 
+              throw Exception('Speech timeout - using demo question')),
+          ]);
+          
+          setState(() {
+            _voiceStatus = 'Processing: "$voiceText"';
+          });
+        } else {
+          throw Exception('Speech not supported');
+        }
+      } catch (speechError) {
+        print('DEBUG: Speech recognition failed: $speechError');
+        
+        // Fallback to demo questions with variety
+        final demoQuestions = [
+          "What are the main themes in this chapter?",
+          "Tell me about the symbolism of the green light",
+          "What is Gatsby's relationship with Daisy?",
+          "Explain the significance of the Valley of Ashes",
+          "What does the narrator think about the characters?",
+        ];
+        
+        voiceText = demoQuestions[_globalQuestionIndex % demoQuestions.length];
+        _globalQuestionIndex++; // Increment for next time
+        
+        print('DEBUG: Selected question #${_globalQuestionIndex-1}: "$voiceText"');
+        
+        setState(() {
+          _voiceStatus = 'Processing: "$voiceText" (demo question)';
+        });
+        
+        // Brief pause to show the demo question
+        await Future.delayed(Duration(seconds: 1));
+      }
+      
+      if (mounted && _isVoiceModeActive) {
+        // Get AI response
+        setState(() {
+          _voiceStatus = 'Getting AI response...';
+        });
+        
+        final response = await appState.processVoiceQuery(voiceText);
+        
+        setState(() {
+          _voiceStatus = 'Speaking response...';
+        });
+        
+        // Use backend TTS service to synthesize speech
+        try {
+          final audioBase64 = await ApiService.synthesizeSpeech(
+            response,
+            appState.selectedPersona!.name,
+          );
+          
+          if (audioBase64.isNotEmpty) {
+            // Play the base64 audio from backend TTS
+            await AudioPlayerService.playBase64Audio(audioBase64);
+          } else {
+            throw Exception('No audio data received from TTS service');
+          }
+        } catch (ttsError) {
+          // Fallback to Web Speech Synthesis if backend TTS fails
+          if (WebSpeechSynthesis.isSupported) {
+            await WebSpeechSynthesis.speak(response);
+          } else {
+            // Show text fallback if both TTS methods fail
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Voice response: $response'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+            await Future.delayed(Duration(seconds: 3));
+          }
+        }
+        
+        setState(() {
+          _voiceStatus = 'Voice interaction complete!';
+        });
+        
+        await Future.delayed(Duration(seconds: 1));
+        _stopVoiceMode();
+      }
+    } catch (e) {
+      setState(() {
+        _voiceStatus = 'Error: ${e.toString()}';
+      });
+      
+      await Future.delayed(Duration(seconds: 2));
+      _stopVoiceMode();
+    }
+  }
+
+  void _stopVoiceMode() {
+    // Stop any ongoing speech recognition
+    WebSpeechService.stop();
+    
+    // Stop any TTS audio playback
+    AudioPlayerService.stop();
+    
+    setState(() {
+      _isVoiceModeActive = false;
+      _audioLevel = 0.0;
+    });
+
+    // Resume audio if it was playing
+    if (_wasPlayingBeforeVoice) {
+      final appState = context.read<AppState>();
+      if (!appState.isPlaying) {
+        appState.playPause();
+      }
+    }
+  }
+
+  void _showQuickTextInput() async {
     final TextEditingController controller = TextEditingController();
     
-    showDialog(
+    final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.mic, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Voice Query'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Simulating voice input (speech-to-text not available in demo)',
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Type your voice question here...',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-              autofocus: true,
-            ),
-          ],
+        title: Text('Ask AI About The Book'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'What would you like to know?',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 2,
+          onSubmitted: (text) {
+            if (text.trim().isNotEmpty) {
+              Navigator.pop(context, text.trim());
+            }
+          },
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              
-              // Resume audio if it was playing
-              if (_wasPlayingBeforeVoice) {
-                context.read<AppState>().playPause();
-              }
-            },
+            onPressed: () => Navigator.pop(context),
             child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               final text = controller.text.trim();
               if (text.isNotEmpty) {
-                Navigator.pop(context);
-                _processVoiceQuery(text);
+                Navigator.pop(context, text);
               }
             },
-            child: Text('Send Voice Query'),
+            child: Text('Ask AI'),
           ),
         ],
       ),
     );
+
+    if (result != null && result.isNotEmpty) {
+      // Stop current voice mode and process the typed question
+      _stopVoiceMode();
+      _processTypedQuestion(result);
+    }
   }
 
-  void _processVoiceQuery(String voiceText) async {
-    if (voiceText.trim().isEmpty) {
-      // Resume audio if it was playing
-      if (_wasPlayingBeforeVoice) {
-        context.read<AppState>().playPause();
-      }
+  void _processTypedQuestion(String question) async {
+    final appState = context.read<AppState>();
+    
+    if (appState.selectedPersona == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select an AI persona first')),
+      );
       return;
     }
 
+    // Start voice mode for visual effects
     setState(() {
-      _isProcessingVoice = true;
+      _isVoiceModeActive = true;
+      _voiceStatus = 'Processing: "$question"';
     });
 
     try {
-      final appState = context.read<AppState>();
+      // Get AI response
+      final response = await appState.processVoiceQuery(question);
       
-      // Process voice query through app state (this will log it to chat)
-      final response = await appState.processVoiceQuery(voiceText);
+      setState(() {
+        _voiceStatus = 'Speaking response...';
+      });
       
-      // Synthesize speech response
-      final audioData = await ApiService.synthesizeSpeech(
+      // Use backend TTS to speak the response
+      final audioBase64 = await ApiService.synthesizeSpeech(
         response,
         appState.selectedPersona!.name,
       );
-
-      // Play the audio response (base64 encoded)
-      if (audioData.isNotEmpty) {
-        // TODO: Implement audio playback from base64 data
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Voice response ready (audio playback not yet implemented)'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+      
+      if (audioBase64.isNotEmpty) {
+        await AudioPlayerService.playBase64Audio(audioBase64);
       }
       
-      // Show success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Voice query processed! Check chat for details.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error processing voice: $e')),
-      );
-    } finally {
       setState(() {
-        _isProcessingVoice = false;
+        _voiceStatus = 'Voice interaction complete!';
       });
       
-      // Resume audio if it was playing
-      if (_wasPlayingBeforeVoice) {
-        context.read<AppState>().playPause();
-      }
+      await Future.delayed(Duration(seconds: 1));
+      _stopVoiceMode();
+      
+    } catch (e) {
+      setState(() {
+        _voiceStatus = 'Error: ${e.toString()}';
+      });
+      
+      await Future.delayed(Duration(seconds: 2));
+      _stopVoiceMode();
     }
   }
+
+
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
