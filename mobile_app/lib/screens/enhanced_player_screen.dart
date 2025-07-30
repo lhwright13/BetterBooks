@@ -4,9 +4,9 @@ import '../providers/app_state.dart';
 import '../api_config.dart';
 import '../widgets/css_ripple_widget.dart';
 import '../widgets/audio_input_handler.dart';
-import '../services/web_speech_service.dart';
+import '../services/speech_service_export.dart';
 import '../services/api_service.dart';
-import '../services/audio_player_service.dart';
+import '../services/audio_service_export.dart';
 
 class EnhancedPlayerScreen extends StatefulWidget {
   @override

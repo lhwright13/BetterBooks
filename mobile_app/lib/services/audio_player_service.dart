@@ -1,12 +1,21 @@
 import 'dart:convert';
-import 'dart:html' as html;
 import 'dart:async';
+import 'dart:io' show Platform;
+
+// Platform-specific imports
+import 'dart:html' as html if (dart.library.html) 'dart:html';
 
 class AudioPlayerService {
-  static html.AudioElement? _audioElement;
+  static dynamic _audioElement;
 
   static Future<void> playBase64Audio(String base64Audio) async {
     try {
+      // Only supported on web platform
+      if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
+        print('Audio playback not supported on this platform');
+        return;
+      }
+      
       // Stop any existing audio
       _audioElement?.pause();
       
