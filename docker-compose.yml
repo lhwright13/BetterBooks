@@ -1,4 +1,36 @@
-# Docker Compose configuration for running the BetterBooks stack locally
+# Docker Compose configuration for Muuchi audiobook companion platform
+#
+# This file defines the complete microservices architecture for local development
+# of the Muuchi audiobook companion app. It orchestrates all backend services,
+# databases, and the web demo application in a unified development environment.
+#
+# Architecture Overview:
+# - API Gateway (port 8000): Central entry point for client applications
+# - Context Service (port 8001): Vector embeddings and similarity search
+# - LLM Gateway (port 8002): AI persona management and text completion
+# - TTS Service (port 8004): Text-to-speech synthesis
+# - Transcription Service (port 8003): Audio transcription and context extraction
+# - PostgreSQL + pgvector: Vector database for embeddings storage
+# - Web App (port 8080): HTML/JS demo interface
+#
+# Key Features:
+# - Complete service mesh with proper networking
+# - Persistent data storage for PostgreSQL and transcription cache
+# - Volume mounts for book files and configuration sharing
+# - Environment variable configuration for API keys
+# - Service dependencies and health check orchestration
+#
+# Usage:
+# 1. Set GEMINI_API_KEY environment variable
+# 2. Run: docker-compose up --build
+# 3. Access web demo at http://localhost:8080
+# 4. API Gateway available at http://localhost:8000
+#
+# Development Notes:
+# - Book files stored in ./book_files/ (mounted to services)
+# - LLM persona configs in ./llm_configs/ (mounted to LLM services)
+# - PostgreSQL data persisted in named volume
+# - All services use internal Docker networking for communication
 
 version: "3.9"
 services:

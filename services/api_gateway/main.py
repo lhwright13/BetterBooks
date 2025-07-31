@@ -1,8 +1,39 @@
-"""Simple API Gateway used by the mobile application.
+"""
+API Gateway for Muuchi Audiobook Companion Platform
 
-The gateway forwards requests to the underlying microservices so the client
-only needs to communicate with one endpoint. Each function below performs a
-lightweight HTTP request to another service and returns the response verbatim.
+This service acts as the central entry point for all client applications (mobile app,
+web demo) to access the distributed Muuchi backend services. It implements a simple
+proxy pattern that forwards requests to appropriate microservices while providing
+a unified API interface.
+
+Key responsibilities:
+- Centralized API entry point for all client applications
+- Request routing and proxying to backend microservices
+- CORS handling for web client cross-origin requests
+- Audiobook file management and streaming
+- Error handling and status code propagation
+- Service endpoint abstraction and configuration
+
+Architecture:
+- Runs on port 8000 as the main API gateway
+- Proxies requests to Context Service (port 8001)
+- Proxies requests to LLM Gateway (port 8002) 
+- Proxies requests to TTS Service (port 8003)
+- Proxies requests to Transcription Service (port 8003)
+- Serves audiobook files and cover images directly
+- Handles file uploads for book management
+
+Endpoints:
+- /health: Service health check
+- /complete: AI text completion via LLM Gateway
+- /tts: Text-to-speech synthesis via TTS Service
+- /configs: List available AI persona configurations
+- /context: Retrieve contextual transcript information
+- /books/*: Audiobook file management and streaming
+- /books/cover/*: Book cover image serving
+
+Service URLs are configurable via environment variables for deployment flexibility.
+Book files are served from /app/book_files directory (mounted volume in Docker).
 """
 
 import os

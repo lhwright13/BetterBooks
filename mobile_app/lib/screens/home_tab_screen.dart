@@ -21,7 +21,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('BetterBooks'),
+        title: Text('Muuchi'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: Consumer<AppState>(
@@ -39,7 +39,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Welcome to BetterBooks',
+                          'Welcome to Muuchi',
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         SizedBox(height: 8),

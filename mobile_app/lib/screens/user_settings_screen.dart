@@ -251,7 +251,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                         ),
                         
                         ListTile(
-                          title: Text('BetterBooks'),
+                          title: Text('Muuchi'),
                           subtitle: Text('AI-powered audiobook experience'),
                           leading: Icon(Icons.book),
                         ),

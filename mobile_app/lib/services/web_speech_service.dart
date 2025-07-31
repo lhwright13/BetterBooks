@@ -1,13 +1,54 @@
-import 'dart:async';
+/**
+ * web_speech_service.dart - Web-based speech recognition and synthesis for Muuchi
+ * 
+ * This file provides full speech functionality for the Muuchi audiobook companion
+ * app when running on web platforms. It uses the browser's Web Speech API for
+ * both speech recognition (voice input) and speech synthesis (TTS output).
+ * 
+ * Key responsibilities:
+ * - Voice input recognition using Web Speech Recognition API
+ * - Text-to-speech synthesis using Web Speech Synthesis API
+ * - Handle browser compatibility and feature detection
+ * - Manage speech recognition lifecycle and events
+ * - Provide alternative to backend TTS Service for web platforms
+ * 
+ * Features:
+ * - Real-time speech recognition for chat input
+ * - Browser-based text-to-speech synthesis
+ * - Support for both webkit and standard Speech Recognition APIs
+ * - Configurable voice parameters (rate, pitch, volume)
+ * - Error handling and platform compatibility checks
+ * 
+ * Browser support:
+ * - Chrome/Edge: Full support (webkitSpeechRecognition)
+ * - Firefox: Limited support (SpeechRecognition standard)
+ * - Safari: Partial support depending on version
+ * - Mobile browsers: Variable support
+ * 
+ * Backend integration:
+ * - Can complement or replace TTS Service calls
+ * - Speech recognition results sent to LLM Gateway for AI responses
+ * - Provides client-side speech processing to reduce server load
+ * 
+ * Note: This is web-specific. For cross-platform stub, see speech_service.dart
+ */
 
-// Web-only imports
+import 'dart:async';
+import 'dart:io' show Platform;
+
+// Web-only imports for JavaScript interop with browser Speech APIs
 import 'dart:js' as js;
 
+/// Web-based speech recognition service using browser's Web Speech API
+/// Provides voice input functionality for chat conversations
 class WebSpeechService {
-  static dynamic _recognition;
-  static Completer<String>? _completer;
-  static bool _isListening = false;
+  static dynamic _recognition;           // JavaScript SpeechRecognition object
+  static Completer<String>? _completer;   // Async completion handler for recognition results
+  static bool _isListening = false;       // Track whether speech recognition is active
 
+  /// Checks if Web Speech Recognition API is available in current browser
+  /// Tests for both webkit and standard SpeechRecognition implementations
+  /// Returns false on non-web platforms to prevent JavaScript errors
   static bool get isSupported {
     try {
       // Only supported on web platform
@@ -24,6 +65,9 @@ class WebSpeechService {
     }
   }
 
+  /// Starts speech recognition and returns the recognized text
+  /// Uses browser's microphone to capture and transcribe speech
+  /// Throws exception if already listening or speech not supported
   static Future<String> startListening() async {
     if (!isSupported) {
       throw Exception('Speech recognition not supported');
@@ -37,13 +81,14 @@ class WebSpeechService {
     _isListening = true;
 
     try {
-      // Create recognition object
+      // Create JavaScript SpeechRecognition object (try webkit first, then standard)
       final recognitionClass = js.context['webkitSpeechRecognition'] ?? js.context['SpeechRecognition'];
       _recognition = js.JsObject(recognitionClass);
 
-      _recognition!['continuous'] = false;
-      _recognition!['interimResults'] = false;
-      _recognition!['lang'] = 'en-US';
+      // Configure recognition settings
+      _recognition!['continuous'] = false;      // Stop after one result
+      _recognition!['interimResults'] = false;  // Only return final results
+      _recognition!['lang'] = 'en-US';          // Set language for recognition
 
       _recognition!['onresult'] = js.allowInterop((event) {
         try {
@@ -101,7 +146,12 @@ class WebSpeechService {
   static bool get isListening => _isListening;
 }
 
+/// Web-based text-to-speech synthesis using browser's Speech Synthesis API
+/// Provides an alternative to backend TTS Service for web platforms
+/// Offers client-side speech synthesis with configurable voice parameters
 class WebSpeechSynthesis {
+  /// Checks if Web Speech Synthesis API is available in current browser
+  /// Most modern browsers support speech synthesis functionality
   static bool get isSupported {
     try {
       return js.context['speechSynthesis'] != null;
@@ -110,6 +160,9 @@ class WebSpeechSynthesis {
     }
   }
 
+  /// Converts text to speech using browser's synthesis engine
+  /// Provides configurable voice parameters for natural-sounding speech
+  /// Alternative to backend TTS Service for reduced server load
   static Future<void> speak(String text) async {
     if (!isSupported) {
       throw Exception('Speech synthesis not supported');
@@ -120,10 +173,10 @@ class WebSpeechSynthesis {
       final utteranceClass = js.context['SpeechSynthesisUtterance'];
       final utterance = js.JsObject(utteranceClass, [text]);
       
-      // Configure voice settings
-      utterance['rate'] = 0.9;
-      utterance['pitch'] = 1.0;
-      utterance['volume'] = 0.8;
+      // Configure voice settings for natural speech
+      utterance['rate'] = 0.9;    // Slightly slower than default for clarity
+      utterance['pitch'] = 1.0;   // Normal pitch
+      utterance['volume'] = 0.8;  // Comfortable volume level
 
       final completer = Completer<void>();
 
@@ -146,6 +199,8 @@ class WebSpeechSynthesis {
     }
   }
 
+  /// Stops any active speech synthesis
+  /// Cancels current speech output immediately
   static void stop() {
     try {
       final synthesis = js.context['speechSynthesis'];

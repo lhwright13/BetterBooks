@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# BetterBooks TestFlight Build Script
+# Muuchi TestFlight Build Script
 
-echo "🍎 Building BetterBooks for TestFlight..."
+echo "🍎 Building Muuchi for TestFlight..."
 
 # Navigate to mobile app directory
 cd mobile_app
@@ -14,11 +14,11 @@ flutter pub get
 
 # Build for iOS release
 echo "📱 Building iOS release..."
-flutter build ipa --release --dart-define=API_BASE_URL=https://api.betterbooks.app
+flutter build ipa --release --dart-define=API_BASE_URL=https://api.muuchi.app
 
 echo "✅ Build complete!"
 echo ""
-echo "📂 IPA Location: build/ios/ipa/mobile_app.ipa"
+echo "📂 IPA Location: build/ios/ipa/muuchi.ipa"
 echo ""
 echo "Next steps:"
 echo "1. Open Xcode Organizer (Window > Organizer)"

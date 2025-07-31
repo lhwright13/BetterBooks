@@ -13,7 +13,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('BetterBooks Library'),
+        title: Text('Muuchi Library'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: LibraryBody(),

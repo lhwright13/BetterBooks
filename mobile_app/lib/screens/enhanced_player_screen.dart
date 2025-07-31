@@ -77,9 +77,11 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
           return AudioInputHandler(
             isListening: _isVoiceModeActive,
             onAudioLevel: (level) {
-              setState(() {
-                _audioLevel = level;
-              });
+              if (mounted && _audioLevel != level) {
+                setState(() {
+                  _audioLevel = level;
+                });
+              }
             },
             child: Stack(
               children: [

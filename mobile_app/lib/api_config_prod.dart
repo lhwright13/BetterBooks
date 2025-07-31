@@ -1,9 +1,9 @@
-// Production API configuration for BetterBooks
+// Production API configuration for Muuchi
 // This will be the actual domain once deployed
 
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'https://api.betterbooks.app'
+  defaultValue: 'https://api.muuchi.app'
 );
 
 // Development/staging alternatives:

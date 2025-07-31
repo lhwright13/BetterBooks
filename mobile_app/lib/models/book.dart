@@ -1,11 +1,33 @@
+/**
+ * book.dart - Data models for audiobook content in Muuchi
+ * 
+ * This file defines the core data structures for representing audiobooks and chapters
+ * in the Muuchi system. Books can be either single-file audiobooks or multi-chapter
+ * collections, and the models handle both formats seamlessly.
+ * 
+ * Key responsibilities:
+ * - Define Book model for audiobook metadata and structure
+ * - Define Chapter model for individual chapter content
+ * - Handle JSON serialization from backend API responses
+ * - Support both single-file and multi-chapter audiobook formats
+ * 
+ * Backend integration:
+ * - Models match API response format from API Gateway
+ * - Audio URLs point to streaming endpoints for playback
+ * - Cover URLs reference book cover image resources
+ * - Duration tracking for progress indicators and seeking
+ */
+
+/// Represents an audiobook in the Muuchi library
+/// Can be either a single audio file or a collection of chapters
 class Book {
-  final String id;
-  final String title;
-  final String? author;
-  final String? coverUrl;
-  final List<Chapter>? chapters;
-  final String? audioUrl;
-  final Duration? duration;
+  final String id;              // Unique identifier for the book
+  final String title;           // Display title of the audiobook
+  final String? author;         // Author name (optional)
+  final String? coverUrl;       // URL to book cover image
+  final List<Chapter>? chapters;// Chapters for multi-part books
+  final String? audioUrl;       // Direct audio URL for single-file books
+  final Duration? duration;     // Total playback duration
 
   Book({
     required this.id,
@@ -17,6 +39,8 @@ class Book {
     this.duration,
   });
 
+  /// Creates a Book instance from JSON API response
+  /// Handles both single-file and multi-chapter book formats
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'] ?? json['filename'] ?? '',
@@ -31,15 +55,18 @@ class Book {
     );
   }
 
+  /// Check if this book has multiple chapters
   bool get hasChapters => chapters != null && chapters!.isNotEmpty;
 }
 
+/// Represents a single chapter within a multi-chapter audiobook
+/// Contains metadata and streaming URL for individual chapter playback
 class Chapter {
-  final String id;
-  final String title;
-  final String audioUrl;
-  final Duration? duration;
-  final int chapterNumber;
+  final String id;              // Unique chapter identifier
+  final String title;           // Chapter title for display
+  final String audioUrl;        // Streaming URL for this chapter's audio
+  final Duration? duration;     // Chapter playback duration
+  final int chapterNumber;      // Sequential chapter number
 
   Chapter({
     required this.id,
@@ -49,6 +76,8 @@ class Chapter {
     required this.chapterNumber,
   });
 
+  /// Creates a Chapter instance from JSON API response
+  /// Handles missing data gracefully with fallback values
   factory Chapter.fromJson(Map<String, dynamic> json) {
     return Chapter(
       id: json['id'] ?? '',

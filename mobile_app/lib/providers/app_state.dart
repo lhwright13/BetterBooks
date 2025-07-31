@@ -1,3 +1,31 @@
+/**
+ * app_state.dart - Global state management for Muuchi mobile app
+ * 
+ * This is the central state management class that coordinates all app functionality
+ * using the Provider pattern. It manages audiobook playback, AI persona interactions,
+ * chat conversations, and communication with backend microservices.
+ * 
+ * Key responsibilities:
+ * - Manage audiobook library and current playback state
+ * - Handle AI persona selection and chat conversations
+ * - Control audio playback with position tracking and controls
+ * - Coordinate with backend services via API calls
+ * - Provide reactive state updates to UI components
+ * 
+ * Architecture integration:
+ * - Uses audioplayers package for cross-platform audio playback
+ * - Communicates with API Gateway for all backend operations
+ * - Manages context-aware AI conversations using book content
+ * - Handles both text and voice-based AI interactions
+ * 
+ * State management:
+ * - Books and chapters from the audiobook library
+ * - Current playback position and audio controls
+ * - AI personas loaded from backend configuration
+ * - Chat message history for AI conversations
+ * - Loading states and error handling
+ */
+
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/book.dart';
@@ -5,22 +33,26 @@ import '../models/persona.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
 
+/// Global application state manager using Provider pattern for reactive UI updates
+/// Coordinates audiobook playback, AI interactions, and backend communication
 class AppState extends ChangeNotifier {
-  List<Book> _books = [];
-  List<Persona> _personas = [];
-  List<ChatMessage> _chatMessages = [];
-  Book? _currentBook;
-  Chapter? _currentChapter;
-  Persona? _selectedPersona;
+  // Private state variables
+  List<Book> _books = [];                    // Available audiobooks from backend
+  List<Persona> _personas = [];              // AI personas for chat interactions
+  List<ChatMessage> _chatMessages = [];      // Chat conversation history
+  Book? _currentBook;                        // Currently selected/playing book
+  Chapter? _currentChapter;                  // Current chapter (for multi-chapter books)
+  Persona? _selectedPersona;                 // Active AI persona for conversations
   
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  Duration _currentPosition = Duration.zero;
-  Duration _totalDuration = Duration.zero;
-  bool _isPlaying = false;
-  bool _isLoading = false;
-  String? _error;
+  // Audio playback state
+  final AudioPlayer _audioPlayer = AudioPlayer();  // Cross-platform audio player
+  Duration _currentPosition = Duration.zero;        // Current playback position
+  Duration _totalDuration = Duration.zero;          // Total audio duration
+  bool _isPlaying = false;                          // Playback state
+  bool _isLoading = false;                          // Loading indicator state
+  String? _error;                                   // Error message display
 
-  // Getters
+  // Public getters for UI components
   List<Book> get books => _books;
   List<Persona> get personas => _personas;
   List<ChatMessage> get chatMessages => _chatMessages;

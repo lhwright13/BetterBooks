@@ -1,3 +1,41 @@
+/**
+ * chat_screen.dart - AI-powered chat interface for Muuchi audiobook discussions
+ * 
+ * This file implements the core chat functionality of the Muuchi audiobook companion
+ * app, enabling users to have intelligent conversations about books with AI personas.
+ * The interface supports both text and voice interactions with contextual awareness.
+ * 
+ * Key responsibilities:
+ * - Provide conversational interface for book discussions
+ * - Handle AI persona selection and switching
+ * - Manage chat message display and interaction
+ * - Support both text input and voice message indicators
+ * - Maintain chat history and conversation flow
+ * - Integrate with backend LLM Gateway for AI responses
+ * 
+ * Features:
+ * - Real-time chat with AI personas (Nick Carraway, English Teacher, etc.)
+ * - Persona selection dropdown with descriptions
+ * - Contextual welcome messages based on current book
+ * - Chat bubble UI with user/AI message differentiation
+ * - Voice message support and indicators
+ * - Auto-scrolling to latest messages
+ * - Loading states during AI response generation
+ * 
+ * Backend integration:
+ * - Uses ApiService to send messages to LLM Gateway
+ * - Persona configurations loaded from backend
+ * - Chat context includes current book and reading position
+ * - Supports text-to-speech synthesis for AI responses
+ * 
+ * User experience:
+ * - Intuitive chat interface similar to messaging apps
+ * - Clear visual distinction between user and AI messages
+ * - Persona selection for different conversation styles
+ * - Smooth animations and responsive interactions
+ * - Accessible design with proper contrast and sizing
+ */
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
@@ -5,15 +43,17 @@ import '../services/api_service.dart';
 import '../models/persona.dart';
 import '../models/chat_message.dart';
 
+/// Main chat interface for conversations with AI personas about audiobooks
+/// Provides rich messaging UI with persona selection and contextual awareness
 class ChatScreen extends StatefulWidget {
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController _messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  bool _isLoading = false;
+  final TextEditingController _messageController = TextEditingController(); // Input field controller
+  final ScrollController _scrollController = ScrollController(); // Chat list scroll controller
+  bool _isLoading = false; // Track if AI is generating response
 
   @override
   void initState() {
@@ -30,6 +70,8 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  /// Adds a contextual welcome message when chat starts
+  /// Message content depends on currently selected book
   void _addWelcomeMessage(AppState appState) {
     final book = appState.currentBook;
     
@@ -209,6 +251,8 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  /// Sends user message to AI persona and handles response
+  /// Validates input, shows loading state, and manages conversation flow
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty || _isLoading) return;
@@ -242,6 +286,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// Smoothly scrolls chat to bottom to show latest messages
+  /// Called after new messages are added to maintain conversation flow
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -262,8 +308,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
+/// Individual chat message bubble widget with styling for user vs AI messages
+/// Displays message content with appropriate visual styling and voice indicators
+/// Supports both text and voice message types with different UI treatments
 class ChatBubble extends StatelessWidget {
-  final ChatMessage message;
+  final ChatMessage message; // Message data including content, author, and type
 
   const ChatBubble({Key? key, required this.message}) : super(key: key);
 

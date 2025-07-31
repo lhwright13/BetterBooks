@@ -231,7 +231,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ListTile(
                         leading: Icon(Icons.help_outline),
                         title: Text('Help & Support'),
-                        subtitle: Text('Get help using BetterBooks'),
+                        subtitle: Text('Get help using Muuchi'),
                         trailing: Icon(Icons.chevron_right),
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(

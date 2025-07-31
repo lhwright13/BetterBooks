@@ -1,3 +1,32 @@
-// Base URL of the API Gateway. Can be overridden with environment variable.
-// iOS Simulator uses localhost, Android emulator uses 10.0.2.2
+/**
+ * api_config.dart - API endpoint configuration for Muuchi mobile app
+ * 
+ * This file defines the base URL for connecting to the Muuchi backend services.
+ * The backend consists of multiple microservices orchestrated by an API Gateway
+ * that handles routing, authentication, and request proxying.
+ * 
+ * Key responsibilities:
+ * - Configure API endpoints for different environments (dev, staging, prod)
+ * - Handle platform-specific networking (iOS simulator vs Android emulator)
+ * - Support build-time configuration via environment variables
+ * 
+ * Backend architecture:
+ * - API Gateway (port 8000) - Main entry point for all client requests
+ * - LLM Gateway (port 8002) - AI persona and text generation
+ * - Context Service (port 8001) - Vector embeddings and book context
+ * - TTS Service (port 8003) - Text-to-speech synthesis
+ * 
+ * Environment configurations:
+ * - Development: http://localhost:8000 (default)
+ * - Staging: https://staging.muuchi.app
+ * - Production: https://api.muuchi.app
+ */
+
+/// Base URL of the API Gateway that routes requests to backend microservices
+/// Can be overridden at build time with --dart-define=API_BASE_URL=<url>
+/// 
+/// Platform notes:
+/// - iOS Simulator: Uses localhost for local development
+/// - Android Emulator: Would use 10.0.2.2 to reach host machine
+/// - Physical devices: Must use actual IP address or domain name
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000');

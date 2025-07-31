@@ -1,6 +1,6 @@
-# BetterBooks iOS Deployment Guide
+# Muuchi iOS Deployment Guide
 
-This guide covers deploying the BetterBooks Flutter app to iOS devices and the App Store.
+This guide covers deploying the Muuchi Flutter app to iOS devices and the App Store.
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ This guide covers deploying the BetterBooks Flutter app to iOS devices and the A
 
 The following has been configured for you:
 
-- **Bundle Identifier**: `com.betterbooks.app`
-- **App Name**: BetterBooks
+- **Bundle Identifier**: `com.muuchi.app`
+- **App Name**: Muuchi
 - **App Icons**: Complete icon set in all required sizes
 - **Permissions**: Microphone, Speech Recognition, Network access
 - **Background Audio**: Configured for audiobook playback
@@ -32,7 +32,7 @@ The following has been configured for you:
 
 ### Option B: Manual Signing
 1. Create certificates in [Apple Developer Console](https://developer.apple.com)
-2. Create App ID with bundle identifier: `com.betterbooks.app`
+2. Create App ID with bundle identifier: `com.muuchi.app`
 3. Create provisioning profiles for development and distribution
 4. Download and install certificates/profiles
 5. Configure in Xcode under Signing & Capabilities
@@ -41,7 +41,7 @@ The following has been configured for you:
 
 ### Using the Provided Script
 ```bash
-cd /Users/lhwri/BetterBooks
+cd /Users/lhwri/Muuchi
 chmod +x deployment/testflight-build.sh
 ./deployment/testflight-build.sh
 ```
@@ -55,7 +55,7 @@ flutter clean
 flutter pub get
 
 # Build for iOS release with production API
-flutter build ipa --release --dart-define=API_BASE_URL=https://api.betterbooks.app
+flutter build ipa --release --dart-define=API_BASE_URL=https://api.muuchi.app
 
 # Or build with custom API endpoint
 flutter build ipa --release --dart-define=API_BASE_URL=https://your-domain.com
@@ -87,12 +87,12 @@ xcrun altool --upload-app --type ios -f build/ios/ipa/betterbooks.ipa --username
 ## 5. App Store Connect Configuration
 
 ### Required Information
-- **App Name**: BetterBooks
+- **App Name**: Muuchi
 - **Category**: Books or Entertainment
 - **Age Rating**: 4+ (No mature content)
 - **Description**: 
   ```
-  Experience audiobooks like never before with BetterBooks - your AI-powered reading companion.
+  Talk to the books you love with Muuchi - your AI-powered audiobook companion.
   
   ✨ Features:
   • Interactive AI personas that bring stories to life
@@ -119,7 +119,9 @@ xcrun altool --upload-app --type ios -f build/ios/ipa/betterbooks.ipa --username
 2. Click the build that was uploaded
 3. Add **What to Test** notes:
    ```
-   Welcome to BetterBooks TestFlight!
+   Welcome to Muuchi TestFlight!
+   
+   "Talk to the books you love"
    
    Test Features:
    • Browse The Great Gatsby audiobook
@@ -153,7 +155,7 @@ Before release, ensure your backend is deployed:
 The app is configured to use environment variables:
 ```dart
 // Production API
-flutter build ipa --dart-define=API_BASE_URL=https://api.betterbooks.app
+flutter build ipa --dart-define=API_BASE_URL=https://api.muuchi.app
 
 // Staging API  
 flutter build ipa --dart-define=API_BASE_URL=https://staging.betterbooks.app
@@ -228,7 +230,7 @@ flutter run -d "iPhone 16 Pro"
 flutter build ios --release
 
 # Create IPA for distribution
-flutter build ipa --release --dart-define=API_BASE_URL=https://api.betterbooks.app
+flutter build ipa --release --dart-define=API_BASE_URL=https://api.muuchi.app
 
 # Check code signing
 security find-identity -v -p codesigning
@@ -237,4 +239,4 @@ security find-identity -v -p codesigning
 security find-certificate -a -p
 ```
 
-This guide covers the complete iOS deployment process for BetterBooks. The app is now configured and ready for distribution through TestFlight and the App Store.
+This guide covers the complete iOS deployment process for Muuchi. The app is now configured and ready for distribution through TestFlight and the App Store.

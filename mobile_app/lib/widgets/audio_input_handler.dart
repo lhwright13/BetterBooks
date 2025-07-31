@@ -65,7 +65,9 @@ class _AudioInputHandlerState extends State<AudioInputHandler> {
         _currentLevel = math.max(0.0, math.min(1.0, _currentLevel));
       }
       
-      widget.onAudioLevel(_currentLevel);
+      if (mounted) {
+        widget.onAudioLevel(_currentLevel);
+      }
     });
   }
 
@@ -81,7 +83,9 @@ class _AudioInputHandlerState extends State<AudioInputHandler> {
   void _stopAudioSimulation() {
     _audioTimer?.cancel();
     _currentLevel = 0.0;
-    widget.onAudioLevel(0.0);
+    if (mounted) {
+      widget.onAudioLevel(0.0);
+    }
   }
 
   @override
