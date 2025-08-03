@@ -24,7 +24,7 @@ class RippleAnimation extends StatefulWidget {
 class _RippleAnimationState extends State<RippleAnimation>
     with TickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  Timer? _rippleTimer;
   final List<RippleData> _ripples = [];
 
   @override
@@ -33,21 +33,7 @@ class _RippleAnimationState extends State<RippleAnimation>
     _controller = AnimationController(
       duration: widget.duration,
       vsync: this,
-    );
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _controller.reset();
-        if (widget.isAnimating) {
-          _addRipple();
-          _controller.forward();
-        }
-      }
-    });
+    )..addListener(() => setState(() {}));
   }
 
   @override
@@ -62,11 +48,16 @@ class _RippleAnimationState extends State<RippleAnimation>
 
   void _startAnimation() {
     _addRipple();
-    _controller.forward();
+    _controller.repeat();
+    _rippleTimer = Timer.periodic(
+      Duration(milliseconds: widget.duration.inMilliseconds ~/ 3),
+      (_) => _addRipple(),
+    );
   }
 
   void _stopAnimation() {
     _controller.stop();
+    _rippleTimer?.cancel();
     setState(() {
       _ripples.clear();
     });
@@ -75,21 +66,30 @@ class _RippleAnimationState extends State<RippleAnimation>
   void _addRipple() {
     final random = math.Random();
     setState(() {
-      // Remove old ripples
-      _ripples.removeWhere((ripple) => ripple.progress > 0.8);
-      
+      // Remove completed ripples
+      _ripples.removeWhere((ripple) {
+        final progress = _progressFor(
+          ripple,
+          DateTime.now(),
+          widget.duration,
+        );
+        return progress > 1.0;
+      });
+
       // Add new ripple
       _ripples.add(RippleData(
         centerX: 0.3 + random.nextDouble() * 0.4, // Center area
         centerY: 0.3 + random.nextDouble() * 0.4,
         maxRadius: 0.6 + random.nextDouble() * 0.4,
         intensity: widget.intensity * (0.5 + random.nextDouble() * 0.5),
+        startTime: DateTime.now(),
       ));
     });
   }
 
   @override
   void dispose() {
+    _rippleTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -97,13 +97,9 @@ class _RippleAnimationState extends State<RippleAnimation>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _animation,
+      animation: _controller,
       builder: (context, child) {
-        // Update ripple progress
-        for (var ripple in _ripples) {
-          ripple.progress = _animation.value;
-        }
-
+        final now = DateTime.now();
         return Stack(
           children: [
             widget.child,
@@ -113,6 +109,8 @@ class _RippleAnimationState extends State<RippleAnimation>
                   painter: RipplePainter(
                     ripples: _ripples,
                     color: widget.rippleColor,
+                    now: now,
+                    duration: widget.duration,
                   ),
                 ),
               ),
@@ -128,36 +126,43 @@ class RippleData {
   final double centerY;
   final double maxRadius;
   final double intensity;
-  double progress = 0.0;
+  final DateTime startTime;
 
   RippleData({
     required this.centerX,
     required this.centerY,
     required this.maxRadius,
     required this.intensity,
+    required this.startTime,
   });
 }
 
 class RipplePainter extends CustomPainter {
   final List<RippleData> ripples;
   final Color color;
+  final DateTime now;
+  final Duration duration;
 
   RipplePainter({
     required this.ripples,
     required this.color,
+    required this.now,
+    required this.duration,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     for (var ripple in ripples) {
+      final progress = _progressFor(ripple, now, duration).clamp(0.0, 1.0);
+      final curved = Curves.easeOut.transform(progress);
       final center = Offset(
         size.width * ripple.centerX,
         size.height * ripple.centerY,
       );
-      
-      final radius = size.width * ripple.maxRadius * ripple.progress;
-      final opacity = (1.0 - ripple.progress) * ripple.intensity;
-      
+
+      final radius = size.width * ripple.maxRadius * curved;
+      final opacity = (1.0 - curved) * ripple.intensity;
+
       if (opacity > 0) {
         final paint = Paint()
           ..color = color.withOpacity(opacity * 0.3)
@@ -166,14 +171,14 @@ class RipplePainter extends CustomPainter {
 
         // Main ripple
         canvas.drawCircle(center, radius, paint);
-        
+
         // Inner ripple with higher opacity
-        if (ripple.progress > 0.2) {
+        if (curved > 0.2) {
           final innerPaint = Paint()
             ..color = color.withOpacity(opacity * 0.6)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0;
-          
+
           canvas.drawCircle(center, radius * 0.7, innerPaint);
         }
       }
@@ -182,4 +187,13 @@ class RipplePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(RipplePainter oldDelegate) => true;
+}
+
+double _progressFor(
+  RippleData ripple,
+  DateTime now,
+  Duration duration,
+) {
+  final elapsed = now.difference(ripple.startTime).inMilliseconds;
+  return elapsed / duration.inMilliseconds;
 }
