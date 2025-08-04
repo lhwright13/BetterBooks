@@ -30,10 +30,12 @@
  */
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'home_tab_screen.dart';
 import 'library_screen.dart';
 import 'bookstore_screen.dart';
 import 'user_profile_screen.dart';
+import '../theme/retro_theme.dart';
 
 /// Main navigation container with bottom tab bar for primary app sections
 /// Provides access to Home, Library, Bookstore, and Profile functionality
@@ -57,33 +59,143 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_currentIndex], // Display the currently selected tab's screen
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, // Show all tabs, don't animate
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index; // Update selected tab and rebuild UI
-          });
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: RetroColors.terminalGradient,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.library_books),
-            label: 'Library',
+        ),
+        child: _screens[_currentIndex],
+      ),
+      bottomNavigationBar: _buildFilingSystemTabs(),
+    );
+  }
+
+  Widget _buildFilingSystemTabs() {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: Color(0xFF0A0A0A),
+        border: Border(
+          top: BorderSide(
+            color: RetroColors.gridBlue.withOpacity(0.4),
+            width: 2,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store),
-            label: 'Bookstore',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: RetroColors.neonCyan.withOpacity(0.1),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: Offset(0, -2),
           ),
         ],
+      ),
+      child: Row(
+        children: [
+          _buildFileTab(0, 'HOME', Icons.terminal, '001'),
+          _buildFileTab(1, 'LIBRARY', Icons.folder_open, '002'),
+          _buildFileTab(2, 'STORE', Icons.shopping_cart_outlined, '003'),
+          _buildFileTab(3, 'PROFILE', Icons.person_outline, '004'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFileTab(int index, String label, IconData icon, String fileNumber) {
+    final isSelected = _currentIndex == index;
+    final tabColors = [
+      RetroColors.neonCyan,
+      RetroColors.phosphorGreen,
+      RetroColors.neonOrange,
+      RetroColors.neonPink,
+    ];
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        child: Container(
+          margin: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? Color(0xFF16213E) : Color(0xFF0F0F23),
+            border: Border.all(
+              color: isSelected 
+                  ? tabColors[index]
+                  : RetroColors.gridBlue.withOpacity(0.3),
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: tabColors[index].withOpacity(0.3),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ] : null,
+          ),
+          child: Stack(
+            children: [
+              // File number tab (like index cards)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: tabColors[index],
+                    border: Border.all(
+                      color: RetroColors.gridBlue.withOpacity(0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    fileNumber,
+                    style: GoogleFonts.sourceCodePro(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Main tab content
+              Padding(
+                padding: EdgeInsets.all(8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 20,
+                      color: isSelected 
+                          ? tabColors[index]
+                          : RetroColors.terminalAmber.withOpacity(0.6),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: GoogleFonts.sourceCodePro(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected 
+                            ? tabColors[index]
+                            : RetroColors.terminalAmber.withOpacity(0.6),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -27,6 +27,7 @@ import 'screens/library_screen.dart';
 import 'screens/enhanced_player_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
+import 'theme/retro_theme.dart';
 
 /// Entry point for the Muuchi application
 /// Initializes the app and sets up the root widget
@@ -46,11 +47,8 @@ class MuuchiApp extends StatelessWidget {
       create: (context) => AppState(),
       child: MaterialApp(
         title: 'Muuchi',
-        // Material Design 3 theme with deep purple accent
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
+        // Retro-futuristic 80s theme
+        theme: RetroTheme.theme,
         // Default route opens the main home screen
         initialRoute: '/',
         // Navigation routes for all app screens
