@@ -23,5 +23,13 @@ spec:
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: gemini-api-key
-                  key: key
+                  name: app-secrets
+                  key: gemini-api-key
+          volumeMounts:
+            - name: llm-configs
+              mountPath: /app/llm_configs
+              readOnly: true
+      volumes:
+        - name: llm-configs
+          configMap:
+            name: llm-configs

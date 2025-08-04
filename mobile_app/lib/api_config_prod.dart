@@ -1,11 +1,11 @@
-// Production API configuration for Muuchi
-// This will be the actual domain once deployed
+// Production API configuration for BetterBooks
+// Using our deployed GKE static IP address
 
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'https://api.muuchi.app'
+  defaultValue: 'http://34.111.209.241'
 );
 
 // Development/staging alternatives:
-// const String apiBaseUrl = 'https://betterbooks-api-staging.example.com';
-// const String apiBaseUrl = 'http://YOUR_LOCAL_IP:8000'; // For local testing
+// const String apiBaseUrl = 'https://api.betterbooks.app'; // Future domain
+// const String apiBaseUrl = 'http://localhost:8000'; // Local development

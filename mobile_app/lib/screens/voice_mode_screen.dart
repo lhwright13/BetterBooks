@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../widgets/ripple_animation.dart';
 import '../widgets/audio_visualizer.dart';
-import '../api_config.dart';
+import '../api_config_prod.dart';
 
 class VoiceModeScreen extends StatefulWidget {
   @override

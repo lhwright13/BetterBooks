@@ -19,3 +19,17 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - containerPort: 8000
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: gemini-api-key
+          volumeMounts:
+            - name: llm-configs
+              mountPath: /app/llm_configs
+              readOnly: true
+      volumes:
+        - name: llm-configs
+          configMap:
+            name: llm-configs

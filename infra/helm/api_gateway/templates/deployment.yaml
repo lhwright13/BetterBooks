@@ -21,8 +21,8 @@ spec:
             - containerPort: 8000
           env:
             - name: CONTEXT_SERVICE_URL
-              value: http://context-service:8000
+              value: http://context-service:80
             - name: LLM_GATEWAY_URL
-              value: http://llm-gateway:8000
+              value: http://llm-gateway:80
             - name: TTS_SERVICE_URL
-              value: http://tts-service:8000
+              value: http://tts-service:80
