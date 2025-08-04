@@ -3,7 +3,7 @@
 
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'http://34.111.209.241'
+  defaultValue: 'http://34.28.246.242'
 );
 
 // Development/staging alternatives:

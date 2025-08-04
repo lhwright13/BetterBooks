@@ -26,7 +26,7 @@
 /// Can be overridden at build time with --dart-define=API_BASE_URL=<url>
 /// 
 /// Platform notes:
-/// - iOS Simulator: Uses localhost for local development
+/// - iOS Simulator: Must use host machine's IP address (e.g., http://192.168.1.56:8000)
 /// - Android Emulator: Would use 10.0.2.2 to reach host machine
 /// - Physical devices: Must use actual IP address or domain name
-const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8000');
+const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://192.168.1.56:8000');

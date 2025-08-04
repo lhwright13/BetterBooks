@@ -43,7 +43,7 @@ from typing import List
 import httpx
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 # Base URLs for the other services. These can be overridden via environment
@@ -273,11 +273,16 @@ def play_single_book(filename: str):
     if not file_path.exists() or not file_path.suffix == '.mp3':
         raise HTTPException(status_code=404, detail="Book file not found")
     
-    return FileResponse(
+    response = FileResponse(
         path=file_path,
         media_type="audio/mpeg",
         filename=filename
     )
+    # Add CORS headers for mobile app compatibility
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 
 @app.get("/books/play/{book_name}/{chapter_filename}")
@@ -287,11 +292,16 @@ def play_chapter(book_name: str, chapter_filename: str):
     if not file_path.exists() or not file_path.suffix == '.mp3':
         raise HTTPException(status_code=404, detail="Chapter file not found")
     
-    return FileResponse(
+    response = FileResponse(
         path=file_path,
         media_type="audio/mpeg",
         filename=chapter_filename
     )
+    # Add CORS headers for mobile app compatibility
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 
 @app.get("/books/cover/{book_name}")
@@ -301,11 +311,16 @@ def get_book_cover(book_name: str):
     if book_name == "the Great Gatsby":
         file_path = BOOK_FILES_DIR / "the Great Gatsby" / "GatsbyCover.jpg"
         if file_path.exists():
-            return FileResponse(
+            response = FileResponse(
                 path=file_path,
                 media_type="image/jpeg",
                 filename="GatsbyCover.jpg"
             )
+            # Add CORS headers for mobile app compatibility
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
     
     # General logic for other books
     book_dir = BOOK_FILES_DIR / book_name
@@ -325,11 +340,16 @@ def get_book_cover(book_name: str):
                     '.webp': 'image/webp'
                 }.get(ext.lower(), 'image/jpeg')
                 
-                return FileResponse(
+                response = FileResponse(
                     path=file_path,
                     media_type=media_type,
                     filename=f"{cover_name}{ext}"
                 )
+                # Add CORS headers for mobile app compatibility
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                return response
     
     raise HTTPException(status_code=404, detail="Book cover not found")
 
