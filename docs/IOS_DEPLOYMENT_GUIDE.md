@@ -239,4 +239,4 @@ security find-identity -v -p codesigning
 security find-certificate -a -p
 ```
 
-This guide covers the complete iOS deployment process for Muuchi. The app is now configured and ready for distribution through TestFlight and the App Store.
+This guide covers the complete iOS deployment process for EchoWright. The app is now configured and ready for distribution through TestFlight and the App Store.

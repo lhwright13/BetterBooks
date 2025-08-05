@@ -1,8 +1,8 @@
 /**
- * persona.dart - AI persona configuration model for Muuchi
+ * persona.dart - AI persona configuration model for EchoWright
  * 
  * This file defines the Persona model that represents different AI characters
- * users can interact with in the Muuchi audiobook companion app. Each persona
+ * users can interact with in the EchoWright audiobook companion app. Each persona
  * has unique personality traits, voice settings, and conversation styles.
  * 
  * Key responsibilities:

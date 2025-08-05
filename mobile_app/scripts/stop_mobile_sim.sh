@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Stop Mobile Simulator Script for BetterBooks
+# Stop Mobile Simulator Script for EchoWright
 # This script stops the Flutter app and iOS simulator
 
 set -e
 
-echo "🛑 Stopping BetterBooks Mobile Simulator..."
+echo "🛑 Stopping EchoWright Mobile Simulator..."
 
 # Kill Flutter processes
 echo "📱 Stopping Flutter app..."

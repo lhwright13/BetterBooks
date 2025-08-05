@@ -1,7 +1,7 @@
 /**
- * chat_message.dart - Chat message data model for Muuchi conversations
+ * chat_message.dart - Chat message data model for EchoWright conversations
  * 
- * This file defines the ChatMessage model used throughout the Muuchi app for
+ * This file defines the ChatMessage model used throughout the EchoWright app for
  * representing individual messages in conversations between users and AI personas.
  * Supports both text and voice messages with proper serialization.
  * 

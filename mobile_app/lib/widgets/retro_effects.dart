@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../theme/retro_theme.dart';
 
-// Scanline overlay effect for CRT monitor aesthetics
-class ScanlineOverlay extends StatefulWidget {
+// Subtle texture overlay for warm architectural aesthetics
+class TextureOverlay extends StatefulWidget {
   final Widget child;
   final double opacity;
   final double lineSpacing;
 
-  const ScanlineOverlay({
+  const TextureOverlay({
     super.key,
     required this.child,
     this.opacity = 0.1,
@@ -16,10 +16,10 @@ class ScanlineOverlay extends StatefulWidget {
   });
 
   @override
-  State<ScanlineOverlay> createState() => _ScanlineOverlayState();
+  State<TextureOverlay> createState() => _TextureOverlayState();
 }
 
-class _ScanlineOverlayState extends State<ScanlineOverlay>
+class _TextureOverlayState extends State<TextureOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
@@ -48,7 +48,7 @@ class _ScanlineOverlayState extends State<ScanlineOverlay>
             animation: _controller,
             builder: (context, child) {
               return CustomPaint(
-                painter: ScanlinePainter(
+                painter: TexturePainter(
                   opacity: widget.opacity,
                   lineSpacing: widget.lineSpacing,
                   animationValue: _controller.value,
@@ -62,12 +62,12 @@ class _ScanlineOverlayState extends State<ScanlineOverlay>
   }
 }
 
-class ScanlinePainter extends CustomPainter {
+class TexturePainter extends CustomPainter {
   final double opacity;
   final double lineSpacing;
   final double animationValue;
 
-  ScanlinePainter({
+  TexturePainter({
     required this.opacity,
     required this.lineSpacing,
     required this.animationValue,
@@ -76,12 +76,13 @@ class ScanlinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(opacity)
-      ..strokeWidth = 1.0;
+      ..color = RetroColors.stoneBeige.withOpacity(opacity * 0.3)
+      ..strokeWidth = 0.5;
 
-    final offset = animationValue * lineSpacing * 2;
+    final offset = animationValue * lineSpacing * 3;
     
-    for (double y = -lineSpacing + offset; y < size.height + lineSpacing; y += lineSpacing) {
+    // Create subtle horizontal texture lines for architectural feel
+    for (double y = -lineSpacing + offset; y < size.height + lineSpacing; y += lineSpacing * 2) {
       canvas.drawLine(
         Offset(0, y),
         Offset(size.width, y),
@@ -91,18 +92,18 @@ class ScanlinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ScanlinePainter oldDelegate) {
+  bool shouldRepaint(TexturePainter oldDelegate) {
     return oldDelegate.animationValue != animationValue;
   }
 }
 
-// Glitch effect for retro computer aesthetics
-class GlitchText extends StatefulWidget {
+// Subtle shift effect for warm architectural aesthetics
+class ShiftText extends StatefulWidget {
   final String text;
   final TextStyle? style;
   final Duration glitchDuration;
 
-  const GlitchText({
+  const ShiftText({
     super.key,
     required this.text,
     this.style,
@@ -110,13 +111,13 @@ class GlitchText extends StatefulWidget {
   });
 
   @override
-  State<GlitchText> createState() => _GlitchTextState();
+  State<ShiftText> createState() => _ShiftTextState();
 }
 
-class _GlitchTextState extends State<GlitchText>
+class _ShiftTextState extends State<ShiftText>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _glitchAnimation;
+  late Animation<double> _shiftAnimation;
   final math.Random _random = math.Random();
 
   @override
@@ -127,15 +128,15 @@ class _GlitchTextState extends State<GlitchText>
       vsync: this,
     );
     
-    _glitchAnimation = Tween<double>(
+    _shiftAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(_controller);
 
-    _startGlitchCycle();
+    _startShiftCycle();
   }
 
-  void _startGlitchCycle() async {
+  void _startShiftCycle() async {
     while (mounted) {
       await Future.delayed(Duration(seconds: 5 + _random.nextInt(10)));
       if (mounted) {
@@ -155,9 +156,9 @@ class _GlitchTextState extends State<GlitchText>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _glitchAnimation,
+      animation: _shiftAnimation,
       builder: (context, child) {
-        if (_glitchAnimation.value < 0.1) {
+        if (_shiftAnimation.value < 0.1) {
           return Text(widget.text, style: widget.style);
         }
 
@@ -166,26 +167,26 @@ class _GlitchTextState extends State<GlitchText>
             // Original text
             Text(widget.text, style: widget.style),
             
-            // Red channel offset
-            if (_glitchAnimation.value > 0.3)
+            // Terracotta shadow offset
+            if (_shiftAnimation.value > 0.3)
               Transform.translate(
-                offset: Offset(2 * _glitchAnimation.value, 0),
+                offset: Offset(1 * _shiftAnimation.value, 0.5 * _shiftAnimation.value),
                 child: Text(
                   widget.text,
                   style: widget.style?.copyWith(
-                    color: RetroColors.vhsRed.withOpacity(0.7),
+                    color: RetroColors.primaryTerracotta.withOpacity(0.3),
                   ),
                 ),
               ),
             
-            // Cyan channel offset
-            if (_glitchAnimation.value > 0.5)
+            // Sage green shadow offset
+            if (_shiftAnimation.value > 0.5)
               Transform.translate(
-                offset: Offset(-1 * _glitchAnimation.value, 0),
+                offset: Offset(-0.5 * _shiftAnimation.value, 0.3 * _shiftAnimation.value),
                 child: Text(
                   widget.text,
                   style: widget.style?.copyWith(
-                    color: RetroColors.neonCyan.withOpacity(0.7),
+                    color: RetroColors.sageGreen.withOpacity(0.4),
                   ),
                 ),
               ),
@@ -196,13 +197,13 @@ class _GlitchTextState extends State<GlitchText>
   }
 }
 
-// Flickering effect for terminal-style text
-class FlickeringText extends StatefulWidget {
+// Gentle breathing effect for warm architectural text
+class BreathingText extends StatefulWidget {
   final String text;
   final TextStyle? style;
   final Duration flickerSpeed;
 
-  const FlickeringText({
+  const BreathingText({
     super.key,
     required this.text,
     this.style,
@@ -210,10 +211,10 @@ class FlickeringText extends StatefulWidget {
   });
 
   @override
-  State<FlickeringText> createState() => _FlickeringTextState();
+  State<BreathingText> createState() => _BreathingTextState();
 }
 
-class _FlickeringTextState extends State<FlickeringText>
+class _BreathingTextState extends State<BreathingText>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final math.Random _random = math.Random();
@@ -225,13 +226,13 @@ class _FlickeringTextState extends State<FlickeringText>
       duration: widget.flickerSpeed,
       vsync: this,
     );
-    _startFlickering();
+    _startBreathing();
   }
 
-  void _startFlickering() async {
+  void _startBreathing() async {
     while (mounted) {
-      await Future.delayed(Duration(milliseconds: 100 + _random.nextInt(500)));
-      if (mounted && _random.nextBool()) {
+      await Future.delayed(Duration(milliseconds: 2000 + _random.nextInt(1000)));
+      if (mounted) {
         _controller.forward().then((_) {
           _controller.reverse();
         });
@@ -251,7 +252,7 @@ class _FlickeringTextState extends State<FlickeringText>
       animation: _controller,
       builder: (context, child) {
         return Opacity(
-          opacity: 0.8 + (0.2 * (1 - _controller.value)),
+          opacity: 0.92 + (0.08 * (1 - _controller.value)),
           child: Text(
             widget.text,
             style: widget.style,
@@ -348,7 +349,7 @@ class _TypewriterTextState extends State<TypewriterText>
                 TextSpan(
                   text: '█',
                   style: widget.style?.copyWith(
-                    color: RetroColors.phosphorGreen,
+                    color: RetroColors.primaryTerracotta,
                   ),
                 ),
             ],
@@ -359,13 +360,13 @@ class _TypewriterTextState extends State<TypewriterText>
   }
 }
 
-// Neon glow effect
-class NeonGlow extends StatelessWidget {
+// Warm architectural glow effect
+class WarmGlow extends StatelessWidget {
   final Widget child;
   final Color glowColor;
   final double glowRadius;
 
-  const NeonGlow({
+  const WarmGlow({
     super.key,
     required this.child,
     required this.glowColor,
@@ -378,14 +379,14 @@ class NeonGlow extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.3),
+            color: glowColor.withOpacity(0.15),
             blurRadius: glowRadius,
-            spreadRadius: glowRadius / 2,
+            spreadRadius: glowRadius / 3,
           ),
           BoxShadow(
-            color: glowColor.withOpacity(0.1),
-            blurRadius: glowRadius * 2,
-            spreadRadius: glowRadius,
+            color: glowColor.withOpacity(0.06),
+            blurRadius: glowRadius * 1.5,
+            spreadRadius: glowRadius / 2,
           ),
         ],
       ),
@@ -394,23 +395,23 @@ class NeonGlow extends StatelessWidget {
   }
 }
 
-// Matrix-style background effect
-class MatrixBackground extends StatefulWidget {
+// Subtle architectural pattern background
+class ArchitecturalBackground extends StatefulWidget {
   final double opacity;
 
-  const MatrixBackground({
+  const ArchitecturalBackground({
     super.key,
     this.opacity = 0.1,
   });
 
   @override
-  State<MatrixBackground> createState() => _MatrixBackgroundState();
+  State<ArchitecturalBackground> createState() => _ArchitecturalBackgroundState();
 }
 
-class _MatrixBackgroundState extends State<MatrixBackground>
+class _ArchitecturalBackgroundState extends State<ArchitecturalBackground>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  final List<MatrixColumn> _columns = [];
+  final List<ArchitecturalColumn> _columns = [];
   final math.Random _random = math.Random();
 
   @override
@@ -442,7 +443,7 @@ class _MatrixBackgroundState extends State<MatrixBackground>
             _updateColumns(constraints);
             return CustomPaint(
               size: Size(constraints.maxWidth, constraints.maxHeight),
-              painter: MatrixPainter(
+              painter: ArchitecturalPainter(
                 columns: _columns,
                 opacity: widget.opacity,
               ),
@@ -458,99 +459,99 @@ class _MatrixBackgroundState extends State<MatrixBackground>
     final columnCount = (constraints.maxWidth / columnWidth).floor();
     
     for (int i = 0; i < columnCount; i++) {
-      _columns.add(MatrixColumn(
+      _columns.add(ArchitecturalColumn(
         x: i * columnWidth,
-        characters: [],
-        speed: 1 + _random.nextDouble() * 3,
+        elements: [],
+        speed: 0.5 + _random.nextDouble() * 1,
       ));
     }
   }
 
   void _updateColumns(BoxConstraints constraints) {
     for (final column in _columns) {
-      // Add new characters occasionally
-      if (_random.nextDouble() < 0.02) {
-        column.characters.add(MatrixCharacter(
+      // Add new elements occasionally
+      if (_random.nextDouble() < 0.005) {
+        column.elements.add(ArchitecturalElement(
           y: 0,
-          char: _getRandomChar(),
+          symbol: _getRandomSymbol(),
           opacity: 1.0,
         ));
       }
 
-      // Update existing characters
-      column.characters = column.characters.map((char) {
-        return MatrixCharacter(
-          y: char.y + column.speed,
-          char: char.char,
-          opacity: math.max(0, char.opacity - 0.02),
+      // Update existing elements
+      column.elements = column.elements.map((element) {
+        return ArchitecturalElement(
+          y: element.y + column.speed,
+          symbol: element.symbol,
+          opacity: math.max(0, element.opacity - 0.005),
         );
-      }).where((char) => char.y < constraints.maxHeight && char.opacity > 0).toList();
+      }).where((element) => element.y < constraints.maxHeight && element.opacity > 0).toList();
     }
   }
 
-  String _getRandomChar() {
-    const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-    return chars[_random.nextInt(chars.length)];
+  String _getRandomSymbol() {
+    const symbols = '◆◇□■▫▪▬▭▮▯○●◉◎';
+    return symbols[_random.nextInt(symbols.length)];
   }
 }
 
-class MatrixColumn {
+class ArchitecturalColumn {
   final double x;
-  List<MatrixCharacter> characters;
+  List<ArchitecturalElement> elements;
   final double speed;
 
-  MatrixColumn({
+  ArchitecturalColumn({
     required this.x,
-    required this.characters,
+    required this.elements,
     required this.speed,
   });
 }
 
-class MatrixCharacter {
+class ArchitecturalElement {
   final double y;
-  final String char;
+  final String symbol;
   final double opacity;
 
-  MatrixCharacter({
+  ArchitecturalElement({
     required this.y,
-    required this.char,
+    required this.symbol,
     required this.opacity,
   });
 }
 
-class MatrixPainter extends CustomPainter {
-  final List<MatrixColumn> columns;
+class ArchitecturalPainter extends CustomPainter {
+  final List<ArchitecturalColumn> columns;
   final double opacity;
 
-  MatrixPainter({
+  ArchitecturalPainter({
     required this.columns,
     required this.opacity,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = RetroColors.phosphorGreen;
+    final paint = Paint()..color = RetroColors.primaryTerracotta;
 
     for (final column in columns) {
-      for (final char in column.characters) {
+      for (final element in column.elements) {
         final textPainter = TextPainter(
           text: TextSpan(
-            text: char.char,
+            text: element.symbol,
             style: TextStyle(
-              color: RetroColors.phosphorGreen.withOpacity(char.opacity * opacity),
-              fontSize: 12,
-              fontFamily: 'monospace',
+              color: RetroColors.primaryTerracotta.withOpacity(element.opacity * opacity * 0.3),
+              fontSize: 16,
+              fontFamily: 'serif',
             ),
           ),
           textDirection: TextDirection.ltr,
         );
         
         textPainter.layout();
-        textPainter.paint(canvas, Offset(column.x, char.y));
+        textPainter.paint(canvas, Offset(column.x, element.y));
       }
     }
   }
 
   @override
-  bool shouldRepaint(MatrixPainter oldDelegate) => true;
+  bool shouldRepaint(ArchitecturalPainter oldDelegate) => true;
 }

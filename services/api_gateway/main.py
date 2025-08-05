@@ -1,8 +1,8 @@
 """
-API Gateway for Muuchi Audiobook Companion Platform
+API Gateway for EchoWright Audiobook Companion Platform
 
 This service acts as the central entry point for all client applications (mobile app,
-web demo) to access the distributed Muuchi backend services. It implements a simple
+web demo) to access the distributed EchoWright backend services. It implements a simple
 proxy pattern that forwards requests to appropriate microservices while providing
 a unified API interface.
 

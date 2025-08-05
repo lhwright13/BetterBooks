@@ -1,8 +1,8 @@
 /**
- * book.dart - Data models for audiobook content in Muuchi
+ * book.dart - Data models for audiobook content in EchoWright
  * 
  * This file defines the core data structures for representing audiobooks and chapters
- * in the Muuchi system. Books can be either single-file audiobooks or multi-chapter
+ * in the EchoWright system. Books can be either single-file audiobooks or multi-chapter
  * collections, and the models handle both formats seamlessly.
  * 
  * Key responsibilities:
@@ -18,7 +18,7 @@
  * - Duration tracking for progress indicators and seeking
  */
 
-/// Represents an audiobook in the Muuchi library
+/// Represents an audiobook in the EchoWright library
 /// Can be either a single audio file or a collection of chapters
 class Book {
   final String id;              // Unique identifier for the book

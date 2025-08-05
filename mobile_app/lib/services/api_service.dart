@@ -1,8 +1,8 @@
 /**
- * api_service.dart - HTTP client service for Muuchi backend communication
+ * api_service.dart - HTTP client service for EchoWright backend communication
  * 
  * This file provides the primary interface between the Flutter mobile app and
- * the Muuchi backend services. It handles all HTTP communication including
+ * the EchoWright backend services. It handles all HTTP communication including
  * book loading, persona management, AI chat, TTS synthesis, and context retrieval.
  * 
  * Key responsibilities:
@@ -35,12 +35,12 @@ import '../api_config_prod.dart';
 import '../models/book.dart';
 import '../models/persona.dart';
 
-/// Service class for all HTTP communication with Muuchi backend services
+/// Service class for all HTTP communication with EchoWright backend services
 /// Provides methods for books, personas, chat, TTS, and context operations
 class ApiService {
   static const Duration _timeoutDuration = Duration(seconds: 30); // Network timeout for all requests
 
-  /// Tests connectivity to the Muuchi backend API Gateway
+  /// Tests connectivity to the EchoWright backend API Gateway
   /// Returns true if the health endpoint responds successfully
   /// Used to verify network connectivity before making other API calls
   static Future<bool> testConnection() async {

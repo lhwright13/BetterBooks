@@ -99,7 +99,7 @@ class IndexCard extends StatelessWidget {
                                 fontWeight: FontWeight.bold,
                                 color: isSelected 
                                     ? RetroColors.neonCyan 
-                                    : RetroColors.terminalAmber,
+                                    : RetroColors.orangeGlow,
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -109,7 +109,7 @@ class IndexCard extends StatelessWidget {
                                 subtitle!,
                                 style: GoogleFonts.sourceCodePro(
                                   fontSize: 10,
-                                  color: RetroColors.terminalAmber.withOpacity(0.8),
+                                  color: RetroColors.orangeGlow.withOpacity(0.8),
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -265,9 +265,9 @@ class _FileDrawerState extends State<FileDrawer>
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: RetroColors.terminalAmber.withOpacity(0.2),
+                        color: RetroColors.orangeGlow.withOpacity(0.2),
                         border: Border.all(
-                          color: RetroColors.terminalAmber.withOpacity(0.5),
+                          color: RetroColors.orangeGlow.withOpacity(0.5),
                           width: 1,
                         ),
                       ),
@@ -276,7 +276,7 @@ class _FileDrawerState extends State<FileDrawer>
                         style: GoogleFonts.sourceCodePro(
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
-                          color: RetroColors.terminalAmber,
+                          color: RetroColors.orangeGlow,
                         ),
                       ),
                     ),
@@ -384,7 +384,7 @@ class TerminalWindow extends StatelessWidget {
                     style: GoogleFonts.sourceCodePro(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: RetroColors.terminalAmber,
+                      color: RetroColors.orangeGlow,
                       letterSpacing: 1.0,
                     ),
                   ),

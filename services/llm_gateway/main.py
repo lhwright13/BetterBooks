@@ -45,9 +45,10 @@ else:
 
 # Validate API key before configuring
 api_key = cfg["api_key"]
-if not api_key or api_key == "test-key" or api_key.strip() == "":
+if not api_key or api_key.strip() == "":
     raise ValueError("Valid GEMINI_API_KEY environment variable is required")
 
+print(f"Configuring LLM Gateway with API key: {api_key[:10]}...")
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel(cfg["model"])
 gen_config_defaults = cfg.get("generation_config", {})
@@ -89,10 +90,10 @@ def complete(req: CompletionRequest) -> dict:
     if local_base_preprompt:
         prompt = f"{local_base_preprompt}\n\n{prompt}"
     try:
-        # Validate API key for local config
-        local_api_key = cfg_local["api_key"]
-        if not local_api_key or local_api_key == "test-key" or local_api_key.strip() == "":
-            raise ValueError("Valid API key is required")
+        # Validate local API key
+        local_api_key = cfg_local.get("api_key", "")
+        if not local_api_key or local_api_key.strip() == "":
+            raise ValueError("Valid API key is required for this configuration")
         
         genai.configure(api_key=local_api_key)
         model_local = genai.GenerativeModel(cfg_local["model"])

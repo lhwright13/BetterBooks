@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Muuchi TestFlight Build Script
+# EchoWright TestFlight Build Script
 
-echo "🍎 Building Muuchi for TestFlight..."
+echo "🍎 Building EchoWright for TestFlight..."
 
 # Navigate to mobile app directory
 cd mobile_app

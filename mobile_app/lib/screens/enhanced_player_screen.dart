@@ -4,9 +4,11 @@ import '../providers/app_state.dart';
 import '../api_config_prod.dart';
 import '../widgets/css_ripple_widget.dart';
 import '../widgets/audio_input_handler.dart';
+import '../widgets/holographic_components.dart'; // TODO: Rename to architectural_components.dart
 import '../services/speech_service_export.dart';
 import '../services/api_service.dart';
 import '../services/audio_service_export.dart';
+import '../theme/retro_theme.dart';
 
 class EnhancedPlayerScreen extends StatefulWidget {
   @override
@@ -78,8 +80,12 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
             isListening: _isVoiceModeActive,
             onAudioLevel: (level) {
               if (mounted && _audioLevel != level) {
-                setState(() {
-                  _audioLevel = level;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {
+                      _audioLevel = level;
+                    });
+                  }
                 });
               }
             },
@@ -92,42 +98,67 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         padding: EdgeInsets.all(24),
                         child: Column(
                           children: [
-                            // Book cover with shader ripple effect
+                            // Book cover with clean, minimalist design
                             Container(
-                              width: 200,
-                              height: 200,
+                              width: 240,
+                              height: 240,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    RetroColors.primaryTerracotta.withOpacity(0.08),
+                                    RetroColors.sageGreen.withOpacity(0.04),
+                                  ],
+                                ),
+                                border: Border.all(
+                                  color: RetroColors.primaryTerracotta.withOpacity(0.15),
+                                  width: RetroSizes.subtleBorder,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 4),
+                                    color: RetroColors.primaryTerracotta.withOpacity(0.08),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 6),
+                                    spreadRadius: 1,
+                                  ),
+                                  BoxShadow(
+                                    color: RetroColors.stoneBeige.withOpacity(0.12),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 3),
                                   ),
                                 ],
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
                                 child: CSSRippleWidget(
                                   isActive: _isVoiceModeActive,
                                   audioLevel: _audioLevel,
                                   child: Image.network(
                                     '$apiBaseUrl/books/cover/${Uri.encodeComponent(book.title)}',
-                                    width: 200,
-                                    height: 200,
+                                    width: 240,
+                                    height: 240,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
-                                        width: 200,
-                                        height: 200,
+                                        width: 240,
+                                        height: 240,
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(16),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              RetroColors.primaryTerracotta.withOpacity(0.12),
+                                              RetroColors.sageGreen.withOpacity(0.06),
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
                                         ),
                                         child: Icon(
-                                          Icons.book,
+                                          Icons.library_music,
                                           size: 80,
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: RetroColors.primaryTerracotta,
                                         ),
                                       );
                                     },
@@ -189,10 +220,30 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                       
                       SizedBox(height: 32),
                       
-                      // Playback Controls Card
-                      Card(
+                      // Playback Controls Card with clean styling
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: RetroColors.cardGradient,
+                          ),
+                          border: Border.all(
+                            color: RetroColors.primaryTerracotta.withOpacity(0.2),
+                            width: RetroSizes.subtleBorder,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: RetroColors.primaryTerracotta.withOpacity(0.08),
+                              blurRadius: 20,
+                              spreadRadius: 1,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: EdgeInsets.all(RetroSpacing.lg),
                           child: Column(
                             children: [
                               // Current Chapter and Speed Row
@@ -286,22 +337,47 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                       
                       SizedBox(height: 20),
                       
-                      // Voice AI Button
+                      // Voice AI Button with clean styling
                       Container(
                         width: double.infinity,
-                        height: 60,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(28),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: RetroColors.terracottaGradient,
+                          ),
+                          border: Border.all(
+                            color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                            width: RetroSizes.subtleBorder,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: RetroColors.primaryTerracotta.withOpacity(0.2),
+                              blurRadius: 16,
+                              offset: Offset(0, 4),
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
                         child: ElevatedButton.icon(
                           onPressed: _startVoiceQuery,
-                          icon: Icon(Icons.mic_none, size: 24),
+                          icon: Icon(Icons.mic_none_rounded, size: 22),
                           label: Text(
                             'Ask AI with voice',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.primary,
-                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.transparent,
+                            foregroundColor: RetroColors.ivoryWhite,
+                            shadowColor: Colors.transparent,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
+                              borderRadius: BorderRadius.circular(28),
                             ),
                           ),
                         ),
@@ -324,14 +400,15 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         Expanded(
-                          child: Slider(
-                            value: appState.totalDuration.inSeconds > 0
-                                ? appState.currentPosition.inSeconds.toDouble()
-                                : 0.0,
-                            max: appState.totalDuration.inSeconds.toDouble(),
-                            onChanged: (value) {
-                              appState.seekTo(Duration(seconds: value.toInt()));
-                            },
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8),
+                            child: ArchitecturalProgress(
+                              value: appState.totalDuration.inSeconds > 0
+                                  ? appState.currentPosition.inSeconds / appState.totalDuration.inSeconds
+                                  : 0.0,
+                              color: RetroColors.primaryTerracotta,
+                              height: 8,
+                            ),
                           ),
                         ),
                         Text(
@@ -347,37 +424,78 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        IconButton(
+                        TactileButton(
+                          width: 56,
+                          height: 56,
+                          color: RetroColors.warmTaupe.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(28),
                           onPressed: () {
                             final newPosition = appState.currentPosition - Duration(seconds: 30);
                             appState.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
                           },
-                          icon: Icon(Icons.replay_30),
-                          iconSize: 36,
+                          child: Icon(
+                            Icons.replay_30_rounded,
+                            color: RetroColors.ivoryWhite,
+                            size: 24,
+                          ),
                         ),
                         
                         Container(
+                          width: 72,
+                          height: 72,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
                             shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            onPressed: appState.playPause,
-                            icon: Icon(
-                              appState.isPlaying ? Icons.pause : Icons.play_arrow,
-                              color: Colors.white,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: RetroColors.terracottaGradient,
                             ),
-                            iconSize: 48,
+                            border: Border.all(
+                              color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                              width: RetroSizes.subtleBorder,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: RetroColors.primaryTerracotta.withOpacity(0.25),
+                                blurRadius: 20,
+                                offset: Offset(0, 6),
+                                spreadRadius: 1,
+                              ),
+                              BoxShadow(
+                                color: RetroColors.stoneBeige.withOpacity(0.2),
+                                blurRadius: 12,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(36),
+                              onTap: appState.playPause,
+                              child: Icon(
+                                appState.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                color: RetroColors.ivoryWhite,
+                                size: 36,
+                              ),
+                            ),
                           ),
                         ),
                         
-                        IconButton(
+                        TactileButton(
+                          width: 56,
+                          height: 56,
+                          color: RetroColors.warmTaupe.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(28),
                           onPressed: () {
                             final newPosition = appState.currentPosition + Duration(seconds: 30);
                             appState.seekTo(newPosition < appState.totalDuration ? newPosition : appState.totalDuration);
                           },
-                          icon: Icon(Icons.forward_30),
-                          iconSize: 36,
+                          child: Icon(
+                            Icons.forward_30_rounded,
+                            color: RetroColors.ivoryWhite,
+                            size: 24,
+                          ),
                         ),
                       ],
                     ),
@@ -557,49 +675,52 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
     try {
       String voiceText;
       
-      // Try Web Speech Recognition, but use fallback if it fails
+      // Try real speech recognition using speech_to_text package
       try {
-        if (WebSpeechService.isSupported) {
+        if (await SpeechService.isSupported) {
           setState(() {
-            _voiceStatus = 'Listening... Speak now! (or wait 5s for demo)';
+            _voiceStatus = 'Listening... Speak now!';
           });
           
-          // Create a timeout to provide demo question if speech fails
-          voiceText = await Future.any([
-            WebSpeechService.startListening(),
-            Future.delayed(Duration(seconds: 5)).then((_) => 
-              throw Exception('Speech timeout - using demo question')),
-          ]);
+          // Start speech recognition
+          voiceText = await SpeechService.startListening();
           
           setState(() {
             _voiceStatus = 'Processing: "$voiceText"';
           });
         } else {
-          throw Exception('Speech not supported');
+          throw Exception('Speech recognition not supported on this device');
         }
       } catch (speechError) {
         print('DEBUG: Speech recognition failed: $speechError');
         
-        // Fallback to demo questions with variety
-        final demoQuestions = [
-          "What are the main themes in this chapter?",
-          "Tell me about the symbolism of the green light",
-          "What is Gatsby's relationship with Daisy?",
-          "Explain the significance of the Valley of Ashes",
-          "What does the narrator think about the characters?",
-        ];
-        
-        voiceText = demoQuestions[_globalQuestionIndex % demoQuestions.length];
-        _globalQuestionIndex++; // Increment for next time
-        
-        print('DEBUG: Selected question #${_globalQuestionIndex-1}: "$voiceText"');
-        
+        // Show text input dialog for user to type their question
         setState(() {
-          _voiceStatus = 'Processing: "$voiceText" (demo question)';
+          _voiceStatus = 'Switching to text input...';
         });
         
-        // Brief pause to show the demo question
-        await Future.delayed(Duration(seconds: 1));
+        await Future.delayed(Duration(milliseconds: 500));
+        
+        // Stop voice mode temporarily to show text input
+        setState(() {
+          _isVoiceModeActive = false;
+        });
+        
+        // Show text input dialog
+        final textInput = await _showTextInputDialog();
+        
+        if (textInput != null && textInput.isNotEmpty) {
+          // Resume voice mode with the typed question
+          setState(() {
+            _isVoiceModeActive = true;
+            _voiceStatus = 'Processing: "$textInput"';
+          });
+          voiceText = textInput;
+        } else {
+          // User cancelled, exit voice mode
+          _stopVoiceMode();
+          return;
+        }
       }
       
       if (mounted && _isVoiceModeActive) {
@@ -628,19 +749,14 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
             throw Exception('No audio data received from TTS service');
           }
         } catch (ttsError) {
-          // Fallback to Web Speech Synthesis if backend TTS fails
-          if (WebSpeechSynthesis.isSupported) {
-            await WebSpeechSynthesis.speak(response);
-          } else {
-            // Show text fallback if both TTS methods fail
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Voice response: $response'),
-                duration: Duration(seconds: 5),
-              ),
-            );
-            await Future.delayed(Duration(seconds: 3));
-          }
+          // Show text fallback if backend TTS fails
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Voice response: $response'),
+              duration: Duration(seconds: 5),
+            ),
+          );
+          await Future.delayed(Duration(seconds: 3));
         }
         
         setState(() {
@@ -662,7 +778,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
 
   void _stopVoiceMode() {
     // Stop any ongoing speech recognition
-    WebSpeechService.stop();
+    SpeechService.stopListening();
     
     // Stop any TTS audio playback
     AudioPlayerService.stop();
@@ -679,6 +795,46 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
         appState.playPause();
       }
     }
+  }
+
+  Future<String?> _showTextInputDialog() async {
+    final TextEditingController controller = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Ask AI About The Book'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: 'What would you like to know about The Great Gatsby?',
+            border: OutlineInputBorder(),
+          ),
+          maxLines: 3,
+          onSubmitted: (text) {
+            if (text.trim().isNotEmpty) {
+              Navigator.pop(context, text.trim());
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) {
+                Navigator.pop(context, text);
+              }
+            },
+            child: Text('Ask AI'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showQuickTextInput() async {

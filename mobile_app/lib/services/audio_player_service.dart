@@ -1,8 +1,8 @@
 /**
- * audio_player_service.dart - Web-based audio playback service for Muuchi
+ * audio_player_service.dart - Web-based audio playback service for EchoWright
  * 
  * This file provides audio playback functionality specifically for the web platform
- * in the Muuchi audiobook companion app. It handles base64-encoded audio data
+ * in the EchoWright audiobook companion app. It handles base64-encoded audio data
  * from the TTS Service and plays it through the browser's HTML5 audio API.
  * 
  * Key responsibilities:

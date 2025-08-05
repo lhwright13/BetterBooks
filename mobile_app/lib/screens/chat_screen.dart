@@ -1,7 +1,7 @@
 /**
- * chat_screen.dart - AI-powered chat interface for Muuchi audiobook discussions
+ * chat_screen.dart - AI-powered chat interface for EchoWright audiobook discussions
  * 
- * This file implements the core chat functionality of the Muuchi audiobook companion
+ * This file implements the core chat functionality of the EchoWright audiobook companion
  * app, enabling users to have intelligent conversations about books with AI personas.
  * The interface supports both text and voice interactions with contextual awareness.
  * 

@@ -1,7 +1,7 @@
 /**
- * api_config.dart - API endpoint configuration for Muuchi mobile app
+ * api_config.dart - API endpoint configuration for EchoWright mobile app
  * 
- * This file defines the base URL for connecting to the Muuchi backend services.
+ * This file defines the base URL for connecting to the EchoWright backend services.
  * The backend consists of multiple microservices orchestrated by an API Gateway
  * that handles routing, authentication, and request proxying.
  * 

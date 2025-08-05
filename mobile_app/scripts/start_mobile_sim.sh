@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Start Mobile Simulator Script for BetterBooks
+# Start Mobile Simulator Script for EchoWright
 # This script starts the iOS simulator and runs the Flutter app
 
 set -e
 
-echo "🚀 Starting BetterBooks Mobile Simulator..."
+echo "🚀 Starting EchoWright Mobile Simulator..."
 
 # Check if Flutter is installed
 if ! command -v flutter &> /dev/null; then

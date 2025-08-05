@@ -1,10 +1,9 @@
 /**
- * main.dart - Entry point for the Muuchi mobile application
+ * main.dart - Entry point for the EchoWright mobile application
  * 
- * This is the root file of the Muuchi Flutter app ("Talk to the books you love").
- * Muuchi is an AI-powered audiobook companion that allows users to interact with
- * books through AI personas, ask questions about content, and enjoy immersive
- * audiobook experiences.
+ * This is the root file of the EchoWright Flutter app - an AI-powered audiobook 
+ * companion that allows users to interact with books through AI personas, 
+ * ask questions about content, and enjoy immersive audiobook experiences.
  * 
  * Key responsibilities:
  * - Initialize the Flutter app with Material Design 3
@@ -29,16 +28,16 @@ import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
 import 'theme/retro_theme.dart';
 
-/// Entry point for the Muuchi application
+/// Entry point for the EchoWright application
 /// Initializes the app and sets up the root widget
 void main() {
-  runApp(const MuuchiApp());
+  runApp(const EchoWrightApp());
 }
 
-/// Root widget for the Muuchi application
+/// Root widget for the EchoWright application
 /// Sets up global state management and navigation routing
-class MuuchiApp extends StatelessWidget {
-  const MuuchiApp({super.key});
+class EchoWrightApp extends StatelessWidget {
+  const EchoWrightApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +45,7 @@ class MuuchiApp extends StatelessWidget {
       // Create global app state that manages books, personas, and playback
       create: (context) => AppState(),
       child: MaterialApp(
-        title: 'Muuchi',
+        title: 'EchoWright',
         // Retro-futuristic 80s theme
         theme: RetroTheme.theme,
         // Default route opens the main home screen

@@ -1,5 +1,5 @@
 /**
- * app_state.dart - Global state management for Muuchi mobile app
+ * app_state.dart - Global state management for EchoWright mobile app
  * 
  * This is the central state management class that coordinates all app functionality
  * using the Provider pattern. It manages audiobook playback, AI persona interactions,

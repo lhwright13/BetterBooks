@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# run_app.sh - Start the complete Muuchi audiobook companion platform
+# run_app.sh - Start the complete EchoWright audiobook companion platform
 #
-# This script provides a convenient way to launch the entire Muuchi backend
+# This script provides a convenient way to launch the entire EchoWright backend
 # infrastructure for local development. It handles Docker Compose orchestration
 # and ensures all microservices are built and started correctly.
 #
@@ -45,7 +45,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-echo "Starting Muuchi audiobook companion platform..."
+echo "Starting EchoWright audiobook companion platform..."
 echo "Repository root: $(pwd)"
 echo "Services will be available at:"
 echo "  - API Gateway: http://localhost:8000"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Mobile Simulator Control Script for BetterBooks
+# Mobile Simulator Control Script for EchoWright
 # Usage: ./scripts/mobile_sim.sh [start|stop|restart]
 
 set -e
@@ -17,21 +17,21 @@ fi
 
 # Function to start simulator
 start_sim() {
-    echo "🚀 Starting BetterBooks Mobile Simulator..."
+    echo "🚀 Starting EchoWright Mobile Simulator..."
     cd "$MOBILE_APP_DIR"
     ./scripts/start_mobile_sim.sh
 }
 
 # Function to stop simulator
 stop_sim() {
-    echo "🛑 Stopping BetterBooks Mobile Simulator..."
+    echo "🛑 Stopping EchoWright Mobile Simulator..."
     cd "$MOBILE_APP_DIR"
     ./scripts/stop_mobile_sim.sh
 }
 
 # Function to restart simulator
 restart_sim() {
-    echo "🔄 Restarting BetterBooks Mobile Simulator..."
+    echo "🔄 Restarting EchoWright Mobile Simulator..."
     stop_sim
     sleep 2
     start_sim

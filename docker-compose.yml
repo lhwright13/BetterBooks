@@ -1,7 +1,7 @@
-# Docker Compose configuration for Muuchi audiobook companion platform
+# Docker Compose configuration for EchoWright audiobook companion platform
 #
 # This file defines the complete microservices architecture for local development
-# of the Muuchi audiobook companion app. It orchestrates all backend services,
+# of the EchoWright audiobook companion app. It orchestrates all backend services,
 # databases, and the web demo application in a unified development environment.
 #
 # Architecture Overview:

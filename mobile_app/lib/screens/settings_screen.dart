@@ -189,7 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         
                         ListTile(
-                          title: Text('Muuchi'),
+                          title: Text('EchoWright'),
                           subtitle: Text('AI-powered audiobook experience'),
                           leading: Icon(Icons.book),
                         ),

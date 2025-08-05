@@ -1,7 +1,7 @@
 /**
- * web_speech_service.dart - Web-based speech recognition and synthesis for Muuchi
+ * web_speech_service.dart - Web-based speech recognition and synthesis for EchoWright
  * 
- * This file provides full speech functionality for the Muuchi audiobook companion
+ * This file provides full speech functionality for the EchoWright audiobook companion
  * app when running on web platforms. It uses the browser's Web Speech API for
  * both speech recognition (voice input) and speech synthesis (TTS output).
  * 

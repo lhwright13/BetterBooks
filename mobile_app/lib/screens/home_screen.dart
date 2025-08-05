@@ -47,7 +47,7 @@ class LibraryScreenContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Muuchi Library'),
+        title: Text('EchoWright Library'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: LibraryBody(),

@@ -1,7 +1,7 @@
 /**
- * main_home_screen.dart - Main navigation container for Muuchi mobile app
+ * main_home_screen.dart - Main navigation container for EchoWright mobile app
  * 
- * This file provides the primary navigation structure for the Muuchi audiobook
+ * This file provides the primary navigation structure for the EchoWright audiobook
  * companion app. It implements a bottom tab navigation pattern that allows users
  * to switch between the main functional areas of the application.
  * 
@@ -59,59 +59,54 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: ArchitecturalColors.pureWhite,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: RetroColors.terminalGradient,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: ArchitecturalColors.primaryGradient,
           ),
         ),
         child: _screens[_currentIndex],
       ),
-      bottomNavigationBar: _buildFilingSystemTabs(),
+      bottomNavigationBar: _buildArchitecturalNavigation(),
     );
   }
 
-  Widget _buildFilingSystemTabs() {
+  Widget _buildArchitecturalNavigation() {
     return Container(
-      height: 80,
+      height: 72,
       decoration: BoxDecoration(
-        color: Color(0xFF0A0A0A),
+        color: ArchitecturalColors.pureWhite,
         border: Border(
           top: BorderSide(
-            color: RetroColors.gridBlue.withOpacity(0.4),
-            width: 2,
+            color: ArchitecturalColors.lightGray,
+            width: 1,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: RetroColors.neonCyan.withOpacity(0.1),
-            blurRadius: 8,
-            spreadRadius: 1,
-            offset: Offset(0, -2),
+            color: ArchitecturalColors.shadowBlack,
+            blurRadius: 12,
+            spreadRadius: 0,
+            offset: Offset(0, -4),
           ),
         ],
       ),
       child: Row(
         children: [
-          _buildFileTab(0, 'HOME', Icons.terminal, '001'),
-          _buildFileTab(1, 'LIBRARY', Icons.folder_open, '002'),
-          _buildFileTab(2, 'STORE', Icons.shopping_cart_outlined, '003'),
-          _buildFileTab(3, 'PROFILE', Icons.person_outline, '004'),
+          _buildArchitecturalTab(0, 'HOME', Icons.home_outlined, Icons.home),
+          _buildArchitecturalTab(1, 'LIBRARY', Icons.library_books_outlined, Icons.library_books),
+          _buildArchitecturalTab(2, 'STORE', Icons.store_outlined, Icons.store),
+          _buildArchitecturalTab(3, 'PROFILE', Icons.person_outline, Icons.person),
         ],
       ),
     );
   }
 
-  Widget _buildFileTab(int index, String label, IconData icon, String fileNumber) {
+  Widget _buildArchitecturalTab(int index, String label, IconData outlineIcon, IconData filledIcon) {
     final isSelected = _currentIndex == index;
-    final tabColors = [
-      RetroColors.neonCyan,
-      RetroColors.phosphorGreen,
-      RetroColors.neonOrange,
-      RetroColors.neonPink,
-    ];
     
     return Expanded(
       child: GestureDetector(
@@ -120,77 +115,48 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             _currentIndex = index;
           });
         },
-        child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+        child: AnimatedContainer(
+          duration: ArchitecturalAnimations.fast,
+          curve: ArchitecturalAnimations.preciseEase,
+          padding: EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? Color(0xFF16213E) : Color(0xFF0F0F23),
-            border: Border.all(
-              color: isSelected 
-                  ? tabColors[index]
-                  : RetroColors.gridBlue.withOpacity(0.3),
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected ? [
-              BoxShadow(
-                color: tabColors[index].withOpacity(0.3),
-                blurRadius: 6,
-                spreadRadius: 1,
+            color: isSelected 
+                ? ArchitecturalColors.primaryOrange.withValues(alpha: 0.1)
+                : Colors.transparent,
+            border: Border(
+              top: BorderSide(
+                color: isSelected 
+                    ? ArchitecturalColors.primaryOrange
+                    : Colors.transparent,
+                width: 3,
               ),
-            ] : null,
+            ),
           ),
-          child: Stack(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // File number tab (like index cards)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: tabColors[index],
-                    border: Border.all(
-                      color: RetroColors.gridBlue.withOpacity(0.5),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    fileNumber,
-                    style: GoogleFonts.sourceCodePro(
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+              AnimatedSwitcher(
+                duration: ArchitecturalAnimations.fast,
+                child: Icon(
+                  isSelected ? filledIcon : outlineIcon,
+                  key: ValueKey(isSelected),
+                  size: 24,
+                  color: isSelected 
+                      ? ArchitecturalColors.primaryOrange
+                      : ArchitecturalColors.mediumGray,
                 ),
               ),
-              
-              // Main tab content
-              Padding(
-                padding: EdgeInsets.all(8),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 20,
-                      color: isSelected 
-                          ? tabColors[index]
-                          : RetroColors.terminalAmber.withOpacity(0.6),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      label,
-                      style: GoogleFonts.sourceCodePro(
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected 
-                            ? tabColors[index]
-                            : RetroColors.terminalAmber.withOpacity(0.6),
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
+              SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected 
+                      ? ArchitecturalColors.primaryOrange
+                      : ArchitecturalColors.mediumGray,
+                  letterSpacing: 0,
                 ),
               ),
             ],

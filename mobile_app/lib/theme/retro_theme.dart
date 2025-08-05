@@ -1,270 +1,521 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class RetroColors {
-  // Terminal Colors (inspired by classic computer interfaces)
-  static const Color terminalDark = Color(0xFF0A0A0A);
-  static const Color terminalGreen = Color(0xFF00FF41);
-  static const Color terminalAmber = Color(0xFFFFBF00);
-  static const Color phosphorGreen = Color(0xFF39FF14);
+/// Architectural Theme Colors - Inspired by "Emergent Tokyo" book cover
+/// High-contrast color palette with bright architectural orange, clean whites, and deep blacks
+class ArchitecturalColors {
+  // PRIMARY: Bright Architectural Orange ("Emergent Tokyo" inspired)
+  static const Color primaryOrange = Color(0xFFFF4500);      // Bright architectural orange-red
+  static const Color lightOrange = Color(0xFFFF6B33);        // Lighter orange for highlights
+  static const Color deepOrange = Color(0xFFE63E00);         // Deeper orange for emphasis
+  static const Color orangeAccent = Color(0xFFFF7F50);       // Coral orange accent
   
-  // 80s Neon Palette
-  static const Color neonCyan = Color(0xFF00FFFF);
-  static const Color neonPink = Color(0xFFFF1493);
-  static const Color neonOrange = Color(0xFFFF6600);
-  static const Color neonPurple = Color(0xFF9D00FF);
+  // BACKGROUNDS: Clean Architecture (High Contrast)
+  static const Color pureWhite = Color(0xFFFFFFFF);          // Pure white backgrounds
+  static const Color offWhite = Color(0xFFFAFAFA);           // Subtle off-white for cards
+  static const Color lightGray = Color(0xFFF5F5F5);          // Light gray for surfaces
+  static const Color cardWhite = Color(0xFFFEFEFE);          // Card backgrounds
   
-  // VHS/Retro Colors
-  static const Color vhsRed = Color(0xFFFF0040);
-  static const Color vhsOrange = Color(0xFFFF8000);
-  static const Color vhsYellow = Color(0xFFFFFF00);
+  // TEXT: Frank Lloyd Wright Architectural (Maximum Readability)
+  static const Color deepBlack = Color(0xFF000000);          // Pure black for primary text
+  static const Color charcoalBlack = Color(0xFF1A1A1A);      // Charcoal for headers
+  static const Color darkGray = Color(0xFF333333);           // Dark gray for body text
+  static const Color mediumGray = Color(0xFF666666);         // Medium gray for secondary text
+  static const Color subtleGray = Color(0xFF999999);         // Subtle gray for hints
   
-  // Filing System Colors
-  static const Color cardStock = Color(0xFFF5F5DC);
-  static const Color tabBlue = Color(0xFF4169E1);
-  static const Color tabGreen = Color(0xFF228B22);
-  static const Color tabYellow = Color(0xFFFFD700);
+  // ARCHITECTURAL ACCENTS: Geometric Lines and Structure
+  static const Color steelGray = Color(0xFF708090);          // Steel structural accents
+  static const Color lightSteel = Color(0xFFB0C4DE);         // Light steel for borders
+  static const Color architecturalBlue = Color(0xFF4682B4);  // Blueprint blue accent
+  static const Color concreteGray = Color(0xFF696969);       // Concrete material tone
   
-  // Grid and Interface
-  static const Color gridBlue = Color(0xFF0080FF);
-  static const Color hudOverlay = Color(0x30000000);
-  static const Color scanlineOverlay = Color(0x10FFFFFF);
+  // FUNCTIONAL COLORS: High Contrast System Colors
+  static const Color successGreen = Color(0xFF28A745);       // Clear success green
+  static const Color warningAmber = Color(0xFFFFC107);       // Warning amber
+  static const Color errorRed = Color(0xFFDC3545);           // Clear error red
+  static const Color infoBlue = Color(0xFF17A2B8);           // Information blue
   
-  // Background Gradients
-  static const List<Color> terminalGradient = [
-    Color(0xFF0F0F23),
-    Color(0xFF16213E),
-    Color(0xFF0F3460),
+  // SHADOWS AND OVERLAYS: Architectural Depth
+  static const Color shadowBlack = Color(0x1A000000);        // Subtle black shadow
+  static const Color overlayBlack = Color(0x80000000);       // Modal overlay
+  static const Color subtleOverlay = Color(0x0A000000);      // Very subtle overlay
+  static const Color orangeGlow = Color(0x20FF4500);         // Orange glow effect
+  
+  // GRADIENTS: Architectural Transitions
+  static const List<Color> primaryGradient = [
+    Color(0xFFFFFFFF),  // Pure white
+    Color(0xFFFAFAFA),  // Off white
+    Color(0xFFF5F5F5),  // Light gray
   ];
   
-  static const List<Color> vhsGradient = [
-    Color(0xFF1A0A2E),
-    Color(0xFF16213E),
-    Color(0xFF533483),
+  static const List<Color> orangeGradient = [
+    Color(0xFFFF4500),  // Primary orange
+    Color(0xFFE63E00),  // Deep orange
   ];
+  
+  static const List<Color> cardGradient = [
+    Color(0xFFFEFEFE),  // Card white
+    Color(0xFFFAFAFA),  // Off white
+  ];
+  
+  static const List<Color> architecturalShadow = [
+    Color(0x1A000000),  // Subtle shadow
+    Color(0x0D000000),  // Lighter shadow
+    Color(0x00000000),  // Transparent
+  ];
+  
+  // LEGACY MAPPINGS: Backward Compatibility
+  static const Color primaryTerracotta = primaryOrange;
+  static const Color lightTerracotta = lightOrange;
+  static const Color sageGreen = steelGray;
+  static const Color deepTerracotta = deepOrange;
+  static const Color creamBackground = pureWhite;
+  static const Color warmSurface = offWhite;
+  static const Color softCard = cardWhite;
+  static const Color ivoryWhite = pureWhite;
+  static const Color lightBeige = lightGray;
+  static const Color mediumBeige = mediumGray;
+  static const Color warmTaupe = subtleGray;
+  static const Color deepTaupe = darkGray;
+  static const Color peachAccent = orangeAccent;
+  static const Color coralTone = orangeAccent;
+  static const Color orangeGlowOld = lightOrange;
+  static const Color brickRed = primaryOrange;
+  static const Color clayTone = lightOrange;
+  static const Color stoneBeige = lightGray;
+  static const Color woodWarm = mediumGray;
+  static const Color burgundyAccent = deepOrange;
+  static const Color sageAccent = steelGray;
+  static const Color successEarth = successGreen;
+  static const Color warningCoral = warningAmber;
+  static const Color errorBrick = errorRed;
+  static const Color softTeal = architecturalBlue;
+  static const Color mintGreen = successGreen;
+  static const Color terminalMint = successGreen;
+  static const Color warningOrange = warningAmber;
+  static const Color deepTeal = deepOrange;
+  static const Color surfaceDark = offWhite;
+  static const Color holoPink = orangeAccent;
+  static const Color tabBlue = architecturalBlue;
+  static const Color gridBlue = architecturalBlue;
+  static const Color terminalGreen = successGreen;
+  static const Color vhsRed = errorRed;
+  static const Color vhsYellow = warningAmber;
+  static const Color neonCyan = infoBlue;
+  static const Color neonOrange = primaryOrange;
+  static const Color neonPink = orangeAccent;
+  static const Color phosphorGreen = successGreen;
+  static const Color overlayWarm = orangeGlow;
+  static const List<Color> terminalGradient = orangeGradient;
 }
 
-class RetroTheme {
+/// Architectural Theme - Frank Lloyd Wright inspired design system
+/// High-contrast theme with geometric typography and clean architectural aesthetics
+class ArchitecturalTheme {
   static ThemeData get theme {
     return ThemeData(
-      useMaterial3: false,
-      brightness: Brightness.dark,
-      primarySwatch: Colors.cyan,
-      primaryColor: RetroColors.neonCyan,
-      scaffoldBackgroundColor: RetroColors.terminalDark,
+      useMaterial3: true,
+      brightness: Brightness.light,
+      primarySwatch: Colors.orange,
+      primaryColor: ArchitecturalColors.primaryOrange,
+      scaffoldBackgroundColor: ArchitecturalColors.pureWhite,
       
-      // Typography - Mix of tech fonts for different purposes
+      // Frank Lloyd Wright Architectural Typography - Geometric and highly readable
       textTheme: TextTheme(
-        // Headers - Bold tech font like terminal readouts
-        displayLarge: GoogleFonts.orbitron(
+        // Large headers - Bold architectural titles (maximum contrast)
+        displayLarge: GoogleFonts.montserrat(
+          fontSize: 32,
+          fontWeight: FontWeight.w800,
+          color: ArchitecturalColors.deepBlack,
+          letterSpacing: -0.8,
+          height: 1.1,
+        ),
+        displayMedium: GoogleFonts.montserrat(
           fontSize: 28,
-          fontWeight: FontWeight.bold,
-          color: RetroColors.neonCyan,
-          letterSpacing: 2.0,
+          fontWeight: FontWeight.w700,
+          color: ArchitecturalColors.charcoalBlack,
+          letterSpacing: -0.5,
+          height: 1.2,
         ),
-        displayMedium: GoogleFonts.orbitron(
+        displaySmall: GoogleFonts.montserrat(
           fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: RetroColors.neonCyan,
-          letterSpacing: 1.5,
+          fontWeight: FontWeight.w600,
+          color: ArchitecturalColors.charcoalBlack,
+          letterSpacing: -0.3,
+          height: 1.3,
         ),
-        displaySmall: GoogleFonts.orbitron(
+        
+        // Headlines - Architectural geometric text (high contrast)
+        headlineLarge: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: RetroColors.neonCyan,
-          letterSpacing: 1.2,
+          color: ArchitecturalColors.deepBlack,
+          letterSpacing: 0,
+          height: 1.3,
         ),
-        
-        // Titles - Clean monospace for system labels
-        headlineLarge: GoogleFonts.sourceCodePro(
+        headlineMedium: GoogleFonts.inter(
           fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: RetroColors.terminalGreen,
-          letterSpacing: 0.8,
+          fontWeight: FontWeight.w600,
+          color: ArchitecturalColors.primaryOrange,
+          letterSpacing: 0,
+          height: 1.4,
         ),
-        headlineMedium: GoogleFonts.sourceCodePro(
+        headlineSmall: GoogleFonts.inter(
           fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: RetroColors.terminalGreen,
-          letterSpacing: 0.6,
-        ),
-        headlineSmall: GoogleFonts.sourceCodePro(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          color: RetroColors.terminalGreen,
-          letterSpacing: 0.4,
+          fontWeight: FontWeight.w500,
+          color: ArchitecturalColors.darkGray,
+          letterSpacing: 0,
+          height: 1.4,
         ),
         
-        // Body text - Terminal style for readability
-        bodyLarge: GoogleFonts.sourceCodePro(
+        // Body text - Clean, highly readable content (maximum contrast)
+        bodyLarge: GoogleFonts.inter(
+          fontSize: 16,
+          color: ArchitecturalColors.deepBlack,
+          letterSpacing: 0,
+          fontWeight: FontWeight.w400,
+          height: 1.6,
+        ),
+        bodyMedium: GoogleFonts.inter(
           fontSize: 14,
-          color: RetroColors.terminalAmber,
+          color: ArchitecturalColors.darkGray,
+          letterSpacing: 0,
+          fontWeight: FontWeight.w400,
+          height: 1.5,
+        ),
+        bodySmall: GoogleFonts.inter(
+          fontSize: 12,
+          color: ArchitecturalColors.mediumGray,
+          letterSpacing: 0,
+          fontWeight: FontWeight.w400,
+          height: 1.4,
+        ),
+        
+        // Labels - Architectural system UI text (high contrast)
+        labelLarge: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: ArchitecturalColors.deepBlack,
           letterSpacing: 0.2,
         ),
-        bodyMedium: GoogleFonts.sourceCodePro(
+        labelMedium: GoogleFonts.inter(
           fontSize: 12,
-          color: RetroColors.terminalAmber,
+          fontWeight: FontWeight.w500,
+          color: ArchitecturalColors.darkGray,
           letterSpacing: 0.1,
         ),
-        bodySmall: GoogleFonts.sourceCodePro(
-          fontSize: 10,
-          color: RetroColors.terminalAmber.withOpacity(0.8),
-        ),
-        
-        // Labels - Rajdhani for system UI elements
-        labelLarge: GoogleFonts.rajdhani(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: RetroColors.phosphorGreen,
-          letterSpacing: 1.0,
-        ),
-        labelMedium: GoogleFonts.rajdhani(
+        labelSmall: GoogleFonts.inter(
           fontSize: 10,
           fontWeight: FontWeight.w500,
-          color: RetroColors.phosphorGreen,
-          letterSpacing: 0.8,
-        ),
-        labelSmall: GoogleFonts.rajdhani(
-          fontSize: 8,
-          fontWeight: FontWeight.w500,
-          color: RetroColors.phosphorGreen.withOpacity(0.8),
-          letterSpacing: 0.6,
+          color: ArchitecturalColors.mediumGray,
+          letterSpacing: 0.1,
         ),
       ),
       
-      // Color scheme
-      colorScheme: ColorScheme.dark(
-        primary: RetroColors.neonCyan,
-        secondary: RetroColors.neonPink,
-        tertiary: RetroColors.phosphorGreen,
-        surface: Color(0xFF1A1A2E),
-        background: RetroColors.terminalDark,
-        onPrimary: Colors.black,
-        onSecondary: Colors.black,
-        onSurface: RetroColors.terminalAmber,
-        onBackground: RetroColors.terminalAmber,
-        error: RetroColors.vhsRed,
-        outline: RetroColors.gridBlue,
+      // High-contrast architectural color scheme
+      colorScheme: ColorScheme.light(
+        primary: ArchitecturalColors.primaryOrange,
+        secondary: ArchitecturalColors.steelGray,
+        tertiary: ArchitecturalColors.architecturalBlue,
+        surface: ArchitecturalColors.offWhite,
+        onPrimary: ArchitecturalColors.pureWhite,
+        onSecondary: ArchitecturalColors.pureWhite,
+        onSurface: ArchitecturalColors.deepBlack,
+        error: ArchitecturalColors.errorRed,
+        onError: ArchitecturalColors.pureWhite,
+        outline: ArchitecturalColors.mediumGray,
+        shadow: ArchitecturalColors.shadowBlack,
       ),
       
-      // App bar - Terminal style header
+      // App bar - Clean architectural header with maximum contrast
       appBarTheme: AppBarTheme(
-        backgroundColor: Color(0xFF0F0F23),
-        foregroundColor: RetroColors.neonCyan,
-        elevation: 0,
-        titleTextStyle: GoogleFonts.orbitron(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: RetroColors.neonCyan,
-          letterSpacing: 1.5,
+        backgroundColor: ArchitecturalColors.pureWhite,
+        foregroundColor: ArchitecturalColors.deepBlack,
+        elevation: 1,
+        shadowColor: ArchitecturalColors.shadowBlack,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: GoogleFonts.montserrat(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: ArchitecturalColors.deepBlack,
+          letterSpacing: -0.2,
+        ),
+        iconTheme: IconThemeData(
+          color: ArchitecturalColors.deepBlack,
+          size: 24,
         ),
       ),
       
-      // Cards - Filing system aesthetic
+      // Cards - Clean architectural design with subtle shadows
       cardTheme: CardThemeData(
-        color: Color(0xFF16213E),
-        elevation: 8,
-        shadowColor: RetroColors.neonCyan.withOpacity(0.2),
+        color: ArchitecturalColors.cardWhite,
+        elevation: 2,
+        shadowColor: ArchitecturalColors.shadowBlack,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(0), // Sharp corners like index cards
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: RetroColors.gridBlue.withOpacity(0.4),
+            color: ArchitecturalColors.lightGray,
             width: 1,
           ),
         ),
-        margin: EdgeInsets.all(4),
+        margin: EdgeInsets.all(8),
       ),
       
-      // Bottom navigation - Tab system
+      // Bottom navigation - Clean architectural navigation with high contrast
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: Color(0xFF0A0A0A),
-        selectedItemColor: RetroColors.neonCyan,
-        unselectedItemColor: RetroColors.terminalAmber.withOpacity(0.6),
-        selectedLabelStyle: GoogleFonts.sourceCodePro(
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-          fontSize: 10,
+        backgroundColor: ArchitecturalColors.pureWhite,
+        selectedItemColor: ArchitecturalColors.primaryOrange,
+        unselectedItemColor: ArchitecturalColors.mediumGray,
+        selectedLabelStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0,
+          fontSize: 12,
+          color: ArchitecturalColors.primaryOrange,
         ),
-        unselectedLabelStyle: GoogleFonts.sourceCodePro(
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.3,
-          fontSize: 9,
+        unselectedLabelStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.w400,
+          letterSpacing: 0,
+          fontSize: 11,
+          color: ArchitecturalColors.mediumGray,
         ),
         type: BottomNavigationBarType.fixed,
-        elevation: 12,
+        elevation: 4,
       ),
       
-      // Buttons - Retro tech style
+      // Buttons - Bold architectural styling with maximum contrast
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: RetroColors.neonCyan,
-          foregroundColor: Colors.black,
-          textStyle: GoogleFonts.rajdhani(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
+          backgroundColor: ArchitecturalColors.primaryOrange,
+          foregroundColor: ArchitecturalColors.pureWhite,
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(0), // Sharp corners
+            borderRadius: BorderRadius.circular(8),
           ),
-          elevation: 6,
+          elevation: 2,
+          shadowColor: ArchitecturalColors.shadowBlack,
+          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         ),
       ),
       
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: RetroColors.neonPink,
-          side: BorderSide(color: RetroColors.neonPink, width: 2),
-          textStyle: GoogleFonts.rajdhani(
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
+          foregroundColor: ArchitecturalColors.primaryOrange,
+          side: BorderSide(color: ArchitecturalColors.primaryOrange, width: 2),
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(0),
+            borderRadius: BorderRadius.circular(8),
           ),
+          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         ),
       ),
       
-      // Input fields - Terminal style
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: ArchitecturalColors.primaryOrange,
+          textStyle: GoogleFonts.inter(
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0,
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+      ),
+      
+      // Input fields - Clean architectural form design
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0xFF0F0F23),
+        fillColor: ArchitecturalColors.offWhite,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(0),
-          borderSide: BorderSide(color: RetroColors.gridBlue),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: ArchitecturalColors.mediumGray),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(0),
-          borderSide: BorderSide(color: RetroColors.gridBlue.withOpacity(0.6)),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: ArchitecturalColors.lightSteel),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(0),
-          borderSide: BorderSide(color: RetroColors.neonCyan, width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: ArchitecturalColors.primaryOrange, width: 2),
         ),
-        labelStyle: GoogleFonts.sourceCodePro(
-          color: RetroColors.terminalAmber,
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: ArchitecturalColors.errorRed, width: 2),
         ),
-        hintStyle: GoogleFonts.sourceCodePro(
-          color: RetroColors.terminalAmber.withOpacity(0.6),
+        labelStyle: GoogleFonts.inter(
+          color: ArchitecturalColors.mediumGray,
+          fontWeight: FontWeight.w500,
         ),
+        hintStyle: GoogleFonts.inter(
+          color: ArchitecturalColors.subtleGray,
+          fontWeight: FontWeight.w400,
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
 }
 
-// Animation durations for consistent retro feel
-class RetroAnimations {
+/// Architectural Animation System - Clean, precise transitions
+/// Inspired by Frank Lloyd Wright's geometric principles
+class ArchitecturalAnimations {
+  static const Duration ultraFast = Duration(milliseconds: 100);
   static const Duration fast = Duration(milliseconds: 200);
-  static const Duration medium = Duration(milliseconds: 400);
-  static const Duration slow = Duration(milliseconds: 600);
-  static const Duration scanline = Duration(milliseconds: 100);
+  static const Duration medium = Duration(milliseconds: 300);
+  static const Duration slow = Duration(milliseconds: 500);
+  static const Duration pageTransition = Duration(milliseconds: 250);
+  
+  // Architectural easing curves - precise and geometric
+  static const Curve preciseEase = Curves.easeInOutCubic;
+  static const Curve geometricEase = Curves.easeOutQuart;
+  static const Curve architecturalEase = Curves.easeInOutQuart;
+  static const Curve sharpEase = Curves.easeInOutExpo;
+  
+  // Legacy compatibility
+  static const Curve smoothEase = preciseEase;
+  static const Curve gentleEase = geometricEase;
+  static const Curve tactileEase = architecturalEase;
 }
 
-// Retro-specific measurements
+/// Architectural Design Measurements - Geometric precision
+/// Based on Frank Lloyd Wright's proportional systems
+class ArchitecturalSizes {
+  static const double cardElevation = 2.0;          // Subtle architectural depth
+  static const double subtleBorder = 1.0;           // Fine architectural lines
+  static const double prominentBorder = 2.0;        // Bold structural elements
+  static const double tabHeight = 56.0;             // Optimal touch targets
+  static const double iconSize = 24.0;              // Balanced visual weight
+  static const double padding = 24.0;               // Generous architectural spacing
+  static const double smallPadding = 16.0;          // Intimate geometric spacing
+  static const double borderRadius = 8.0;           // Clean geometric corners
+  static const double smallRadius = 4.0;            // Minimal rounded edges
+  static const double largeRadius = 12.0;           // Prominent rounded elements
+  
+  // Legacy compatibility
+  static const double cardElevationOld = cardElevation;
+  static const double borderRadiusOld = borderRadius;
+  static const double smallRadiusOld = smallRadius;
+}
+
+/// Architectural Layout Spacing System - Geometric grid
+/// Based on 8-point grid system for consistent proportions
+class ArchitecturalSpacing {
+  static const double xs = 4.0;   // Minimal geometric unit
+  static const double sm = 8.0;   // Base grid unit
+  static const double md = 16.0;  // Standard element spacing
+  static const double lg = 24.0;  // Section spacing
+  static const double xl = 32.0;  // Large architectural gaps
+  static const double xxl = 48.0; // Grand architectural space
+  static const double xxxl = 64.0; // Monumental spacing
+  
+  // Legacy compatibility
+  static const double small = sm;
+  static const double medium = md;
+  static const double large = lg;
+}
+
+/// Legacy Theme Compatibility - Maintains backward compatibility
+/// Maps old RetroTheme and RetroColors to new ArchitecturalTheme
+class RetroTheme {
+  static ThemeData get theme => ArchitecturalTheme.theme;
+}
+
+class RetroColors {
+  // Primary colors
+  static const Color primaryTerracotta = ArchitecturalColors.primaryOrange;
+  static const Color lightTerracotta = ArchitecturalColors.lightOrange;
+  static const Color sageGreen = ArchitecturalColors.steelGray;
+  static const Color deepTerracotta = ArchitecturalColors.deepOrange;
+  
+  // Background colors
+  static const Color creamBackground = ArchitecturalColors.pureWhite;
+  static const Color warmSurface = ArchitecturalColors.offWhite;
+  static const Color softCard = ArchitecturalColors.cardWhite;
+  
+  // Text colors
+  static const Color ivoryWhite = ArchitecturalColors.pureWhite;
+  static const Color lightBeige = ArchitecturalColors.lightGray;
+  static const Color mediumBeige = ArchitecturalColors.mediumGray;
+  static const Color warmTaupe = ArchitecturalColors.subtleGray;
+  static const Color deepTaupe = ArchitecturalColors.darkGray;
+  
+  // All other legacy mappings
+  static const Color peachAccent = ArchitecturalColors.orangeAccent;
+  static const Color coralTone = ArchitecturalColors.orangeAccent;
+  static const Color orangeGlow = ArchitecturalColors.lightOrange;
+  static const Color brickRed = ArchitecturalColors.primaryOrange;
+  static const Color clayTone = ArchitecturalColors.lightOrange;
+  static const Color stoneBeige = ArchitecturalColors.lightGray;
+  static const Color woodWarm = ArchitecturalColors.mediumGray;
+  static const Color burgundyAccent = ArchitecturalColors.deepOrange;
+  static const Color sageAccent = ArchitecturalColors.steelGray;
+  static const Color successEarth = ArchitecturalColors.successGreen;
+  static const Color warningCoral = ArchitecturalColors.warningAmber;
+  static const Color errorBrick = ArchitecturalColors.errorRed;
+  static const Color softTeal = ArchitecturalColors.architecturalBlue;
+  static const Color mintGreen = ArchitecturalColors.successGreen;
+  static const Color terminalMint = ArchitecturalColors.successGreen;
+  static const Color errorRed = ArchitecturalColors.errorRed;
+  static const Color warningOrange = ArchitecturalColors.warningAmber;
+  static const Color lightGray = ArchitecturalColors.lightGray;
+  static const Color deepTeal = ArchitecturalColors.deepOrange;
+  static const Color surfaceDark = ArchitecturalColors.offWhite;
+  static const Color holoPink = ArchitecturalColors.orangeAccent;
+  static const Color tabBlue = ArchitecturalColors.architecturalBlue;
+  static const Color gridBlue = ArchitecturalColors.architecturalBlue;
+  static const Color terminalGreen = ArchitecturalColors.successGreen;
+  static const Color vhsRed = ArchitecturalColors.errorRed;
+  static const Color vhsYellow = ArchitecturalColors.warningAmber;
+  static const Color neonCyan = ArchitecturalColors.infoBlue;
+  static const Color neonOrange = ArchitecturalColors.primaryOrange;
+  static const Color neonPink = ArchitecturalColors.orangeAccent;
+  static const Color phosphorGreen = ArchitecturalColors.successGreen;
+  static const Color overlayWarm = ArchitecturalColors.orangeGlow;
+  static const Color subtleOverlay = ArchitecturalColors.subtleOverlay;
+  static const Color softGlow = ArchitecturalColors.orangeGlow;
+  
+  // Gradients
+  static const List<Color> primaryGradient = ArchitecturalColors.primaryGradient;
+  static const List<Color> terracottaGradient = ArchitecturalColors.orangeGradient;
+  static const List<Color> cardGradient = ArchitecturalColors.cardGradient;
+  static const List<Color> warmGlow = ArchitecturalColors.architecturalShadow;
+  static const List<Color> terminalGradient = ArchitecturalColors.orangeGradient;
+}
+
+/// Legacy compatibility classes
+class RetroAnimations {
+  static const Duration ultraFast = ArchitecturalAnimations.ultraFast;
+  static const Duration fast = ArchitecturalAnimations.fast;
+  static const Duration medium = ArchitecturalAnimations.medium;
+  static const Duration slow = ArchitecturalAnimations.slow;
+  static const Duration pageTransition = ArchitecturalAnimations.pageTransition;
+  static const Curve smoothEase = ArchitecturalAnimations.smoothEase;
+  static const Curve gentleEase = ArchitecturalAnimations.gentleEase;
+  static const Curve tactileEase = ArchitecturalAnimations.tactileEase;
+}
+
 class RetroSizes {
-  static const double cardElevation = 8.0;
-  static const double borderWidth = 1.0;
-  static const double tabHeight = 48.0;
-  static const double iconSize = 20.0;
-  static const double padding = 16.0;
-  static const double smallPadding = 8.0;
+  static const double cardElevation = ArchitecturalSizes.cardElevation;
+  static const double subtleBorder = ArchitecturalSizes.subtleBorder;
+  static const double prominentBorder = ArchitecturalSizes.prominentBorder;
+  static const double tabHeight = ArchitecturalSizes.tabHeight;
+  static const double iconSize = ArchitecturalSizes.iconSize;
+  static const double padding = ArchitecturalSizes.padding;
+  static const double smallPadding = ArchitecturalSizes.smallPadding;
+  static const double borderRadius = ArchitecturalSizes.borderRadius;
+  static const double smallRadius = ArchitecturalSizes.smallRadius;
+}
+
+class RetroSpacing {
+  static const double xs = ArchitecturalSpacing.xs;
+  static const double sm = ArchitecturalSpacing.sm;
+  static const double md = ArchitecturalSpacing.md;
+  static const double lg = ArchitecturalSpacing.lg;
+  static const double xl = ArchitecturalSpacing.xl;
+  static const double xxl = ArchitecturalSpacing.xxl;
 }
