@@ -39,9 +39,9 @@ services:
     image: pgvector/pgvector:pg15
     restart: unless-stopped
     environment:
-      POSTGRES_USER: betterbooks
-      POSTGRES_PASSWORD: betterbooks
-      POSTGRES_DB: betterbooks
+      POSTGRES_USER: ${POSTGRES_USER:-betterbooks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
+      POSTGRES_DB: ${POSTGRES_DB:-betterbooks}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -49,11 +49,14 @@ services:
 
   api_gateway:
     build: ./services/api_gateway
+    env_file:
+      - .env
     environment:
       CONTEXT_SERVICE_URL: http://context_service:8000
       LLM_GATEWAY_URL: http://llm_gateway:8000
       TTS_SERVICE_URL: http://tts_service:8000
       TRANSCRIPTION_SERVICE_URL: http://transcription_service:8003
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       - context_service
       - llm_gateway
@@ -66,8 +69,10 @@ services:
 
   context_service:
     build: ./services/context_service
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgres://betterbooks:betterbooks@postgres:5432/betterbooks
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       - postgres
     ports:
@@ -75,8 +80,12 @@ services:
 
   llm_gateway:
     build: ./services/llm_gateway
+    env_file:
+      - .env
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "8002:8000"
     volumes:
@@ -84,8 +93,11 @@ services:
 
   tts_service:
     build: ./services/tts_service
+    env_file:
+      - .env
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
     ports:
       - "8004:8000"
     volumes:
@@ -93,6 +105,11 @@ services:
 
   transcription_service:
     build: ./services/transcription_service
+    env_file:
+      - .env
+    environment:
+      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "8003:8003"
     volumes:
@@ -102,11 +119,25 @@ services:
 
   web_app:
     build: ./web_app
+    env_file:
+      - .env
     depends_on:
       - api_gateway
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
     ports:
       - "8080:80"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
 
 volumes:
   postgres_data:
   transcription_cache:
+  redis_data:

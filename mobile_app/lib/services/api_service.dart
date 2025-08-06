@@ -221,7 +221,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['context'] ?? '';
+        return data['context_text'] ?? '';
       } else {
         throw Exception('Failed to get context: ${response.statusCode}');
       }

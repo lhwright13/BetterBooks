@@ -169,14 +169,32 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String> getCurrentContext() async {
-    if (_currentBook == null) return '';
+    if (_currentBook == null) {
+      print('DEBUG: No current book selected for context');
+      return '';
+    }
+    
     try {
-      return await ApiService.getContext(
+      print('DEBUG: Requesting context for book: ${_currentBook!.title}');
+      print('DEBUG: Current chapter: ${_currentChapter?.title ?? "none"}');
+      print('DEBUG: Current position: ${_currentPosition.inSeconds}s');
+      
+      final context = await ApiService.getContext(
         _currentBook!.title, 
         _currentChapter?.title,
         _currentPosition.inSeconds.toDouble(),
       );
+      
+      print('DEBUG: Context received: ${context.length} characters');
+      if (context.length > 100) {
+        print('DEBUG: Context preview: ${context.substring(0, 100)}...');
+      } else {
+        print('DEBUG: Full context: $context');
+      }
+      
+      return context;
     } catch (e) {
+      print('DEBUG: Context extraction failed: $e');
       return '';
     }
   }
@@ -218,8 +236,13 @@ class AppState extends ChangeNotifier {
       if (_currentBook != null) {
         final context = await getCurrentContext();
         if (context.isNotEmpty) {
-          contextualMessage = "Context from current playback: $context\n\nUser question: $message";
+          contextualMessage = "Context from current playbook: $context\n\nUser question: $message";
+          print('DEBUG: Sending contextual message to LLM (${contextualMessage.length} chars)');
+        } else {
+          print('DEBUG: No context available, sending message without context');
         }
+      } else {
+        print('DEBUG: No book playing, sending message without context');
       }
 
       // Get AI response
@@ -253,7 +276,12 @@ class AppState extends ChangeNotifier {
         final context = await getCurrentContext();
         if (context.isNotEmpty) {
           contextualMessage = "Context from current playback: $context\n\nUser question: $voiceText";
+          print('DEBUG: Sending contextual voice message to LLM (${contextualMessage.length} chars)');
+        } else {
+          print('DEBUG: No context available for voice message, sending without context');
         }
+      } else {
+        print('DEBUG: No book playing for voice message, sending without context');
       }
 
       // Get AI response

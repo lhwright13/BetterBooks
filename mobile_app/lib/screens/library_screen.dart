@@ -159,7 +159,7 @@ class BookCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: RetroColors.ivoryWhite,
+                      color: ArchitecturalColors.deepBlack,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -169,7 +169,7 @@ class BookCard extends StatelessWidget {
                     Text(
                       book.author!,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: RetroColors.lightGray,
+                        color: ArchitecturalColors.darkGray,
                         fontSize: 14,
                       ),
                     ),
@@ -233,7 +233,7 @@ class BookCard extends StatelessWidget {
               ),
               child: Icon(
                 Icons.play_arrow_rounded,
-                color: RetroColors.ivoryWhite,
+                color: ArchitecturalColors.pureWhite,
                 size: 24,
               ),
             ),
@@ -343,7 +343,7 @@ class BookCard extends StatelessWidget {
                               child: Text(
                                 '${chapter.chapterNumber}',
                                 style: TextStyle(
-                                  color: RetroColors.ivoryWhite,
+                                  color: ArchitecturalColors.pureWhite,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -360,10 +360,14 @@ class BookCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          Icon(
-                            Icons.play_arrow_rounded,
-                            color: RetroColors.primaryTerracotta,
-                            size: 20,
+                          Container(
+                            width: 44,
+                            height: 44,
+                            child: Icon(
+                              Icons.play_arrow_rounded,
+                              color: RetroColors.primaryTerracotta,
+                              size: 24,
+                            ),
                           ),
                         ],
                       ),

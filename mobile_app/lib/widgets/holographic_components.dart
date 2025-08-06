@@ -492,3 +492,238 @@ class _ArchitecturalProgressState extends State<ArchitecturalProgress>
     );
   }
 }
+
+/// Loading State Components for Better UX
+class SkeletonLoader extends StatefulWidget {
+  final double width;
+  final double height;
+  final BorderRadius? borderRadius;
+
+  const SkeletonLoader({
+    super.key,
+    required this.width,
+    required this.height,
+    this.borderRadius,
+  });
+
+  @override
+  State<SkeletonLoader> createState() => _SkeletonLoaderState();
+}
+
+class _SkeletonLoaderState extends State<SkeletonLoader>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+  late Animation<double> _shimmerAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      duration: ArchitecturalAnimations.slow,
+      vsync: this,
+    )..repeat();
+    
+    _shimmerAnimation = Tween<double>(
+      begin: -1.0,
+      end: 2.0,
+    ).animate(CurvedAnimation(
+      parent: _shimmerController,
+      curve: ArchitecturalAnimations.smoothEase,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _shimmerAnimation,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              stops: [0.0, 0.5, 1.0],
+              colors: [
+                ArchitecturalColors.lightGray,
+                ArchitecturalColors.cardWhite,
+                ArchitecturalColors.lightGray,
+              ],
+              transform: GradientRotation(_shimmerAnimation.value * 3.14159),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Book Card Skeleton for loading states
+class BookCardSkeleton extends StatelessWidget {
+  const BookCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(ArchitecturalSpacing.lg),
+      decoration: BoxDecoration(
+        color: ArchitecturalColors.pureWhite,
+        borderRadius: BorderRadius.circular(ArchitecturalSizes.smallRadius),
+        border: Border.all(
+          color: ArchitecturalColors.lightGray,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ArchitecturalColors.shadowBlack.withOpacity(0.5),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Book icon skeleton
+          SkeletonLoader(
+            width: 40,
+            height: 40,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          SizedBox(width: ArchitecturalSpacing.md),
+          
+          // Book info skeleton
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SkeletonLoader(
+                  width: double.infinity,
+                  height: 18,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                SizedBox(height: 6),
+                SkeletonLoader(
+                  width: 120,
+                  height: 12,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                SizedBox(height: 4),
+                SkeletonLoader(
+                  width: 80,
+                  height: 11,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ],
+            ),
+          ),
+          
+          // Play button skeleton
+          SkeletonLoader(
+            width: 36,
+            height: 36,
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Error State Component
+class ErrorStateWidget extends StatelessWidget {
+  final String title;
+  final String message;
+  final String? actionText;
+  final VoidCallback? onRetry;
+  final IconData icon;
+
+  const ErrorStateWidget({
+    super.key,
+    required this.title,
+    required this.message,
+    this.actionText,
+    this.onRetry,
+    this.icon = Icons.error_outline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(ArchitecturalSpacing.xl),
+      decoration: BoxDecoration(
+        color: ArchitecturalColors.pureWhite,
+        borderRadius: BorderRadius.circular(ArchitecturalSizes.borderRadius),
+        border: Border.all(
+          color: ArchitecturalColors.errorRed.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: ArchitecturalColors.errorRed.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: ArchitecturalColors.errorRed,
+            size: 48,
+          ),
+          SizedBox(height: ArchitecturalSpacing.md),
+          Text(
+            title,
+            style: GoogleFonts.montserrat(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: ArchitecturalColors.deepBlack,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8),
+          Text(
+            message,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: ArchitecturalColors.mediumGray,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (actionText != null && onRetry != null) ...[
+            SizedBox(height: ArchitecturalSpacing.lg),
+            Semantics(
+              label: 'Retry $actionText',
+              hint: 'Double tap to retry the failed action',
+              button: true,
+              child: ElevatedButton.icon(
+                onPressed: onRetry,
+                icon: Icon(Icons.refresh, size: 18),
+                label: Text(actionText!),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ArchitecturalColors.primaryOrange,
+                  foregroundColor: ArchitecturalColors.pureWhite,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ArchitecturalSizes.smallRadius),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

@@ -44,9 +44,14 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
         title: Text('Now Playing'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            icon: Icon(Icons.chat),
-            onPressed: () => Navigator.pushNamed(context, '/chat'),
+          Semantics(
+            label: 'Open chat with AI personas',
+            hint: 'Double tap to start conversation with AI characters about this book',
+            button: true,
+            child: IconButton(
+              icon: Icon(Icons.chat),
+              onPressed: () => Navigator.pushNamed(context, '/chat'),
+            ),
           ),
         ],
       ),
@@ -190,7 +195,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                       // Book title
                       Text(
                         book.title,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        style: ResponsiveText.heading2(context),
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -200,9 +205,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         SizedBox(height: 8),
                         Text(
                           chapter.title,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                          ),
+                          style: ResponsiveText.bodyLarge(context, color: ArchitecturalColors.mediumGray),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -211,9 +214,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         SizedBox(height: 8),
                         Text(
                           book.author!,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                          style: ResponsiveText.bodyMedium(context, color: ArchitecturalColors.subtleGray),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -402,12 +403,43 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: ArchitecturalProgress(
-                              value: appState.totalDuration.inSeconds > 0
-                                  ? appState.currentPosition.inSeconds / appState.totalDuration.inSeconds
-                                  : 0.0,
-                              color: RetroColors.primaryTerracotta,
-                              height: 8,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: ArchitecturalColors.primaryOrange,
+                                inactiveTrackColor: ArchitecturalColors.lightGray,
+                                thumbColor: ArchitecturalColors.primaryOrange,
+                                overlayColor: ArchitecturalColors.primaryOrange.withOpacity(0.2),
+                                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
+                                trackHeight: 6,
+                              ),
+                              child: Semantics(
+                                label: 'Audiobook progress slider',
+                                hint: 'Drag to scrub through the audiobook or double tap to seek to a position',
+                                slider: true,
+                                value: appState.totalDuration.inSeconds > 0
+                                    ? '${(appState.currentPosition.inSeconds / appState.totalDuration.inSeconds * 100).toInt()}% complete'
+                                    : '0% complete',
+                                child: Slider(
+                                  value: appState.totalDuration.inSeconds > 0
+                                      ? appState.currentPosition.inSeconds.toDouble()
+                                      : 0.0,
+                                  max: appState.totalDuration.inSeconds > 0 
+                                      ? appState.totalDuration.inSeconds.toDouble()
+                                      : 1.0,
+                                  onChanged: (value) {
+                                    // Update position while dragging
+                                    appState.seekTo(Duration(seconds: value.toInt()));
+                                  },
+                                  onChangeStart: (value) {
+                                    // Optional: Pause playback while scrubbing
+                                    // This provides smoother scrubbing experience
+                                  },
+                                  onChangeEnd: (value) {
+                                    // Final seek when user releases the slider
+                                    appState.seekTo(Duration(seconds: value.toInt()));
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -424,77 +456,100 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        TactileButton(
-                          width: 56,
-                          height: 56,
-                          color: RetroColors.warmTaupe.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(28),
-                          onPressed: () {
-                            final newPosition = appState.currentPosition - Duration(seconds: 30);
-                            appState.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
-                          },
-                          child: Icon(
-                            Icons.replay_30_rounded,
-                            color: RetroColors.ivoryWhite,
-                            size: 24,
-                          ),
-                        ),
-                        
-                        Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: RetroColors.terracottaGradient,
-                            ),
-                            border: Border.all(
-                              color: RetroColors.primaryTerracotta.withOpacity(0.3),
-                              width: RetroSizes.subtleBorder,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: RetroColors.primaryTerracotta.withOpacity(0.25),
-                                blurRadius: 20,
-                                offset: Offset(0, 6),
-                                spreadRadius: 1,
-                              ),
-                              BoxShadow(
-                                color: RetroColors.stoneBeige.withOpacity(0.2),
-                                blurRadius: 12,
-                                offset: Offset(0, 3),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(36),
-                              onTap: appState.playPause,
-                              child: Icon(
-                                appState.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                color: RetroColors.ivoryWhite,
-                                size: 36,
-                              ),
+                        Semantics(
+                          label: 'Skip back 30 seconds',
+                          hint: 'Double tap to go back 30 seconds in the audiobook',
+                          button: true,
+                          child: TactileButton(
+                            width: 56,
+                            height: 56,
+                            color: RetroColors.warmTaupe.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(28),
+                            onPressed: () {
+                              final newPosition = appState.currentPosition - Duration(seconds: 30);
+                              appState.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
+                            },
+                            child: Icon(
+                              Icons.replay_30_rounded,
+                              color: RetroColors.ivoryWhite,
+                              size: 24,
                             ),
                           ),
                         ),
                         
-                        TactileButton(
-                          width: 56,
-                          height: 56,
-                          color: RetroColors.warmTaupe.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(28),
-                          onPressed: () {
-                            final newPosition = appState.currentPosition + Duration(seconds: 30);
-                            appState.seekTo(newPosition < appState.totalDuration ? newPosition : appState.totalDuration);
-                          },
-                          child: Icon(
-                            Icons.forward_30_rounded,
-                            color: RetroColors.ivoryWhite,
-                            size: 24,
+                        Builder(
+                          builder: (context) {
+                            final minTouchTarget = ResponsiveLayout.getMinTouchTarget(context);
+                            final playButtonSize = minTouchTarget.clamp(64.0, 80.0);
+                            return Container(
+                              width: playButtonSize,
+                              height: playButtonSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: RetroColors.terracottaGradient,
+                                ),
+                                border: Border.all(
+                                  color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                                  width: RetroSizes.subtleBorder,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: RetroColors.primaryTerracotta.withOpacity(0.25),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 6),
+                                    spreadRadius: 1,
+                                  ),
+                                  BoxShadow(
+                                    color: RetroColors.stoneBeige.withOpacity(0.2),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: Semantics(
+                                  label: appState.isPlaying ? 'Pause audiobook' : 'Play audiobook',
+                                  hint: appState.isPlaying 
+                                      ? 'Double tap to pause playbook' 
+                                      : 'Double tap to start playing ${appState.currentBook?.title ?? "audiobook"}',
+                                  button: true,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(playButtonSize / 2),
+                                    onTap: appState.playPause,
+                                    child: Icon(
+                                      appState.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                      color: RetroColors.ivoryWhite,
+                                      size: ResponsiveLayout.isAccessibilityTextScale(context) ? 40 : 36,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                        ),
+                        
+                        Semantics(
+                          label: 'Skip forward 30 seconds',
+                          hint: 'Double tap to skip ahead 30 seconds in the audiobook',
+                          button: true,
+                          child: TactileButton(
+                            width: 56,
+                            height: 56,
+                            color: RetroColors.warmTaupe.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(28),
+                            onPressed: () {
+                              final newPosition = appState.currentPosition + Duration(seconds: 30);
+                              appState.seekTo(newPosition < appState.totalDuration ? newPosition : appState.totalDuration);
+                            },
+                            child: Icon(
+                              Icons.forward_30_rounded,
+                              color: RetroColors.ivoryWhite,
+                              size: 24,
+                            ),
                           ),
                         ),
                       ],

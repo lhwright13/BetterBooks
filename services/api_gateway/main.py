@@ -38,13 +38,18 @@ Book files are served from /app/book_files directory (mounted volume in Docker).
 
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
+
+# Import authentication components
+from auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit
+from auth_routes import auth_router
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -57,16 +62,38 @@ TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription
 BOOK_FILES_DIR = Path("/app/book_files")
 
 # Main FastAPI application used by the unit tests and docker-compose setup
-app = FastAPI()
+app = FastAPI(
+    title="EchoWright API Gateway",
+    description="Secure API Gateway for EchoWright Audiobook Platform",
+    version="1.0.0"
+)
 
-# Allow requests from the web demo running on a different port. Without CORS
-# the browser would block calls from the 8080 UI to the gateway on 8000.
+# Security middleware - restrict hosts in production
+if os.getenv("ENVIRONMENT", "development") == "production":
+    app.add_middleware(
+        TrustedHostMiddleware, 
+        allowed_hosts=["api.echowright.com", "localhost"]
+    )
+
+# CORS configuration - restrict origins in production
+cors_origins = [
+    "http://localhost:8080",  # Web demo
+    "http://localhost:3000",  # Alternative frontend
+]
+
+if os.getenv("ENVIRONMENT", "development") == "development":
+    cors_origins.append("*")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include authentication routes
+app.include_router(auth_router)
 
 @app.get("/health")
 def health() -> dict:
@@ -101,10 +128,27 @@ import logging
 logger = logging.getLogger(__name__)
 
 @app.post("/complete")
-def complete(prompt: Prompt) -> dict:
-    """Proxy text completion requests to the LLM Gateway."""
+async def complete(
+    prompt: Prompt,
+    current_user: Optional[User] = Depends(get_optional_user)
+) -> dict:
+    """Proxy text completion requests to the LLM Gateway with authentication."""
+    
+    # Rate limiting for authenticated users
+    if current_user:
+        await check_rate_limit(current_user.id, "complete", limit=100, window=3600)  # 100 per hour
+    else:
+        # More restrictive rate limiting for unauthenticated users
+        client_ip = "anonymous"  # In production, get real IP
+        await check_rate_limit(client_ip, "complete_anon", limit=10, window=3600)  # 10 per hour
+    
+    # Add user context to request if authenticated
+    request_data = prompt.model_dump(exclude_none=True)
+    if current_user:
+        request_data["user_id"] = current_user.id
+        request_data["user_role"] = current_user.role.value
 
-    resp = httpx.post(f"{LLM_URL}/complete", json=prompt.model_dump(exclude_none=True), timeout=60.0)
+    resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
     try:
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
@@ -119,11 +163,28 @@ def complete(prompt: Prompt) -> dict:
 
 
 @app.post("/tts")
-def tts(text: Text) -> dict:
-    """Proxy text-to-speech synthesis requests to the TTS Service."""
+async def tts(
+    text: Text,
+    current_user: Optional[User] = Depends(get_optional_user)
+) -> dict:
+    """Proxy text-to-speech synthesis requests to the TTS Service with authentication."""
+    
+    # Rate limiting for TTS (more expensive operation)
+    if current_user:
+        await check_rate_limit(current_user.id, "tts", limit=50, window=3600)  # 50 per hour
+    else:
+        client_ip = "anonymous"
+        await check_rate_limit(client_ip, "tts_anon", limit=5, window=3600)  # 5 per hour
+    
+    # Add user context to request
+    request_data = text.model_dump()
+    if current_user:
+        request_data["user_id"] = current_user.id
+        request_data["user_role"] = current_user.role.value
+        
     resp = httpx.post(
         f"{TTS_URL}/synthesize",
-        json=text.model_dump(),
+        json=request_data,
         timeout=30.0,
     )
     try:
@@ -146,7 +207,10 @@ def list_configs() -> dict:
 
 
 @app.post("/context/search")
-def search_context(query: dict) -> dict:
+async def search_context(
+    query: dict,
+    current_user: Optional[User] = Depends(get_optional_user)
+) -> dict:
     """Forward vector similarity searches to the Context Service."""
 
     resp = httpx.post(f"{CONTEXT_URL}/search", json=query)
@@ -154,7 +218,10 @@ def search_context(query: dict) -> dict:
 
 
 @app.post("/context")
-def get_context(request: ContextRequest) -> dict:
+async def get_context(
+    request: ContextRequest,
+    current_user: Optional[User] = Depends(get_optional_user)
+) -> dict:
     """Get contextual transcript around current playback position."""
     resp = httpx.post(
         f"{TRANSCRIPTION_URL}/context", 
@@ -172,7 +239,10 @@ def get_context(request: ContextRequest) -> dict:
 
 
 @app.post("/books/upload")
-async def upload_book(file: UploadFile = File(...)):
+async def upload_book(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
     """Upload a single MP3 audiobook file."""
     if not file.filename.endswith('.mp3'):
         raise HTTPException(status_code=400, detail="Only MP3 files are supported")
@@ -190,7 +260,11 @@ async def upload_book(file: UploadFile = File(...)):
 
 
 @app.post("/books/upload-chapters")
-async def upload_chapters(book_name: str, files: List[UploadFile] = File(...)):
+async def upload_chapters(
+    book_name: str,
+    files: List[UploadFile] = File(...),
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
     """Upload multiple MP3 chapter files for a book."""
     # Validate all files are MP3
     for file in files:
@@ -218,7 +292,7 @@ async def upload_chapters(book_name: str, files: List[UploadFile] = File(...)):
 
 
 @app.get("/books/list")
-def list_books():
+async def list_books(current_user: Optional[User] = Depends(get_optional_user)):
     """List all available audiobooks (single files and chapter folders)."""
     if not BOOK_FILES_DIR.exists():
         return {"books": [], "chapters": []}
@@ -248,7 +322,10 @@ def list_books():
 
 
 @app.delete("/books/{book_name}")
-def delete_book(book_name: str):
+def delete_book(
+    book_name: str,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
     """Delete a book (single file or chapter folder)."""
     # Try single file first
     single_file = BOOK_FILES_DIR / f"{book_name}.mp3"
@@ -267,7 +344,10 @@ def delete_book(book_name: str):
 
 
 @app.get("/books/play/{filename}")
-def play_single_book(filename: str):
+async def play_single_book(
+    filename: str,
+    current_user: Optional[User] = Depends(get_optional_user)
+):
     """Serve a single MP3 book file."""
     file_path = BOOK_FILES_DIR / filename
     if not file_path.exists() or not file_path.suffix == '.mp3':
@@ -286,7 +366,11 @@ def play_single_book(filename: str):
 
 
 @app.get("/books/play/{book_name}/{chapter_filename}")
-def play_chapter(book_name: str, chapter_filename: str):
+async def play_chapter(
+    book_name: str,
+    chapter_filename: str,
+    current_user: Optional[User] = Depends(get_optional_user)
+):
     """Serve a chapter MP3 file from a chapter book."""
     file_path = BOOK_FILES_DIR / book_name / chapter_filename
     if not file_path.exists() or not file_path.suffix == '.mp3':

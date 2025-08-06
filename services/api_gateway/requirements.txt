@@ -1,4 +1,10 @@
-fastapi
-uvicorn[standard]
-httpx
-python-multipart
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.2
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic[email]
+PyJWT==2.8.0
+bcrypt==4.1.2
+redis==5.0.1
+python-jose[cryptography]==3.3.0

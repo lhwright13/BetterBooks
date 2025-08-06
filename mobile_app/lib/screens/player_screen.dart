@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../theme/retro_theme.dart';
 
 class PlayerScreen extends StatelessWidget {
   @override
@@ -114,14 +115,29 @@ class PlayerScreen extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         Expanded(
-                          child: Slider(
-                            value: appState.totalDuration.inSeconds > 0
-                                ? appState.currentPosition.inSeconds.toDouble()
-                                : 0.0,
-                            max: appState.totalDuration.inSeconds.toDouble(),
-                            onChanged: (value) {
-                              appState.seekTo(Duration(seconds: value.toInt()));
-                            },
+                          child: SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: ArchitecturalColors.primaryOrange,
+                              inactiveTrackColor: ArchitecturalColors.lightGray,
+                              thumbColor: ArchitecturalColors.primaryOrange,
+                              overlayColor: ArchitecturalColors.primaryOrange.withOpacity(0.2),
+                              thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
+                              trackHeight: 6,
+                            ),
+                            child: Slider(
+                              value: appState.totalDuration.inSeconds > 0
+                                  ? appState.currentPosition.inSeconds.toDouble()
+                                  : 0.0,
+                              max: appState.totalDuration.inSeconds > 0 
+                                  ? appState.totalDuration.inSeconds.toDouble()
+                                  : 1.0,
+                              onChanged: (value) {
+                                appState.seekTo(Duration(seconds: value.toInt()));
+                              },
+                              onChangeEnd: (value) {
+                                appState.seekTo(Duration(seconds: value.toInt()));
+                              },
+                            ),
                           ),
                         ),
                         Text(
