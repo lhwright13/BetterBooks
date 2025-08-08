@@ -37,6 +37,7 @@ Book files are served from /app/book_files directory (mounted volume in Docker).
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import List, Optional
 
@@ -47,9 +48,30 @@ from fastapi.responses import FileResponse, Response
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
+# Import logging components
+from logging_config import setup_logging, get_request_id
+from logging_middleware import LoggingMiddleware
+
+# Import health check components
+from health_checks import HealthCheck, create_health_endpoint, check_service_endpoint
+
+# Import metrics components
+from metrics import (
+    setup_metrics, llm_requests_total, llm_request_duration_seconds,
+    tts_requests_total, active_users, books_processed_total,
+    cache_operations_total, cache_hit_ratio
+)
+
 # Import authentication components
 from auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit
 from auth_routes import auth_router
+
+# Import distributed tracing components
+from tracing import (
+    TracingConfig, setup_tracing, instrument_fastapi, instrument_external_libraries,
+    get_development_tracing_config, LLMTracingHelper, HTTPTracingHelper, 
+    create_span_with_context, add_span_attributes
+)
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -61,12 +83,34 @@ TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription
 # Book files directory - will be mounted in Docker
 BOOK_FILES_DIR = Path("/app/book_files")
 
+# Set up structured logging
+logger = setup_logging(
+    service_name="api_gateway",
+    log_level=os.getenv("LOG_LEVEL", "INFO")
+)
+
+# Set up distributed tracing
+environment = os.getenv("ENVIRONMENT", "development")
+if environment == "development":
+    tracing_config = get_development_tracing_config("api_gateway")
+else:
+    from tracing import get_production_tracing_config
+    tracing_config = get_production_tracing_config("api_gateway")
+
+tracer = setup_tracing(tracing_config)
+
+# Instrument external libraries for automatic tracing
+instrument_external_libraries()
+
 # Main FastAPI application used by the unit tests and docker-compose setup
 app = FastAPI(
     title="EchoWright API Gateway",
     description="Secure API Gateway for EchoWright Audiobook Platform",
     version="1.0.0"
 )
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware, logger=logger)
 
 # Security middleware - restrict hosts in production
 if os.getenv("ENVIRONMENT", "development") == "production":
@@ -95,10 +139,44 @@ app.add_middleware(
 # Include authentication routes
 app.include_router(auth_router)
 
-@app.get("/health")
-def health() -> dict:
-    """Simple liveness probe used by tests and Kubernetes."""
-    return {"status": "ok"}
+# Set up comprehensive health checks
+health_check = HealthCheck("api_gateway", "1.0.0")
+
+# Add dependency checks
+async def check_llm_gateway():
+    return await check_service_endpoint(LLM_URL)
+
+async def check_context_service():
+    return await check_service_endpoint(CONTEXT_URL)
+
+async def check_tts_service():
+    return await check_service_endpoint(TTS_URL)
+
+health_check.add_check("llm_gateway", check_llm_gateway)
+health_check.add_check("context_service", check_context_service)
+health_check.add_check("tts_service", check_tts_service)
+
+# Create health endpoints
+create_health_endpoint(app, health_check)
+
+# Set up Prometheus metrics
+metrics_collector = setup_metrics(app, "api_gateway")
+
+# Instrument FastAPI with distributed tracing
+instrument_fastapi(app, "api_gateway")
+
+# Create custom metrics for API Gateway
+auth_attempts = metrics_collector.create_counter(
+    "auth_attempts_total",
+    "Total authentication attempts",
+    ["method", "status"]
+)
+
+rate_limit_hits = metrics_collector.create_counter(
+    "rate_limit_hits_total",
+    "Total rate limit hits",
+    ["endpoint", "user_type"]
+)
 
 class Prompt(BaseModel):
     """Request body for the `/complete` endpoint."""
@@ -122,10 +200,6 @@ class ContextRequest(BaseModel):
     current_position: float
 
 
-import logging
-
-# Create a logger
-logger = logging.getLogger(__name__)
 
 @app.post("/complete")
 async def complete(
@@ -134,32 +208,75 @@ async def complete(
 ) -> dict:
     """Proxy text completion requests to the LLM Gateway with authentication."""
     
-    # Rate limiting for authenticated users
-    if current_user:
-        await check_rate_limit(current_user.id, "complete", limit=100, window=3600)  # 100 per hour
-    else:
-        # More restrictive rate limiting for unauthenticated users
-        client_ip = "anonymous"  # In production, get real IP
-        await check_rate_limit(client_ip, "complete_anon", limit=10, window=3600)  # 10 per hour
-    
-    # Add user context to request if authenticated
-    request_data = prompt.model_dump(exclude_none=True)
-    if current_user:
-        request_data["user_id"] = current_user.id
-        request_data["user_role"] = current_user.role.value
+    # Create a custom span for the complete operation
+    with tracer.start_as_current_span("api_gateway.complete") as span:
+        # Add span attributes for tracing context
+        add_span_attributes(
+            span,
+            user_authenticated=str(current_user is not None),
+            prompt_length=len(prompt.prompt),
+            config=prompt.config or "default"
+        )
+        
+        # Track request start time for metrics
+        import time
+        start_time = time.time()
+        
+        # Rate limiting for authenticated users
+        if current_user:
+            await check_rate_limit(current_user.id, "complete", limit=100, window=3600)  # 100 per hour
+            logger.info("Authenticated user request", user_id=current_user.id, endpoint="complete")
+            user_type = "authenticated"
+            add_span_attributes(span, user_id=current_user.id, user_role=current_user.role.value)
+        else:
+            # More restrictive rate limiting for unauthenticated users
+            client_ip = "anonymous"  # In production, get real IP
+            await check_rate_limit(client_ip, "complete_anon", limit=10, window=3600)  # 10 per hour
+            logger.info("Anonymous user request", endpoint="complete")
+            user_type = "anonymous"
+        
+        # Add user context to request if authenticated
+        request_data = prompt.model_dump(exclude_none=True)
+        if current_user:
+            request_data["user_id"] = current_user.id
+            request_data["user_role"] = current_user.role.value
 
-    resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        # Log the error
-        logger.error(f"LLM Gateway returned an error: {e}")
-        # Bubble up the error from the LLM Gateway so the client receives a
-        # meaningful status code instead of a generic 500 from this service.
-        detail = resp.json().get("detail", resp.text)
-        raise HTTPException(status_code=resp.status_code, detail=detail)
+        # Create span for HTTP client request to LLM Gateway
+        with HTTPTracingHelper.trace_http_client_request(tracer, "POST", f"{LLM_URL}/complete") as http_span:
+            resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
+            HTTPTracingHelper.add_http_response_attributes(http_span, resp.status_code)
+            
+            try:
+                resp.raise_for_status()
+                # Track successful LLM request
+                duration = time.time() - start_time
+                llm_requests_total.labels(model="gemini", status="success").inc()
+                llm_request_duration_seconds.labels(model="gemini").observe(duration)
+                
+                # Add success attributes to span
+                add_span_attributes(span, status="success", duration_seconds=duration)
+                
+            except httpx.HTTPStatusError as e:
+                # Track failed LLM request
+                llm_requests_total.labels(model="gemini", status="error").inc()
+                # Log the error with structured fields
+                logger.error(
+                    "LLM Gateway error",
+                    status_code=resp.status_code,
+                    error_detail=resp.text,
+                    request_id=get_request_id()
+                )
+                
+                # Record error in span
+                span.record_exception(e)
+                add_span_attributes(span, status="error", error_code=resp.status_code)
+                
+                # Bubble up the error from the LLM Gateway so the client receives a
+                # meaningful status code instead of a generic 500 from this service.
+                detail = resp.json().get("detail", resp.text)
+                raise HTTPException(status_code=resp.status_code, detail=detail)
 
-    return resp.json()
+        return resp.json()
 
 
 @app.post("/tts")
@@ -168,6 +285,10 @@ async def tts(
     current_user: Optional[User] = Depends(get_optional_user)
 ) -> dict:
     """Proxy text-to-speech synthesis requests to the TTS Service with authentication."""
+    
+    # Track request start time
+    import time
+    start_time = time.time()
     
     # Rate limiting for TTS (more expensive operation)
     if current_user:
@@ -189,9 +310,19 @@ async def tts(
     )
     try:
         resp.raise_for_status()
+        # Track successful TTS request
+        duration = time.time() - start_time
+        tts_requests_total.labels(voice="default", status="success").inc()
     except httpx.HTTPStatusError as e:
-        # Log the error
-        logger.error(f"TTS Service returned an error: {e}")
+        # Track failed TTS request
+        tts_requests_total.labels(voice="default", status="error").inc()
+        # Log the error with structured fields
+        logger.error(
+            "TTS Service error",
+            status_code=resp.status_code,
+            error_detail=resp.text,
+            request_id=get_request_id()
+        )
         detail = resp.json().get("detail", resp.text)
         raise HTTPException(status_code=resp.status_code, detail=detail)
 
@@ -231,7 +362,12 @@ async def get_context(
     try:
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        logger.error(f"Transcription Service returned an error: {e}")
+        logger.error(
+            "Transcription Service error",
+            status_code=resp.status_code,
+            error_detail=resp.text,
+            request_id=get_request_id()
+        )
         detail = resp.json().get("detail", resp.text)
         raise HTTPException(status_code=resp.status_code, detail=detail)
     

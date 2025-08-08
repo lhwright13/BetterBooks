@@ -216,7 +216,7 @@ class BookCard extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: [
                     RetroColors.primaryTerracotta.withOpacity(0.8),
-                    RetroColors.deepTeal.withOpacity(0.9),
+                    SpaceColors.tealBlue.withOpacity(0.9),
                   ],
                 ),
                 border: Border.all(
@@ -331,7 +331,7 @@ class BookCard extends StatelessWidget {
                               gradient: LinearGradient(
                                 colors: [
                                   RetroColors.primaryTerracotta.withOpacity(0.8),
-                                  RetroColors.deepTeal.withOpacity(0.9),
+                                  SpaceColors.tealBlue.withOpacity(0.9),
                                 ],
                               ),
                               border: Border.all(

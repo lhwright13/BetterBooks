@@ -96,9 +96,57 @@ Alternatively run:
 The tests mock heavy external dependencies so no database, OpenAI key or
 TTS model download is required.
 
-## Customization
+## Documentation
 
-See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information on extending the UI, experimenting with models, adjusting prompts, collecting data and more.
+- [Customization Guide](docs/CUSTOMIZATION_GUIDE.md) - Extending the UI, experimenting with models, adjusting prompts
+- [Security Setup](SECURITY_SETUP.md) - API key configuration and security best practices  
+- [Logging & Monitoring](docs/LOGGING_AND_MONITORING.md) - Structured logging and health check implementation
+
+## Quick Reference
+
+### Logging
+```python
+from logging_config import setup_logging
+logger = setup_logging("service_name", "INFO")
+logger.info("Message", key="value")
+```
+
+### Health Checks
+- `/health` - Basic health check
+- `/health/detailed` - Detailed health with metrics
+- `/health/ready` - Readiness probe
+- `/health/live` - Liveness probe
+
+### Metrics
+- `/metrics` - Prometheus metrics endpoint
+- Grafana: http://localhost:3000 (admin/admin)
+- Prometheus: http://localhost:9090
+```python
+from metrics import setup_metrics
+metrics = setup_metrics(app, "service_name")
+counter = metrics.create_counter("my_counter", "Description")
+```
+
+### Distributed Tracing
+- Jaeger UI: http://localhost:16686
+- Automatic instrumentation for FastAPI, HTTP, DB
+```python
+from tracing import setup_tracing, get_development_tracing_config
+tracer = setup_tracing(get_development_tracing_config("service_name"))
+with tracer.start_as_current_span("operation") as span:
+    span.set_attribute("key", "value")
+```
+
+### Database Connection Pooling
+- PgBouncer: http://localhost:6432 (connection pooling)
+- PostgreSQL: http://localhost:5432 (direct access)
+- Enhanced performance with async connection management
+```python
+from database_manager import get_database_manager, database_connection
+db_manager = await get_database_manager()
+async with database_connection() as conn:
+    results = await conn.execute("SELECT * FROM table")
+```
 
 ---
 
@@ -126,12 +174,30 @@ See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information o
   - **Learning Focus**: Modern authentication patterns
   - 📁 **Files Created**: `auth.py`, `auth_routes.py`, `rate_limiter.py`, Redis service in `docker-compose.yml`
 
-- [ ] **Add comprehensive logging & monitoring**
-  - Integrate structured logging (JSON format)
-  - Set up health check endpoints for all services
-  - Add Prometheus metrics collection
+- [x] **Add comprehensive logging & monitoring**
+  - ✅ Integrate structured logging (JSON format)
+  - ✅ Set up health check endpoints for all services
+  - ✅ Add Prometheus metrics collection
   - Implement distributed tracing with Jaeger
   - **Learning Focus**: Observability in distributed systems
+  - 📁 **Files Created**: `services/shared/logging_config.py`, `services/shared/logging_middleware.py`, `services/shared/health_checks.py`
+  - 📝 **Implementation Notes**: 
+    - Added structured JSON logging with request correlation IDs
+    - Implemented comprehensive health checks with dependency monitoring
+    - Added system metrics (CPU, memory, disk) to health endpoints
+    - Created `/health/detailed`, `/health/ready`, and `/health/live` endpoints
+  - ✅ **Testing**: Created and ran comprehensive tests validating:
+    - JSON structured logging format and field inclusion
+    - Request ID correlation across log entries
+    - Health check status aggregation (healthy/degraded/unhealthy)
+    - Async and sync health check support
+    - System metrics collection
+  - 🔧 **Prometheus Integration**: 
+    - Added automatic HTTP request metrics (rate, duration, in-progress)
+    - Service-specific metrics (LLM requests, TTS synthesis, database queries)
+    - Business metrics tracking (active users, books processed)
+    - Grafana dashboard for visualization
+    - Docker-compose setup with Prometheus + Grafana
 
 #### 1.2 Database Optimization
 - [ ] **Optimize PostgreSQL for production**
@@ -200,7 +266,106 @@ See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information o
 
 ---
 
-## 🚀 **PHASE 2: Advanced LLM Integration**
+## 🧠 **PHASE 2: AI-Powered Features Implementation**
+*High-impact AI features that meaningfully improve user experience*
+
+### Smart Learning Features
+
+#### 2.1 Smart Chapter Summaries
+- [ ] **Auto-generate chapter summaries**
+  - Create summaries after each chapter completion
+  - Support multiple summary styles (brief/detailed/themes)
+  - Store summaries for quick reference
+  - **Learning Focus**: Text summarization and content distillation
+  - 📁 **Files to Create**: `services/summary_service/`, summary API endpoints
+  - **API Design**:
+    ```python
+    POST /summarize/chapter
+    {
+      "book": "gatsby", 
+      "chapter": 3,
+      "style": "brief|detailed|themes"
+    }
+    ```
+
+#### 2.2 Personalized Question Generation  
+- [ ] **Generate discussion questions**
+  - Auto-generate questions based on current listening position
+  - Adaptive difficulty based on user engagement
+  - Support educational and casual reading modes
+  - **Learning Focus**: Question generation and educational AI
+  - **API Design**:
+    ```python
+    GET /questions/current?position=2340&difficulty=intermediate
+    ```
+
+#### 2.3 Character Relationship Mapping
+- [ ] **Track character mentions and relationships**
+  - Extract character names from transcripts
+  - Build relationship graphs across chapters
+  - "Who is X again?" quick lookup system
+  - Visual relationship mapping in mobile app
+  - **Learning Focus**: Named entity recognition and relationship extraction
+
+### Enhanced Context Features
+
+#### 2.4 Smart Bookmarks with Context
+- [ ] **AI-generated bookmark descriptions**
+  - Auto-generate meaningful bookmark descriptions
+  - Include context and key events at bookmark location
+  - Smart bookmark suggestions at chapter breaks
+  - **Learning Focus**: Context summarization and semantic understanding
+  - **Example Output**: "Chapter 7: Gatsby's past revealed, confrontation with Tom"
+
+#### 2.5 Voice-Based Note Taking
+- [ ] **Voice notes with transcription**
+  - Record voice notes linked to specific book positions
+  - Transcribe and categorize notes automatically
+  - Search across voice notes by content
+  - **Learning Focus**: Speech-to-text integration and content organization
+  - **API Design**:
+    ```python
+    POST /notes/voice
+    {
+      "audio": "base64_audio",
+      "timestamp": 2340,
+      "book": "gatsby"
+    }
+    ```
+
+### User Intelligence
+
+#### 2.6 Reading Pace Analytics
+- [ ] **Smart reading analytics**
+  - Predict completion times based on listening patterns
+  - Suggest optimal break points
+  - Track comprehension patterns
+  - **Learning Focus**: User behavior analysis and predictive modeling
+
+#### 2.7 Adaptive Learning Companion
+- [ ] **AI tutor that learns user preferences**
+  - Track which themes/concepts user struggles with
+  - Adjust explanations based on demonstrated understanding
+  - Personalized difficulty progression
+  - **Learning Focus**: Adaptive learning systems and personalization
+
+### Advanced Interaction
+
+#### 2.8 Multi-Modal Discussion
+- [ ] **Voice-based question and answer**
+  - Users ask questions via voice while listening
+  - AI responds with contextual audio explanations
+  - Seamless voice conversation during book playback
+  - **Learning Focus**: Real-time voice interaction and context switching
+
+#### 2.9 Cross-Book Intelligence
+- [ ] **Connections across book library**
+  - "This theme also appears in..." connections
+  - Author style analysis across works
+  - Comparative literature discussions
+  - **Learning Focus**: Cross-document analysis and literary connections
+
+## 🚀 **PHASE 3: Advanced LLM Integration**
 *Upgrade from basic Gemini to state-of-the-art multimodal AI*
 
 ### Multi-Model LLM Architecture
@@ -293,7 +458,7 @@ See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information o
 
 ---
 
-## 🎭 **PHASE 3: Multi-Agent Persona System**
+## 🎭 **PHASE 4: Multi-Agent Persona System**
 *Transform from simple chat to sophisticated multi-character interactions*
 
 ### Agent Architecture Foundation
@@ -390,7 +555,7 @@ See [docs/CUSTOMIZATION_GUIDE.md](docs/CUSTOMIZATION_GUIDE.md) for information o
 
 ---
 
-## 🔮 **PHASE 4: Cutting-Edge Features**
+## 🔮 **PHASE 5: Cutting-Edge Features**
 *Implement the most advanced 2024-2025 AI capabilities*
 
 ### Speech-to-Speech Revolution

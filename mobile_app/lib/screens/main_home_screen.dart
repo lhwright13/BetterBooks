@@ -36,6 +36,7 @@ import 'library_screen.dart';
 import 'bookstore_screen.dart';
 import 'user_profile_screen.dart';
 import '../theme/retro_theme.dart';
+import '../widgets/space_background.dart';
 
 /// Main navigation container with bottom tab bar for primary app sections
 /// Provides access to Home, Library, Bookstore, and Profile functionality
@@ -59,53 +60,59 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ArchitecturalColors.pureWhite,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: ArchitecturalColors.primaryGradient,
-          ),
-        ),
+      backgroundColor: SpaceColors.creamBg,
+      body: SpaceBackground(
         child: _screens[_currentIndex],
       ),
-      bottomNavigationBar: _buildArchitecturalNavigation(),
+      bottomNavigationBar: _buildSpaceMissionNavigation(),
     );
   }
 
-  Widget _buildArchitecturalNavigation() {
+  Widget _buildSpaceMissionNavigation() {
     return Container(
-      height: 72,
+      height: 80,
       decoration: BoxDecoration(
-        color: ArchitecturalColors.pureWhite,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            SpaceColors.warmBeige,
+            SpaceColors.creamBg,
+          ],
+        ),
         border: Border(
           top: BorderSide(
-            color: ArchitecturalColors.lightGray,
-            width: 1,
+            color: SpaceColors.tealBlue.withOpacity(0.3),
+            width: 2,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: ArchitecturalColors.shadowBlack,
-            blurRadius: 12,
+            color: SpaceColors.orbitGlow,
+            blurRadius: 16,
             spreadRadius: 0,
-            offset: Offset(0, -4),
+            offset: Offset(0, -6),
+          ),
+          BoxShadow(
+            color: SpaceColors.spaceShadow,
+            blurRadius: 8,
+            spreadRadius: 0,
+            offset: Offset(0, -2),
           ),
         ],
       ),
       child: Row(
         children: [
-          _buildArchitecturalTab(0, 'HOME', Icons.home_outlined, Icons.home),
-          _buildArchitecturalTab(1, 'LIBRARY', Icons.library_books_outlined, Icons.library_books),
-          _buildArchitecturalTab(2, 'STORE', Icons.store_outlined, Icons.store),
-          _buildArchitecturalTab(3, 'PROFILE', Icons.person_outline, Icons.person),
+          _buildSpaceMissionTab(0, 'HOME', Icons.home_outlined, Icons.home),
+          _buildSpaceMissionTab(1, 'LIBRARY', Icons.library_books_outlined, Icons.library_books),
+          _buildSpaceMissionTab(2, 'DISCOVER', Icons.explore_outlined, Icons.explore),
+          _buildSpaceMissionTab(3, 'PROFILE', Icons.person_outlined, Icons.person),
         ],
       ),
     );
   }
 
-  Widget _buildArchitecturalTab(int index, String label, IconData outlineIcon, IconData filledIcon) {
+  Widget _buildSpaceMissionTab(int index, String label, IconData outlineIcon, IconData filledIcon) {
     final isSelected = _currentIndex == index;
     
     return Expanded(
@@ -116,47 +123,74 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
           });
         },
         child: AnimatedContainer(
-          duration: ArchitecturalAnimations.fast,
-          curve: ArchitecturalAnimations.preciseEase,
-          padding: EdgeInsets.symmetric(vertical: 8),
+          duration: SpaceAnimations.fast,
+          curve: SpaceAnimations.orbitalEase,
+          padding: EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected 
-                ? ArchitecturalColors.primaryOrange.withValues(alpha: 0.1)
-                : Colors.transparent,
+            gradient: isSelected ? LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                SpaceColors.dustyRed.withOpacity(0.15),
+                SpaceColors.dustyRed.withOpacity(0.05),
+              ],
+            ) : null,
             border: Border(
               top: BorderSide(
                 color: isSelected 
-                    ? ArchitecturalColors.primaryOrange
+                    ? SpaceColors.dustyRed
                     : Colors.transparent,
                 width: 3,
               ),
             ),
+            borderRadius: BorderRadius.circular(SpaceSizes.smallRadius),
+            boxShadow: isSelected ? [
+              BoxShadow(
+                color: SpaceColors.orbitGlow,
+                blurRadius: 8,
+                spreadRadius: 0,
+                offset: Offset(0, -2),
+              ),
+            ] : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedSwitcher(
-                duration: ArchitecturalAnimations.fast,
-                child: Icon(
-                  isSelected ? filledIcon : outlineIcon,
+                duration: SpaceAnimations.fast,
+                child: Container(
                   key: ValueKey(isSelected),
-                  size: 24,
-                  color: isSelected 
-                      ? ArchitecturalColors.primaryOrange
-                      : ArchitecturalColors.mediumGray,
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isSelected 
+                        ? SpaceColors.dustyRed.withOpacity(0.2)
+                        : Colors.transparent,
+                    border: isSelected ? Border.all(
+                      color: SpaceColors.tealBlue.withOpacity(0.3),
+                      width: 1,
+                    ) : null,
+                  ),
+                  child: Icon(
+                    isSelected ? filledIcon : outlineIcon,
+                    size: 22,
+                    color: isSelected 
+                        ? SpaceColors.dustyRed
+                        : SpaceColors.systemGray,
+                  ),
                 ),
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 6),
               Text(
                 label,
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
                   color: isSelected 
-                      ? ArchitecturalColors.primaryOrange
-                      : ArchitecturalColors.mediumGray,
-                  letterSpacing: 0,
+                      ? SpaceColors.dustyRed
+                      : SpaceColors.commandGray,
+                  letterSpacing: 1.2,
                 ),
               ),
             ],

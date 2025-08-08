@@ -1,74 +1,175 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>BetterBooks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoWright - AI Audiobook Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Animated Background Elements -->
+  <div class="space-bg">
+    <div class="planet planet-1"></div>
+    <div class="planet planet-2"></div>
+    <div class="planet planet-3"></div>
+    <div class="orbit orbit-1"></div>
+    <div class="orbit orbit-2"></div>
+    <div class="stars"></div>
+  </div>
+  
   <div class="app-container">
-    <header class="app-header">
-      <h1>BetterBooks</h1>
-      <p class="app-subtitle">AI-powered audiobook companion</p>
-    </header>
-    
-    <main class="app-main">
-      <!-- Audio Player Section -->
-      <section class="player-card">
-        <div class="card-header">
-          <h2>🎧 Now Playing</h2>
+    <!-- Navigation Header -->
+    <nav class="space-nav">
+      <div class="nav-container">
+        <div class="logo-container">
+          <div class="logo-orbit">
+            <div class="logo-planet"></div>
+            <div class="logo-satellite"></div>
+          </div>
+          <div class="logo-text">
+            <h1 class="brand-name">EchoWright</h1>
+            <span class="brand-tagline">Audio Intelligence Platform</span>
+          </div>
         </div>
-        <div class="card-content">
-          <div class="book-selector">
-            <select id="bookSelect" class="modern-select">
-              <option value="">Choose your audiobook...</option>
-            </select>
-            <div id="chapterSelect" class="chapter-selector" style="display: none;">
-              <select id="chapterDropdown" class="modern-select">
-                <option value="">Choose a chapter...</option>
-              </select>
+        
+        <div class="nav-controls">
+          <div class="status-indicators">
+            <div class="status-dot connected" title="Services Online"></div>
+            <div class="signal-bars">
+              <span></span><span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    
+    <main class="mission-control">
+      <!-- Mission Header -->
+      <section class="mission-header">
+        <div class="header-content">
+          <h2 class="mission-title">Mission Control</h2>
+          <p class="mission-subtitle">Navigate your audiobook universe with AI-powered guidance</p>
+        </div>
+        <div class="header-geometry">
+          <div class="geo-shape geo-triangle"></div>
+          <div class="geo-shape geo-diamond"></div>
+        </div>
+      </section>
+      
+      <!-- Audio Command Center -->
+      <section class="command-panel audio-command">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <div class="icon-ring"></div>
+            <span class="icon-symbol">🎧</span>
+          </div>
+          <h3 class="panel-title">Audio Command Center</h3>
+          <div class="panel-status active">ONLINE</div>
+        </div>
+        
+        <div class="panel-content">
+          <div class="control-grid">
+            <div class="control-section">
+              <label class="control-label">Select Mission Target</label>
+              <div class="select-wrapper">
+                <select id="bookSelect" class="space-select">
+                  <option value="">Choose your audiobook...</option>
+                </select>
+                <div class="select-glow"></div>
+              </div>
+            </div>
+            
+            <div id="chapterSelect" class="control-section" style="display: none;">
+              <label class="control-label">Chapter Navigation</label>
+              <div class="select-wrapper">
+                <select id="chapterDropdown" class="space-select">
+                  <option value="">Choose a chapter...</option>
+                </select>
+                <div class="select-glow"></div>
+              </div>
             </div>
           </div>
           
-          <div class="player-wrapper">
-            <audio id="audioPlayer" controls></audio>
+          <div class="audio-station">
+            <div class="station-frame">
+              <audio id="audioPlayer" controls class="space-audio"></audio>
+              <div class="audio-visualizer">
+                <div class="viz-bar"></div>
+                <div class="viz-bar"></div>
+                <div class="viz-bar"></div>
+                <div class="viz-bar"></div>
+                <div class="viz-bar"></div>
+              </div>
+            </div>
           </div>
           
-          <div id="contextStatus" class="context-badge">
-            ❌ No context - select a book to ask questions
+          <div class="status-panel">
+            <div id="contextStatus" class="mission-status">
+              <span class="status-icon">⚡</span>
+              <span class="status-text">Awaiting mission parameters...</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- Chat Section -->
-      <section class="chat-card">
-        <div class="card-header">
-          <h2>💬 Ask About Your Story</h2>
+      <!-- Communication Hub -->
+      <section class="command-panel communication-hub">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <div class="icon-ring"></div>
+            <span class="icon-symbol">📡</span>
+          </div>
+          <h3 class="panel-title">AI Communication Hub</h3>
+          <div class="panel-status active">TRANSMITTING</div>
         </div>
-        <div class="card-content">
-          <div class="chat-controls">
-            <div class="persona-selector">
-              <label for="configSelect">AI Persona:</label>
-              <select id="configSelect" class="modern-select"></select>
+        
+        <div class="panel-content">
+          <div class="comm-controls">
+            <div class="control-section">
+              <label class="control-label">Select AI Persona</label>
+              <div class="select-wrapper">
+                <select id="configSelect" class="space-select"></select>
+                <div class="select-glow"></div>
+              </div>
             </div>
           </div>
           
-          <div class="input-section">
-            <textarea id="prompt" placeholder="What's happening in this scene? Who are these characters? Ask me anything about your story..."></textarea>
-            <div class="button-group">
-              <button id="sendText" class="primary-button">
-                <span>Send</span>
-              </button>
-              <button id="startVoice" class="secondary-button">
-                <span>Speak</span>
-              </button>
+          <div class="transmission-panel">
+            <div class="input-station">
+              <div class="input-frame">
+                <textarea id="prompt" class="space-textarea" placeholder="Transmit your query to mission control... What's happening in your story? Who are the key players? Ask anything about your current audio journey."></textarea>
+                <div class="input-glow"></div>
+              </div>
+              
+              <div class="action-controls">
+                <button id="sendText" class="space-button primary">
+                  <span class="button-glow"></span>
+                  <span class="button-text">Transmit</span>
+                  <span class="button-icon">→</span>
+                </button>
+                <button id="startVoice" class="space-button secondary">
+                  <span class="button-glow"></span>
+                  <span class="button-text">Voice Link</span>
+                  <span class="button-icon">🎤</span>
+                </button>
+              </div>
             </div>
           </div>
           
-          <div id="response" class="response-area"></div>
+          <div class="response-terminal">
+            <div class="terminal-header">
+              <span class="terminal-title">AI Response Terminal</span>
+              <div class="terminal-lights">
+                <span class="light red"></span>
+                <span class="light yellow"></span>
+                <span class="light green"></span>
+              </div>
+            </div>
+            <div id="response" class="terminal-content"></div>
+          </div>
         </div>
       </section>
     </main>

@@ -34,7 +34,8 @@
 
 version: "3.9"
 services:
-  postgres:
+  # PostgreSQL Primary (Master) Database
+  postgres_primary:
     # pgvector-enabled Postgres image
     image: pgvector/pgvector:pg15
     restart: unless-stopped
@@ -42,10 +43,92 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-betterbooks}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
       POSTGRES_DB: ${POSTGRES_DB:-betterbooks}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-replicator_pass}
+      # PostgreSQL performance tuning
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./postgresql_primary.conf:/etc/postgresql/postgresql.conf
+      - ./init_primary.sql:/docker-entrypoint-initdb.d/init_primary.sql
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     ports:
       - "5432:5432"
+    networks:
+      - betterbooks_network
+
+  # PostgreSQL Read Replica
+  postgres_replica:
+    image: pgvector/pgvector:pg15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-betterbooks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
+      POSTGRES_DB: ${POSTGRES_DB:-betterbooks}
+      POSTGRES_REPLICATION_USER: ${POSTGRES_REPLICATION_USER:-replicator}
+      POSTGRES_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD:-replicator_pass}
+      POSTGRES_PRIMARY_HOST: postgres_primary
+      POSTGRES_PRIMARY_PORT: 5432
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./postgresql_replica.conf:/etc/postgresql/postgresql.conf
+      - ./init_replica.sh:/docker-entrypoint-initdb.d/init_replica.sh
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    ports:
+      - "5433:5432"
+    depends_on:
+      - postgres_primary
+    networks:
+      - betterbooks_network
+
+  # PgBouncer - Connection Pooling
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      DATABASES_HOST: postgres_primary
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${POSTGRES_USER:-betterbooks}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
+      DATABASES_DBNAME: ${POSTGRES_DB:-betterbooks}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 300
+      DEFAULT_POOL_SIZE: 25
+      SERVER_RESET_QUERY: DISCARD ALL
+    volumes:
+      - ./pgbouncer_primary.ini:/etc/pgbouncer/pgbouncer.ini
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+    ports:
+      - "6432:6432"
+    depends_on:
+      - postgres_primary
+      - postgres_replica
+    networks:
+      - betterbooks_network
+
+  # PgBouncer for Read Replica - Read-Only Queries
+  pgbouncer_replica:
+    image: pgbouncer/pgbouncer:latest
+    restart: unless-stopped
+    environment:
+      DATABASES_HOST: postgres_replica
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${POSTGRES_USER:-betterbooks}
+      DATABASES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
+      DATABASES_DBNAME: ${POSTGRES_DB:-betterbooks}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 15
+      SERVER_RESET_QUERY: DISCARD ALL
+    volumes:
+      - ./pgbouncer_replica.ini:/etc/pgbouncer/pgbouncer.ini
+      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+    ports:
+      - "6433:6432"
+    depends_on:
+      - postgres_replica
+    networks:
+      - betterbooks_network
 
   api_gateway:
     build: ./services/api_gateway
@@ -56,7 +139,7 @@ services:
       LLM_GATEWAY_URL: http://llm_gateway:8000
       TTS_SERVICE_URL: http://tts_service:8000
       TRANSCRIPTION_SERVICE_URL: http://transcription_service:8003
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
     depends_on:
       - context_service
       - llm_gateway
@@ -66,17 +149,22 @@ services:
       - "8000:8000"
     volumes:
       - ./book_files:/app/book_files
+    networks:
+      - betterbooks_network
 
   context_service:
     build: ./services/context_service
     env_file:
       - .env
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
     depends_on:
-      - postgres
+      - postgres_primary
+      - pgbouncer
     ports:
       - "8001:8000"
+    networks:
+      - betterbooks_network
 
   llm_gateway:
     build: ./services/llm_gateway
@@ -90,6 +178,8 @@ services:
       - "8002:8000"
     volumes:
       - ./llm_configs:/app/llm_configs
+    networks:
+      - betterbooks_network
 
   tts_service:
     build: ./services/tts_service
@@ -102,6 +192,8 @@ services:
       - "8004:8000"
     volumes:
       - ./llm_configs:/app/llm_configs
+    networks:
+      - betterbooks_network
 
   transcription_service:
     build: ./services/transcription_service
@@ -116,6 +208,8 @@ services:
       - ./book_files:/app/book_files
       - ./context_config.yaml:/context_config.yaml
       - transcription_cache:/app/transcript_cache
+    networks:
+      - betterbooks_network
 
   web_app:
     build: ./web_app
@@ -127,6 +221,8 @@ services:
       API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
     ports:
       - "8080:80"
+    networks:
+      - betterbooks_network
 
   redis:
     image: redis:7-alpine
@@ -136,8 +232,73 @@ services:
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
+    networks:
+      - betterbooks_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - api_gateway
+      - llm_gateway
+      - context_service
+      - tts_service
+    networks:
+      - betterbooks_network
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - betterbooks_network
+
+  # Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger HTTP collector
+      - "6831:6831/udp"  # Jaeger agent UDP
+      - "6832:6832/udp"  # Jaeger agent UDP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=info
+    volumes:
+      - jaeger_data:/tmp
+    networks:
+      - betterbooks_network
 
 volumes:
-  postgres_data:
+  postgres_primary_data:
+  postgres_replica_data:
   transcription_cache:
   redis_data:
+  prometheus_data:
+  grafana_data:
+  jaeger_data:
+
+networks:
+  betterbooks_network:
+    driver: bridge

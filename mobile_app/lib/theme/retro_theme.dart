@@ -1,358 +1,414 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Architectural Theme Colors - Inspired by "Emergent Tokyo" book cover
-/// High-contrast color palette with bright architectural orange, clean whites, and deep blacks
-class ArchitecturalColors {
-  // PRIMARY: Bright Architectural Orange (WCAG AA Compliant)
-  static const Color primaryOrange = Color(0xFFE63E00);      // Improved contrast orange (5.8:1 ratio on white)
-  static const Color lightOrange = Color(0xFFFF6B33);        // Lighter orange for highlights
-  static const Color deepOrange = Color(0xFFCC3600);         // Deeper orange for emphasis (7.2:1 ratio)
-  static const Color orangeAccent = Color(0xFFFF7F50);       // Coral orange accent
+/// Space Command Theme Colors - Retro Space-Race Aesthetic
+/// Inspired by vintage space missions and command centers - dusty reds, golden yellows, teal blues
+class SpaceColors {
+  // PRIMARY: Dusty Reds (Mission Command)
+  static const Color dustyRed = Color(0xFFCC6B5A);           // Primary dusty red
+  static const Color warmRed = Color(0xFFD85D47);            // Warmer red accent
+  static const Color deepRed = Color(0xFFB85A4A);            // Deeper red for emphasis
+  static const Color softRed = Color(0xFFE8887A);            // Soft red highlight
   
-  // BACKGROUNDS: Clean Architecture (High Contrast)
-  static const Color pureWhite = Color(0xFFFFFFFF);          // Pure white backgrounds
-  static const Color offWhite = Color(0xFFFAFAFA);           // Subtle off-white for cards
-  static const Color lightGray = Color(0xFFF5F5F5);          // Light gray for surfaces
-  static const Color cardWhite = Color(0xFFFEFEFE);          // Card backgrounds
+  // SECONDARY: Golden Yellows (Navigation Systems)
+  static const Color goldenYellow = Color(0xFFE6B847);       // Primary golden yellow
+  static const Color deepGold = Color(0xFFD4A328);           // Deep gold accent
+  static const Color lightGold = Color(0xFFF2C95D);          // Light gold highlight
+  static const Color amberGlow = Color(0xFFEEC64A);          // Amber glow effect
   
-  // TEXT: Frank Lloyd Wright Architectural (WCAG AA/AAA Compliant)
-  static const Color deepBlack = Color(0xFF000000);          // Pure black for primary text (21:1 ratio)
-  static const Color charcoalBlack = Color(0xFF1A1A1A);      // Charcoal for headers (16.7:1 ratio)
-  static const Color darkGray = Color(0xFF2D2D2D);           // Dark gray for body text (12.6:1 ratio - AA compliant)
-  static const Color mediumGray = Color(0xFF4A4A4A);         // Medium gray for secondary text (7.3:1 ratio - AAA compliant)
-  static const Color subtleGray = Color(0xFF6B6B6B);         // Subtle gray for hints (4.9:1 ratio - AA compliant)
+  // TERTIARY: Teal Blues (Communication Arrays)
+  static const Color tealBlue = Color(0xFF4A9B9B);           // Primary teal blue
+  static const Color cyanBlue = Color(0xFF6BB6B6);           // Cyan blue accent
+  static const Color deepTeal = Color(0xFF5C9999);           // Deep teal variant
+  static const Color softCyan = Color(0xFF8BCCCC);           // Soft cyan highlight
   
-  // ARCHITECTURAL ACCENTS: Geometric Lines and Structure
-  static const Color steelGray = Color(0xFF708090);          // Steel structural accents
-  static const Color lightSteel = Color(0xFFB0C4DE);         // Light steel for borders
-  static const Color architecturalBlue = Color(0xFF4682B4);  // Blueprint blue accent
-  static const Color concreteGray = Color(0xFF696969);       // Concrete material tone
+  // BACKGROUNDS: Cream Command Center (Warm Neutrals)
+  static const Color creamBg = Color(0xFFF5F1E8);            // Primary cream background
+  static const Color warmBeige = Color(0xFFEDE7D3);          // Warm beige surface
+  static const Color lightCream = Color(0xFFFAF6ED);         // Light cream cards
+  static const Color ivoryWhite = Color(0xFFFEFCF5);         // Ivory white highlights
   
-  // FUNCTIONAL COLORS: High Contrast System Colors
-  static const Color successGreen = Color(0xFF28A745);       // Clear success green
-  static const Color warningAmber = Color(0xFFFFC107);       // Warning amber
-  static const Color errorRed = Color(0xFFDC3545);           // Clear error red
-  static const Color infoBlue = Color(0xFF17A2B8);           // Information blue
+  // TEXT: Mission Control Interface (High Contrast for Readability)
+  static const Color missionBlack = Color(0xFF2C2C2C);       // Primary text (mission readouts)
+  static const Color commandGray = Color(0xFF4A4A4A);        // Secondary text (system info)
+  static const Color systemGray = Color(0xFF666666);         // Tertiary text (labels)
+  static const Color subtleGray = Color(0xFF888888);         // Subtle text (hints)
+  static const Color darkSpace = Color(0xFF1A1A1A);          // Deep space black
   
-  // SHADOWS AND OVERLAYS: Architectural Depth
-  static const Color shadowBlack = Color(0x1A000000);        // Subtle black shadow
-  static const Color overlayBlack = Color(0x80000000);       // Modal overlay
-  static const Color subtleOverlay = Color(0x0A000000);      // Very subtle overlay
-  static const Color orangeGlow = Color(0x20E63E00);         // Orange glow effect (matches primary)
+  // ACCENTS: Space Mission Elements
+  static const Color rocketSilver = Color(0xFF9CA3AF);       // Metallic accents
+  static const Color starWhite = Color(0xFFF9FAFB);          // Bright highlights
+  static const Color nebulaBlue = Color(0xFF3B82F6);         // Information blue
+  static const Color solarOrange = Color(0xFFF97316);        // Warning/energy orange
   
-  // GRADIENTS: Architectural Transitions
-  static const List<Color> primaryGradient = [
-    Color(0xFFFFFFFF),  // Pure white
-    Color(0xFFFAFAFA),  // Off white
-    Color(0xFFF5F5F5),  // Light gray
+  // FUNCTIONAL COLORS: Mission Status Indicators
+  static const Color successGreen = Color(0xFF10B981);       // Mission success
+  static const Color warningAmber = Color(0xFFD4A328);       // Caution status  
+  static const Color errorRed = Color(0xFFEF4444);           // Critical alert
+  static const Color infoTeal = Color(0xFF4A9B9B);           // Information status
+  
+  // SHADOWS AND OVERLAYS: Atmospheric Depth
+  static const Color spaceShadow = Color(0x1A000000);        // Subtle space shadow
+  static const Color orbitGlow = Color(0x20CC6B5A);          // Dusty red orbital glow
+  static const Color stellarOverlay = Color(0x0F4A9B9B);     // Teal stellar overlay
+  static const Color cosmicMist = Color(0x0AE6B847);         // Golden cosmic mist
+  
+  // GRADIENTS: Space Atmospheric Effects
+  static const List<Color> commandGradient = [
+    Color(0xFFF5F1E8),  // Cream background
+    Color(0xFFEDE7D3),  // Warm beige
+    Color(0xFFFAF6ED),  // Light cream
   ];
   
-  static const List<Color> orangeGradient = [
-    Color(0xFFFF4500),  // Primary orange
-    Color(0xFFE63E00),  // Deep orange
+  static const List<Color> dustyRedGradient = [
+    Color(0xFFD85D47),  // Warm red
+    Color(0xFFCC6B5A),  // Dusty red
   ];
   
-  static const List<Color> cardGradient = [
-    Color(0xFFFEFEFE),  // Card white
-    Color(0xFFFAFAFA),  // Off white
+  static const List<Color> goldenGradient = [
+    Color(0xFFF2C95D),  // Light gold
+    Color(0xFFE6B847),  // Golden yellow
+    Color(0xFFD4A328),  // Deep gold
   ];
   
-  static const List<Color> architecturalShadow = [
-    Color(0x1A000000),  // Subtle shadow
+  static const List<Color> tealGradient = [
+    Color(0xFF8BCCCC),  // Soft cyan
+    Color(0xFF6BB6B6),  // Cyan blue
+    Color(0xFF4A9B9B),  // Teal blue
+  ];
+  
+  static const List<Color> spaceDepthGradient = [
+    Color(0x1A000000),  // Space shadow
     Color(0x0D000000),  // Lighter shadow
     Color(0x00000000),  // Transparent
   ];
   
-  // LEGACY MAPPINGS: Backward Compatibility
-  static const Color primaryTerracotta = primaryOrange;
-  static const Color lightTerracotta = lightOrange;
-  static const Color sageGreen = steelGray;
-  static const Color deepTerracotta = deepOrange;
-  static const Color creamBackground = pureWhite;
-  static const Color warmSurface = offWhite;
-  static const Color softCard = cardWhite;
-  static const Color ivoryWhite = pureWhite;
-  static const Color lightBeige = lightGray;
-  static const Color mediumBeige = mediumGray;
+  // LEGACY MAPPINGS: Backward Compatibility with Old Architectural Theme
+  static const Color primaryTerracotta = dustyRed;
+  static const Color lightTerracotta = warmRed;
+  static const Color sageGreen = tealBlue;
+  static const Color deepTerracotta = deepRed;
+  static const Color creamBackground = creamBg;
+  static const Color warmSurface = warmBeige;
+  static const Color softCard = lightCream;
+  static const Color lightBeige = systemGray;
+  static const Color mediumBeige = commandGray;
   static const Color warmTaupe = subtleGray;
-  static const Color deepTaupe = darkGray;
-  static const Color peachAccent = orangeAccent;
-  static const Color coralTone = orangeAccent;
-  static const Color orangeGlowOld = lightOrange;
-  static const Color brickRed = primaryOrange;
-  static const Color clayTone = lightOrange;
-  static const Color stoneBeige = lightGray;
-  static const Color woodWarm = mediumGray;
-  static const Color burgundyAccent = deepOrange;
-  static const Color sageAccent = steelGray;
+  static const Color deepTaupe = missionBlack;
+  static const Color peachAccent = softRed;
+  static const Color coralTone = warmRed;
+  static const Color orangeGlowOld = amberGlow;
+  static const Color brickRed = dustyRed;
+  static const Color clayTone = goldenYellow;
+  static const Color stoneBeige = warmBeige;
+  static const Color woodWarm = commandGray;
+  static const Color burgundyAccent = deepRed;
+  static const Color sageAccent = tealBlue;
   static const Color successEarth = successGreen;
   static const Color warningCoral = warningAmber;
   static const Color errorBrick = errorRed;
-  static const Color softTeal = architecturalBlue;
+  static const Color softTeal = cyanBlue;
   static const Color mintGreen = successGreen;
-  static const Color terminalMint = successGreen;
-  static const Color warningOrange = warningAmber;
-  static const Color deepTeal = deepOrange;
-  static const Color surfaceDark = offWhite;
-  static const Color holoPink = orangeAccent;
-  static const Color tabBlue = architecturalBlue;
-  static const Color gridBlue = architecturalBlue;
+  static const Color terminalMint = cyanBlue;
+  static const Color warningOrange = solarOrange;
+  static const Color deepTealOld = deepTeal;
+  static const Color surfaceDark = warmBeige;
+  static const Color holoPink = softRed;
+  static const Color tabBlue = tealBlue;
+  static const Color gridBlue = nebulaBlue;
   static const Color terminalGreen = successGreen;
   static const Color vhsRed = errorRed;
-  static const Color vhsYellow = warningAmber;
-  static const Color neonCyan = infoBlue;
-  static const Color neonOrange = primaryOrange;
-  static const Color neonPink = orangeAccent;
+  static const Color vhsYellow = goldenYellow;
+  static const Color neonCyan = cyanBlue;
+  static const Color neonOrange = solarOrange;
+  static const Color neonPink = softRed;
   static const Color phosphorGreen = successGreen;
-  static const Color overlayWarm = orangeGlow;
-  static const List<Color> terminalGradient = orangeGradient;
+  static const Color overlayWarm = orbitGlow;
+  static const List<Color> terminalGradient = dustyRedGradient;
 }
 
-/// Architectural Theme - Frank Lloyd Wright inspired design system
-/// High-contrast theme with geometric typography and clean architectural aesthetics
-class ArchitecturalTheme {
+/// Legacy Architectural Colors - Kept for Backward Compatibility
+/// Will be gradually phased out in favor of SpaceColors
+class ArchitecturalColors {
+  // Map all architectural colors to space theme equivalents
+  static const Color primaryOrange = SpaceColors.dustyRed;
+  static const Color lightOrange = SpaceColors.warmRed;
+  static const Color deepOrange = SpaceColors.deepRed;
+  static const Color orangeAccent = SpaceColors.softRed;
+  static const Color pureWhite = SpaceColors.ivoryWhite;
+  static const Color offWhite = SpaceColors.lightCream;
+  static const Color lightGray = SpaceColors.warmBeige;
+  static const Color cardWhite = SpaceColors.creamBg;
+  static const Color deepBlack = SpaceColors.darkSpace;
+  static const Color charcoalBlack = SpaceColors.missionBlack;
+  static const Color darkGray = SpaceColors.commandGray;
+  static const Color mediumGray = SpaceColors.systemGray;
+  static const Color subtleGray = SpaceColors.subtleGray;
+  static const Color steelGray = SpaceColors.rocketSilver;
+  static const Color lightSteel = SpaceColors.starWhite;
+  static const Color architecturalBlue = SpaceColors.nebulaBlue;
+  static const Color concreteGray = SpaceColors.systemGray;
+  static const Color successGreen = SpaceColors.successGreen;
+  static const Color warningAmber = SpaceColors.warningAmber;
+  static const Color errorRed = SpaceColors.errorRed;
+  static const Color infoBlue = SpaceColors.infoTeal;
+  static const Color shadowBlack = SpaceColors.spaceShadow;
+  static const Color overlayBlack = Color(0x80000000);
+  static const Color subtleOverlay = SpaceColors.stellarOverlay;
+  static const Color orangeGlow = SpaceColors.orbitGlow;
+  
+  static const List<Color> primaryGradient = SpaceColors.commandGradient;
+  static const List<Color> orangeGradient = SpaceColors.dustyRedGradient;
+  static const List<Color> cardGradient = SpaceColors.commandGradient;
+  static const List<Color> architecturalShadow = SpaceColors.spaceDepthGradient;
+}
+
+/// Space Command Theme - Retro Space-Race Mission Control Design System
+/// Inspired by vintage space missions with dusty reds, golden yellows, and teal blues
+class SpaceTheme {
   static ThemeData get theme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primarySwatch: Colors.orange,
-      primaryColor: ArchitecturalColors.primaryOrange,
-      scaffoldBackgroundColor: ArchitecturalColors.pureWhite,
+      primarySwatch: Colors.red,
+      primaryColor: SpaceColors.dustyRed,
+      scaffoldBackgroundColor: SpaceColors.creamBg,
       
-      // Frank Lloyd Wright Architectural Typography - Geometric and highly readable
+      // Space Mission Typography - Clean, technical readouts for command interfaces
       textTheme: TextTheme(
-        // Large headers - Bold architectural titles (maximum contrast)
-        displayLarge: GoogleFonts.montserrat(
+        // Large headers - Mission command titles (high contrast)
+        displayLarge: GoogleFonts.orbitron(
           fontSize: 32,
           fontWeight: FontWeight.w800,
-          color: ArchitecturalColors.deepBlack,
-          letterSpacing: -0.8,
+          color: SpaceColors.darkSpace,
+          letterSpacing: -0.5,
           height: 1.1,
         ),
-        displayMedium: GoogleFonts.montserrat(
+        displayMedium: GoogleFonts.orbitron(
           fontSize: 28,
           fontWeight: FontWeight.w700,
-          color: ArchitecturalColors.charcoalBlack,
-          letterSpacing: -0.5,
+          color: SpaceColors.missionBlack,
+          letterSpacing: -0.3,
           height: 1.2,
         ),
-        displaySmall: GoogleFonts.montserrat(
+        displaySmall: GoogleFonts.orbitron(
           fontSize: 24,
           fontWeight: FontWeight.w600,
-          color: ArchitecturalColors.charcoalBlack,
-          letterSpacing: -0.3,
+          color: SpaceColors.dustyRed,
+          letterSpacing: 0,
           height: 1.3,
         ),
         
-        // Headlines - Architectural geometric text (high contrast)
+        // Headlines - System interface text (mission control style)
         headlineLarge: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: ArchitecturalColors.deepBlack,
-          letterSpacing: 0,
+          color: SpaceColors.missionBlack,
+          letterSpacing: 0.1,
           height: 1.3,
         ),
         headlineMedium: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: ArchitecturalColors.primaryOrange,
+          color: SpaceColors.dustyRed,
           letterSpacing: 0,
           height: 1.4,
         ),
         headlineSmall: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: ArchitecturalColors.darkGray,
+          color: SpaceColors.commandGray,
           letterSpacing: 0,
           height: 1.4,
         ),
         
-        // Body text - Clean, highly readable content (maximum contrast)
+        // Body text - Technical readouts and content (high contrast)
         bodyLarge: GoogleFonts.inter(
           fontSize: 16,
-          color: ArchitecturalColors.deepBlack,
+          color: SpaceColors.missionBlack,
           letterSpacing: 0,
           fontWeight: FontWeight.w400,
           height: 1.6,
         ),
         bodyMedium: GoogleFonts.inter(
           fontSize: 14,
-          color: ArchitecturalColors.darkGray,
+          color: SpaceColors.commandGray,
           letterSpacing: 0,
           fontWeight: FontWeight.w400,
           height: 1.5,
         ),
         bodySmall: GoogleFonts.inter(
           fontSize: 12,
-          color: ArchitecturalColors.mediumGray,
+          color: SpaceColors.systemGray,
           letterSpacing: 0,
           fontWeight: FontWeight.w400,
           height: 1.4,
         ),
         
-        // Labels - Architectural system UI text (high contrast)
-        labelLarge: GoogleFonts.inter(
+        // Labels - System UI text (technical interface style)
+        labelLarge: GoogleFonts.jetBrainsMono(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: ArchitecturalColors.deepBlack,
-          letterSpacing: 0.2,
+          color: SpaceColors.tealBlue,
+          letterSpacing: 0.3,
         ),
-        labelMedium: GoogleFonts.inter(
+        labelMedium: GoogleFonts.jetBrainsMono(
           fontSize: 12,
           fontWeight: FontWeight.w500,
-          color: ArchitecturalColors.darkGray,
-          letterSpacing: 0.1,
+          color: SpaceColors.commandGray,
+          letterSpacing: 0.2,
         ),
-        labelSmall: GoogleFonts.inter(
+        labelSmall: GoogleFonts.jetBrainsMono(
           fontSize: 10,
           fontWeight: FontWeight.w500,
-          color: ArchitecturalColors.mediumGray,
-          letterSpacing: 0.1,
+          color: SpaceColors.systemGray,
+          letterSpacing: 0.2,
         ),
       ),
       
-      // High-contrast architectural color scheme
+      // Space command color scheme - Mission control interface
       colorScheme: ColorScheme.light(
-        primary: ArchitecturalColors.primaryOrange,
-        secondary: ArchitecturalColors.steelGray,
-        tertiary: ArchitecturalColors.architecturalBlue,
-        surface: ArchitecturalColors.offWhite,
-        onPrimary: ArchitecturalColors.pureWhite,
-        onSecondary: ArchitecturalColors.pureWhite,
-        onSurface: ArchitecturalColors.deepBlack,
-        error: ArchitecturalColors.errorRed,
-        onError: ArchitecturalColors.pureWhite,
-        outline: ArchitecturalColors.mediumGray,
-        shadow: ArchitecturalColors.shadowBlack,
+        primary: SpaceColors.dustyRed,
+        secondary: SpaceColors.tealBlue,
+        tertiary: SpaceColors.goldenYellow,
+        surface: SpaceColors.lightCream,
+        onPrimary: SpaceColors.ivoryWhite,
+        onSecondary: SpaceColors.ivoryWhite,
+        onSurface: SpaceColors.missionBlack,
+        error: SpaceColors.errorRed,
+        onError: SpaceColors.ivoryWhite,
+        outline: SpaceColors.systemGray,
+        shadow: SpaceColors.spaceShadow,
+        surfaceContainer: SpaceColors.warmBeige,
+        onSurfaceVariant: SpaceColors.commandGray,
       ),
       
-      // App bar - Clean architectural header with maximum contrast
+      // App bar - Mission control header interface
       appBarTheme: AppBarTheme(
-        backgroundColor: ArchitecturalColors.pureWhite,
-        foregroundColor: ArchitecturalColors.deepBlack,
-        elevation: 1,
-        shadowColor: ArchitecturalColors.shadowBlack,
+        backgroundColor: SpaceColors.creamBg,
+        foregroundColor: SpaceColors.darkSpace,
+        elevation: 2,
+        shadowColor: SpaceColors.spaceShadow,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.montserrat(
+        titleTextStyle: GoogleFonts.orbitron(
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: ArchitecturalColors.deepBlack,
-          letterSpacing: -0.2,
+          color: SpaceColors.dustyRed,
+          letterSpacing: 0.1,
         ),
         iconTheme: IconThemeData(
-          color: ArchitecturalColors.deepBlack,
+          color: SpaceColors.tealBlue,
           size: 24,
         ),
       ),
       
-      // Cards - Clean architectural design with subtle shadows
+      // Cards - Space command panel design with atmospheric glow
       cardTheme: CardThemeData(
-        color: ArchitecturalColors.cardWhite,
-        elevation: 2,
-        shadowColor: ArchitecturalColors.shadowBlack,
+        color: SpaceColors.lightCream,
+        elevation: 3,
+        shadowColor: SpaceColors.spaceShadow,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: ArchitecturalColors.lightGray,
+            color: SpaceColors.dustyRed.withOpacity(0.2),
             width: 1,
           ),
         ),
         margin: EdgeInsets.all(8),
       ),
       
-      // Bottom navigation - Clean architectural navigation with high contrast
+      // Bottom navigation - Mission control navigation panel
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: ArchitecturalColors.pureWhite,
-        selectedItemColor: ArchitecturalColors.primaryOrange,
-        unselectedItemColor: ArchitecturalColors.mediumGray,
-        selectedLabelStyle: GoogleFonts.inter(
+        backgroundColor: SpaceColors.warmBeige,
+        selectedItemColor: SpaceColors.dustyRed,
+        unselectedItemColor: SpaceColors.systemGray,
+        selectedLabelStyle: GoogleFonts.jetBrainsMono(
           fontWeight: FontWeight.w600,
-          letterSpacing: 0,
+          letterSpacing: 0.2,
           fontSize: 12,
-          color: ArchitecturalColors.primaryOrange,
+          color: SpaceColors.dustyRed,
         ),
-        unselectedLabelStyle: GoogleFonts.inter(
+        unselectedLabelStyle: GoogleFonts.jetBrainsMono(
           fontWeight: FontWeight.w400,
-          letterSpacing: 0,
+          letterSpacing: 0.1,
           fontSize: 11,
-          color: ArchitecturalColors.mediumGray,
+          color: SpaceColors.systemGray,
         ),
         type: BottomNavigationBarType.fixed,
-        elevation: 4,
+        elevation: 6,
       ),
       
-      // Buttons - Bold architectural styling with maximum contrast
+      // Buttons - Mission control styling with atmospheric glow effects
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: ArchitecturalColors.primaryOrange,
-          foregroundColor: ArchitecturalColors.pureWhite,
+          backgroundColor: SpaceColors.dustyRed,
+          foregroundColor: SpaceColors.ivoryWhite,
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            letterSpacing: 0,
+            letterSpacing: 0.1,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
           ),
-          elevation: 2,
-          shadowColor: ArchitecturalColors.shadowBlack,
-          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          elevation: 4,
+          shadowColor: SpaceColors.orbitGlow,
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
       
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: ArchitecturalColors.primaryOrange,
-          side: BorderSide(color: ArchitecturalColors.primaryOrange, width: 2),
+          foregroundColor: SpaceColors.tealBlue,
+          side: BorderSide(color: SpaceColors.tealBlue, width: 2),
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
-            letterSpacing: 0,
+            letterSpacing: 0.1,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
           ),
-          padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         ),
       ),
       
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: ArchitecturalColors.primaryOrange,
+          foregroundColor: SpaceColors.goldenYellow,
           textStyle: GoogleFonts.inter(
             fontWeight: FontWeight.w500,
-            letterSpacing: 0,
+            letterSpacing: 0.1,
           ),
           padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
       ),
       
-      // Input fields - Clean architectural form design
+      // Input fields - Mission control interface form design
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: ArchitecturalColors.offWhite,
+        fillColor: SpaceColors.lightCream,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: ArchitecturalColors.mediumGray),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: SpaceColors.systemGray),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: ArchitecturalColors.lightSteel),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: SpaceColors.rocketSilver),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: ArchitecturalColors.primaryOrange, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: SpaceColors.tealBlue, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: ArchitecturalColors.errorRed, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: SpaceColors.errorRed, width: 2),
         ),
         labelStyle: GoogleFonts.inter(
-          color: ArchitecturalColors.mediumGray,
+          color: SpaceColors.commandGray,
           fontWeight: FontWeight.w500,
         ),
         hintStyle: GoogleFonts.inter(
-          color: ArchitecturalColors.subtleGray,
+          color: SpaceColors.subtleGray,
           fontWeight: FontWeight.w400,
         ),
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -361,57 +417,104 @@ class ArchitecturalTheme {
   }
 }
 
-/// Architectural Animation System - Clean, precise transitions
-/// Inspired by Frank Lloyd Wright's geometric principles
-class ArchitecturalAnimations {
-  static const Duration ultraFast = Duration(milliseconds: 100);
-  static const Duration fast = Duration(milliseconds: 200);
-  static const Duration medium = Duration(milliseconds: 300);
-  static const Duration slow = Duration(milliseconds: 500);
-  static const Duration pageTransition = Duration(milliseconds: 250);
-  
-  // Architectural easing curves - precise and geometric
-  static const Curve preciseEase = Curves.easeInOutCubic;
-  static const Curve geometricEase = Curves.easeOutQuart;
-  static const Curve architecturalEase = Curves.easeInOutQuart;
-  static const Curve sharpEase = Curves.easeInOutExpo;
-  
-  // Legacy compatibility
-  static const Curve smoothEase = preciseEase;
-  static const Curve gentleEase = geometricEase;
-  static const Curve tactileEase = architecturalEase;
+/// Legacy Architectural Theme - Maps to Space Theme for Backward Compatibility
+/// This ensures existing code continues to work while gradually migrating to SpaceTheme
+class ArchitecturalTheme {
+  static ThemeData get theme => SpaceTheme.theme;
 }
 
-/// Architectural Design Measurements - Geometric precision
-/// Based on Frank Lloyd Wright's proportional systems
-class ArchitecturalSizes {
-  static const double cardElevation = 2.0;          // Subtle architectural depth
-  static const double subtleBorder = 1.0;           // Fine architectural lines
-  static const double prominentBorder = 2.0;        // Bold structural elements
-  static const double tabHeight = 56.0;             // Optimal touch targets
-  static const double iconSize = 24.0;              // Balanced visual weight
-  static const double padding = 24.0;               // Generous architectural spacing
-  static const double smallPadding = 16.0;          // Intimate geometric spacing
-  static const double borderRadius = 8.0;           // Clean geometric corners
-  static const double smallRadius = 4.0;            // Minimal rounded edges
-  static const double largeRadius = 12.0;           // Prominent rounded elements
+/// Space Mission Animation System - Smooth, orbital transitions
+/// Inspired by spacecraft movements and orbital mechanics
+class SpaceAnimations {
+  static const Duration ultraFast = Duration(milliseconds: 120);
+  static const Duration fast = Duration(milliseconds: 250);
+  static const Duration medium = Duration(milliseconds: 400);
+  static const Duration slow = Duration(milliseconds: 600);
+  static const Duration orbit = Duration(milliseconds: 800);
+  static const Duration pageTransition = Duration(milliseconds: 350);
+  
+  // Orbital easing curves - smooth like spacecraft movements
+  static const Curve orbitalEase = Curves.easeInOutQuart;
+  static const Curve launchEase = Curves.easeOutExpo;
+  static const Curve landingEase = Curves.easeInQuart;
+  static const Curve floatingEase = Curves.easeInOutSine;
   
   // Legacy compatibility
-  static const double cardElevationOld = cardElevation;
+  static const Curve preciseEase = orbitalEase;
+  static const Curve geometricEase = launchEase;
+  static const Curve architecturalEase = orbitalEase;
+  static const Curve sharpEase = landingEase;
+  static const Curve smoothEase = orbitalEase;
+  static const Curve gentleEase = floatingEase;
+  static const Curve tactileEase = orbitalEase;
+}
+
+/// Legacy Architectural Animations - Maps to Space Animations
+class ArchitecturalAnimations {
+  static const Duration ultraFast = SpaceAnimations.ultraFast;
+  static const Duration fast = SpaceAnimations.fast;
+  static const Duration medium = SpaceAnimations.medium;
+  static const Duration slow = SpaceAnimations.slow;
+  static const Duration pageTransition = SpaceAnimations.pageTransition;
+  static const Curve preciseEase = SpaceAnimations.preciseEase;
+  static const Curve geometricEase = SpaceAnimations.geometricEase;
+  static const Curve architecturalEase = SpaceAnimations.architecturalEase;
+  static const Curve sharpEase = SpaceAnimations.sharpEase;
+  static const Curve smoothEase = SpaceAnimations.smoothEase;
+  static const Curve gentleEase = SpaceAnimations.gentleEase;
+  static const Curve tactileEase = SpaceAnimations.tactileEase;
+}
+
+/// Space Mission Design Measurements - Orbital proportions
+/// Based on spacecraft and space station interface design
+class SpaceSizes {
+  static const double panelElevation = 4.0;         // Command panel depth
+  static const double subtleBorder = 1.5;           // Sensor array lines
+  static const double prominentBorder = 3.0;        // Primary interface elements
+  static const double controlHeight = 58.0;         // Optimal control targets
+  static const double iconSize = 24.0;              // Navigation element size
+  static const double padding = 20.0;               // Mission control spacing
+  static const double smallPadding = 12.0;          // Component spacing
+  static const double borderRadius = 12.0;          // Rounded display corners
+  static const double smallRadius = 6.0;            // Minor interface rounding
+  static const double largeRadius = 16.0;           // Major panel rounding
+  static const double orbitRadius = 24.0;           // Circular control elements
+  
+  // Legacy compatibility
+  static const double cardElevation = panelElevation;
+  static const double tabHeight = controlHeight;
+  static const double cardElevationOld = panelElevation;
   static const double borderRadiusOld = borderRadius;
   static const double smallRadiusOld = smallRadius;
 }
 
-/// Architectural Layout Spacing System - Geometric grid
-/// Based on 8-point grid system for consistent proportions
-class ArchitecturalSpacing {
-  static const double xs = 4.0;   // Minimal geometric unit
-  static const double sm = 8.0;   // Base grid unit
-  static const double md = 16.0;  // Standard element spacing
-  static const double lg = 24.0;  // Section spacing
-  static const double xl = 32.0;  // Large architectural gaps
-  static const double xxl = 48.0; // Grand architectural space
-  static const double xxxl = 64.0; // Monumental spacing
+/// Legacy Architectural Sizes - Maps to Space Sizes
+class ArchitecturalSizes {
+  static const double cardElevation = SpaceSizes.panelElevation;
+  static const double subtleBorder = SpaceSizes.subtleBorder;
+  static const double prominentBorder = SpaceSizes.prominentBorder;
+  static const double tabHeight = SpaceSizes.controlHeight;
+  static const double iconSize = SpaceSizes.iconSize;
+  static const double padding = SpaceSizes.padding;
+  static const double smallPadding = SpaceSizes.smallPadding;
+  static const double borderRadius = SpaceSizes.borderRadius;
+  static const double smallRadius = SpaceSizes.smallRadius;
+  static const double largeRadius = SpaceSizes.largeRadius;
+  static const double cardElevationOld = SpaceSizes.panelElevation;
+  static const double borderRadiusOld = SpaceSizes.borderRadius;
+  static const double smallRadiusOld = SpaceSizes.smallRadius;
+}
+
+/// Space Mission Layout Spacing System - Orbital grid
+/// Based on spacecraft interface spacing for optimal readability
+class SpaceSpacing {
+  static const double xs = 6.0;   // Minimal component gap
+  static const double sm = 12.0;  // Base control spacing
+  static const double md = 18.0;  // Standard panel spacing
+  static const double lg = 24.0;  // Section dividers
+  static const double xl = 36.0;  // Major interface gaps  
+  static const double xxl = 48.0; // Mission section spacing
+  static const double xxxl = 64.0; // Command center spacing
   
   // Legacy compatibility
   static const double small = sm;
@@ -419,10 +522,24 @@ class ArchitecturalSpacing {
   static const double large = lg;
 }
 
-/// Legacy Theme Compatibility - Maintains backward compatibility
-/// Maps old RetroTheme and RetroColors to new ArchitecturalTheme
+/// Legacy Architectural Spacing - Maps to Space Spacing
+class ArchitecturalSpacing {
+  static const double xs = SpaceSpacing.xs;
+  static const double sm = SpaceSpacing.sm;
+  static const double md = SpaceSpacing.md;
+  static const double lg = SpaceSpacing.lg;
+  static const double xl = SpaceSpacing.xl;
+  static const double xxl = SpaceSpacing.xxl;
+  static const double xxxl = SpaceSpacing.xxxl;
+  static const double small = SpaceSpacing.small;
+  static const double medium = SpaceSpacing.medium;
+  static const double large = SpaceSpacing.large;
+}
+
+/// Legacy Theme Compatibility - Maintains backward compatibility  
+/// Maps old RetroTheme and RetroColors to new SpaceTheme
 class RetroTheme {
-  static ThemeData get theme => ArchitecturalTheme.theme;
+  static ThemeData get theme => SpaceTheme.theme;
 }
 
 class RetroColors {
@@ -463,7 +580,7 @@ class RetroColors {
   static const Color errorRed = ArchitecturalColors.errorRed;
   static const Color warningOrange = ArchitecturalColors.warningAmber;
   static const Color lightGray = ArchitecturalColors.lightGray;
-  static const Color deepTeal = ArchitecturalColors.deepOrange;
+  static const Color deepTealRetro = ArchitecturalColors.deepOrange;
   static const Color surfaceDark = ArchitecturalColors.offWhite;
   static const Color holoPink = ArchitecturalColors.orangeAccent;
   static const Color tabBlue = ArchitecturalColors.architecturalBlue;

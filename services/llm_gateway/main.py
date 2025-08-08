@@ -1,7 +1,16 @@
 """Tiny wrapper around the Gemini API used for text generation."""
 
 import os
+import sys
 import types
+from pathlib import Path
+
+# Import logging components
+from logging_config import setup_logging, get_request_id
+from logging_middleware import LoggingMiddleware
+
+# Import metrics components
+from metrics import setup_metrics, llm_tokens_used
 
 try:  # pragma: no cover - library may not be installed during tests
     import google.generativeai as genai
@@ -11,7 +20,6 @@ except Exception:  # pragma: no cover - the library may be stubbed in tests
     GenerationConfig = dict  # type: ignore
     HarmCategory = types.SimpleNamespace()  # type: ignore
     HarmBlockThreshold = types.SimpleNamespace()  # type: ignore
-from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -48,13 +56,38 @@ api_key = cfg["api_key"]
 if not api_key or api_key.strip() == "":
     raise ValueError("Valid GEMINI_API_KEY environment variable is required")
 
-print(f"Configuring LLM Gateway with API key: {api_key[:10]}...")
+# Set up structured logging
+logger = setup_logging(
+    service_name="llm_gateway",
+    log_level=os.getenv("LOG_LEVEL", "INFO")
+)
+
+logger.info(f"Configuring LLM Gateway with API key", api_key_prefix=api_key[:10])
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel(cfg["model"])
 gen_config_defaults = cfg.get("generation_config", {})
 
 # FastAPI application instance
 app = FastAPI()
+
+# Add logging middleware
+app.add_middleware(LoggingMiddleware, logger=logger)
+
+# Set up Prometheus metrics
+metrics_collector = setup_metrics(app, "llm_gateway")
+
+# Custom metrics for LLM Gateway
+model_selection_counter = metrics_collector.create_counter(
+    "model_selections_total",
+    "Total model selections by configuration",
+    ["config_name"]
+)
+
+prompt_length_histogram = metrics_collector.create_histogram(
+    "prompt_length_chars",
+    "Prompt length in characters",
+    buckets=(10, 50, 100, 500, 1000, 5000, 10000)
+)
 
 @app.get("/health")
 def health() -> dict:
@@ -73,6 +106,9 @@ class CompletionRequest(BaseModel):
 @app.post("/complete")
 def complete(req: CompletionRequest) -> dict:
     """Call Gemini to generate a text completion."""
+    
+    # Track prompt length
+    prompt_length_histogram.observe(len(req.prompt))
 
     # Load configuration based on the optional `config` parameter. Defaults
     # to the main configuration loaded at startup.
@@ -82,6 +118,10 @@ def complete(req: CompletionRequest) -> dict:
         if not cfg_path.exists():
             raise HTTPException(status_code=400, detail="Unknown config")
         cfg_local = load_config(cfg_path)
+        # Track config usage
+        model_selection_counter.labels(config_name=req.config).inc()
+    else:
+        model_selection_counter.labels(config_name="default").inc()
 
     local_prompt_options = cfg_local.get("prompt_options", {})
     local_base_preprompt = cfg_local.get("base_preprompt", "")
@@ -104,7 +144,7 @@ def complete(req: CompletionRequest) -> dict:
                 "max_output_tokens": req.max_tokens,
             }
         )
-        print(f"Final prompt: {prompt}")
+        logger.debug("Generating completion", prompt_length=len(prompt), config=req.config)
         
         # Safety settings to prevent truncation
         safety_settings = {
@@ -120,6 +160,12 @@ def complete(req: CompletionRequest) -> dict:
             safety_settings=safety_settings,
         )
     except Exception as exc:  # pragma: no cover - requires actual API call
+        logger.error(
+            "LLM generation failed",
+            error=str(exc),
+            config=req.config,
+            request_id=get_request_id()
+        )
         raise HTTPException(status_code=502, detail=str(exc))
 
     # Validate response has text attribute

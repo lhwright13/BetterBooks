@@ -1,1 +1,1 @@
-# Package marker for the LLM Gateway service.
+# Shared utilities for EchoWright services

@@ -1,1 +1,1 @@
-# Package marker for the Context Service.
+# Shared utilities for EchoWright services

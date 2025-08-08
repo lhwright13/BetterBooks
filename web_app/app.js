@@ -141,7 +141,15 @@ async function sendPrompt(prompt, config) {
       })
     });
     const data = await res.json();
-    respDiv.textContent = data.text || JSON.stringify(data);
+    
+    // Use typewriter effect for response display
+    const responseText = data.text || JSON.stringify(data);
+    respDiv.style.color = 'var(--stellar-white)';
+    if (window.typewriterEffect) {
+      window.typewriterEffect(respDiv, responseText, 30);
+    } else {
+      respDiv.textContent = responseText;
+    }
 
     // Convert the response text to speech
     if (data.text) {
@@ -421,19 +429,28 @@ function updateContextStatus() {
   const contextDiv = document.getElementById('contextStatus');
   if (!contextDiv) return;
   
+  const statusIcon = contextDiv.querySelector('.status-icon');
+  const statusText = contextDiv.querySelector('.status-text');
+  
   if (currentContext.hasContext) {
-    let contextText = `📖 Context: ${currentContext.bookName}`;
+    let contextText = `Mission: ${currentContext.bookName}`;
     if (currentContext.chapterName) {
       contextText += ` - ${currentContext.chapterName.replace('.mp3', '')}`;
     }
-    contextDiv.textContent = contextText;
-    contextDiv.style.color = '#4ade80';
+    statusIcon.textContent = '✓';
+    statusText.textContent = contextText;
+    contextDiv.style.background = 'linear-gradient(135deg, rgba(74, 155, 155, 0.15) 0%, rgba(230, 184, 71, 0.15) 100%)';
+    contextDiv.style.borderColor = 'var(--teal-blue)';
   } else if (currentContext.bookName && currentContext.bookType === 'chapters') {
-    contextDiv.textContent = `⚠️ Context: ${currentContext.bookName} (select a chapter to ask questions)`;
-    contextDiv.style.color = '#fbbf24';
+    statusIcon.textContent = '⚠';
+    statusText.textContent = `${currentContext.bookName} - Chapter selection required`;
+    contextDiv.style.background = 'linear-gradient(135deg, rgba(230, 184, 71, 0.15) 0%, rgba(204, 107, 90, 0.15) 100%)';
+    contextDiv.style.borderColor = 'var(--golden-yellow)';
   } else {
-    contextDiv.textContent = '❌ No context - select a book to ask questions';
-    contextDiv.style.color = '#ff6b6b';
+    statusIcon.textContent = '⚡';
+    statusText.textContent = 'Awaiting mission parameters...';
+    contextDiv.style.background = 'linear-gradient(135deg, rgba(204, 107, 90, 0.1) 0%, rgba(230, 184, 71, 0.1) 100%)';
+    contextDiv.style.borderColor = 'rgba(204, 107, 90, 0.2)';
   }
 }
 
@@ -481,19 +498,22 @@ audioPlayer.addEventListener('timeupdate', function() {
     
     // Update context status with current position
     const contextDiv = document.getElementById('contextStatus');
-    if (contextDiv && currentContext.hasContext) {
+    const statusText = contextDiv?.querySelector('.status-text');
+    if (statusText && currentContext.hasContext) {
       const minutes = Math.floor(currentContext.currentPosition / 60);
       const seconds = Math.floor(currentContext.currentPosition % 60);
       
-      let contextText = `📖 ${currentContext.bookName}`;
+      let contextText = `Mission: ${currentContext.bookName}`;
       if (currentContext.chapterName) {
         contextText += ` - ${currentContext.chapterName.replace('.mp3', '')}`;
       }
       contextText += ` [${minutes}:${seconds.toString().padStart(2, '0')}]`;
       
-      contextDiv.textContent = contextText;
-      contextDiv.style.color = '#4ade80';
+      statusText.textContent = contextText;
     }
+    
+    // Update audio visualizer
+    updateAudioVisualizer();
   }
 });
 
@@ -503,4 +523,79 @@ audioPlayer.addEventListener('seeked', function() {
     currentContext.currentPosition = audioPlayer.currentTime;
     currentContext.lastContextUpdate = Date.now();
   }
+});
+
+// Audio Visualizer Function
+function updateAudioVisualizer() {
+  const vizBars = document.querySelectorAll('.viz-bar');
+  if (vizBars.length === 0) return;
+  
+  // Generate random visualization data based on audio playing state
+  if (!audioPlayer.paused && !audioPlayer.ended) {
+    vizBars.forEach((bar, index) => {
+      const baseHeight = [10, 20, 30, 20, 15][index];
+      const randomMultiplier = 0.3 + Math.random() * 0.7;
+      const newHeight = Math.floor(baseHeight * randomMultiplier);
+      bar.style.height = `${newHeight}px`;
+    });
+  } else {
+    // Reset to base heights when not playing
+    vizBars.forEach((bar, index) => {
+      const baseHeight = [10, 20, 30, 20, 15][index];
+      bar.style.height = `${Math.floor(baseHeight * 0.3)}px`;
+    });
+  }
+}
+
+// Enhanced Button Interactions
+document.addEventListener('DOMContentLoaded', function() {
+  // Add space-themed loading states
+  const buttons = document.querySelectorAll('.space-button');
+  buttons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Add a brief "transmission" effect
+      const originalText = button.querySelector('.button-text').textContent;
+      const buttonText = button.querySelector('.button-text');
+      
+      if (button.id === 'sendText' && originalText === 'Transmit') {
+        buttonText.textContent = 'SENDING...';
+        setTimeout(() => {
+          buttonText.textContent = originalText;
+        }, 2000);
+      }
+    });
+  });
+  
+  // Enhanced select interactions
+  const selects = document.querySelectorAll('.space-select');
+  selects.forEach(select => {
+    select.addEventListener('change', function() {
+      // Add brief glow effect on selection
+      const wrapper = select.closest('.select-wrapper');
+      const glow = wrapper?.querySelector('.select-glow');
+      if (glow) {
+        glow.style.boxShadow = '0 0 20px rgba(230, 184, 71, 0.4)';
+        setTimeout(() => {
+          glow.style.boxShadow = '';
+        }, 300);
+      }
+    });
+  });
+  
+  // Terminal typing effect for responses
+  window.typewriterEffect = function(element, text, speed = 50) {
+    element.textContent = '';
+    let i = 0;
+    const timer = setInterval(() => {
+      if (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+      } else {
+        clearInterval(timer);
+      }
+    }, speed);
+  };
+  
+  // Start visualizer update loop
+  setInterval(updateAudioVisualizer, 200);
 });

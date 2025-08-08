@@ -46,8 +46,8 @@ class EchoWrightApp extends StatelessWidget {
       create: (context) => AppState(),
       child: MaterialApp(
         title: 'EchoWright',
-        // Retro-futuristic 80s theme
-        theme: RetroTheme.theme,
+        // Space mission control theme
+        theme: SpaceTheme.theme,
         // Default route opens the main home screen
         initialRoute: '/',
         // Navigation routes for all app screens
