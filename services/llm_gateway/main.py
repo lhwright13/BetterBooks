@@ -21,6 +21,7 @@ except Exception:  # pragma: no cover - the library may be stubbed in tests
     HarmCategory = types.SimpleNamespace()  # type: ignore
     HarmBlockThreshold = types.SimpleNamespace()  # type: ignore
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Import the prompt modification helper. When the service runs inside Docker the
@@ -69,6 +70,15 @@ gen_config_defaults = cfg.get("generation_config", {})
 
 # FastAPI application instance
 app = FastAPI()
+
+# Add CORS middleware for web app access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # Web app origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Add logging middleware
 app.add_middleware(LoggingMiddleware, logger=logger)

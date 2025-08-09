@@ -31,7 +31,7 @@
           </div>
           <div class="logo-text">
             <h1 class="brand-name">EchoWright</h1>
-            <span class="brand-tagline">Audio Intelligence Platform</span>
+            <span class="brand-tagline">Intelligent Audiobook Platform</span>
           </div>
         </div>
         
@@ -50,8 +50,8 @@
       <!-- Mission Header -->
       <section class="mission-header">
         <div class="header-content">
-          <h2 class="mission-title">Mission Control</h2>
-          <p class="mission-subtitle">Navigate your audiobook universe with AI-powered guidance</p>
+          <h2 class="mission-title">Audio Book Control</h2>
+          <p class="mission-subtitle">Enjoy your book with AI-powered guidance</p>
         </div>
         <div class="header-geometry">
           <div class="geo-shape geo-triangle"></div>
@@ -66,14 +66,14 @@
             <div class="icon-ring"></div>
             <span class="icon-symbol">🎧</span>
           </div>
-          <h3 class="panel-title">Audio Command Center</h3>
+          <h3 class="panel-title">Player</h3>
           <div class="panel-status active">ONLINE</div>
         </div>
         
         <div class="panel-content">
           <div class="control-grid">
             <div class="control-section">
-              <label class="control-label">Select Mission Target</label>
+              <label class="control-label">Select Book</label>
               <div class="select-wrapper">
                 <select id="bookSelect" class="space-select">
                   <option value="">Choose your audiobook...</option>
@@ -109,7 +109,80 @@
           <div class="status-panel">
             <div id="contextStatus" class="mission-status">
               <span class="status-icon">⚡</span>
-              <span class="status-text">Awaiting mission parameters...</span>
+              <span class="status-text">Awaiting book selection...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chapter Intelligence Panel -->
+      <section class="command-panel chapter-intelligence" id="chapterPanel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-icon">
+            <div class="icon-ring"></div>
+            <span class="icon-symbol">📚</span>
+          </div>
+          <h3 class="panel-title">Chapter Intelligence</h3>
+          <div class="panel-status active">ANALYZING</div>
+        </div>
+        
+        <div class="panel-content">
+          <div class="intelligence-tabs">
+            <button class="tab-button active" data-tab="chapters">Chapters</button>
+            <button class="tab-button" data-tab="summary">Summary</button>
+            <button class="tab-button" data-tab="questions">Questions</button>
+          </div>
+          
+          <!-- Chapters Tab -->
+          <div id="chaptersTab" class="tab-content active">
+            <div class="chapters-list" id="chaptersList">
+              <div class="loading-indicator">Detecting chapters...</div>
+            </div>
+            <button id="detectChapters" class="space-button secondary">
+              <span class="button-text">Detect Chapters</span>
+            </button>
+          </div>
+          
+          <!-- Summary Tab -->
+          <div id="summaryTab" class="tab-content">
+            <div class="summary-controls">
+              <select id="summaryStyle" class="space-select mini">
+                <option value="brief">Brief</option>
+                <option value="detailed" selected>Detailed</option>
+                <option value="themes">Themes</option>
+                <option value="key_points">Key Points</option>
+                <option value="question_based">Q&A Format</option>
+              </select>
+              <button id="generateSummary" class="space-button secondary">
+                <span class="button-text">Generate Summary</span>
+              </button>
+            </div>
+            <div id="summaryContent" class="summary-display">
+              <p class="placeholder-text">Select a chapter and generate a summary...</p>
+            </div>
+          </div>
+          
+          <!-- Questions Tab -->
+          <div id="questionsTab" class="tab-content">
+            <div class="question-controls">
+              <select id="questionDifficulty" class="space-select mini">
+                <option value="beginner">Beginner</option>
+                <option value="intermediate" selected>Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+              <select id="readingMode" class="space-select mini">
+                <option value="casual" selected>Casual</option>
+                <option value="educational">Educational</option>
+                <option value="child">Child</option>
+                <option value="professional">Professional</option>
+                <option value="language_learning">Language Learning</option>
+              </select>
+              <button id="generateQuestions" class="space-button secondary">
+                <span class="button-text">Generate Questions</span>
+              </button>
+            </div>
+            <div id="questionsContent" class="questions-display">
+              <p class="placeholder-text">Generate discussion questions for deeper engagement...</p>
             </div>
           </div>
         </div>
@@ -145,12 +218,12 @@
               </div>
               
               <div class="action-controls">
-                <button id="sendText" class="space-button primary">
+                <button id="sendText" class="space-button primary" title="Send text message and receive text response">
                   <span class="button-glow"></span>
                   <span class="button-text">Transmit</span>
                   <span class="button-icon">→</span>
                 </button>
-                <button id="startVoice" class="space-button secondary">
+                <button id="startVoice" class="space-button secondary" title="Speak your question and receive voice response">
                   <span class="button-glow"></span>
                   <span class="button-text">Voice Link</span>
                   <span class="button-icon">🎤</span>
@@ -175,18 +248,38 @@
     </main>
   </div>
   
-  <!-- Hidden elements for book management (kept for functionality) -->
-  <div style="display: none;">
-    <input type="file" id="singleBookFile" accept=".mp3" />
-    <button id="uploadSingle">Upload Single Book</button>
-    <input type="text" id="bookName" placeholder="Book name" />
-    <input type="file" id="chapterFiles" accept=".mp3" multiple />
-    <button id="uploadChapters">Upload Chapters</button>
-    <div id="booksList"></div>
-    <button id="refreshBooks">Refresh List</button>
-    <div id="playerStatus"></div>
-  </div>
+  <!-- Book Management Controls (temporarily visible for testing) -->
+  <section class="command-panel book-management">
+    <div class="panel-header">
+      <div class="panel-icon">
+        <div class="icon-ring"></div>
+        <span class="icon-symbol">📁</span>
+      </div>
+      <h3 class="panel-title">Book Management (Testing)</h3>
+      <div class="panel-status active">UPLOAD</div>
+    </div>
+    <div class="panel-content">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+        <input type="file" id="singleBookFile" accept=".mp3" style="color: white;" />
+        <button id="uploadSingle" class="space-button secondary">
+          <span class="button-text">Upload Single Book</span>
+        </button>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px; align-items: center;">
+        <input type="text" id="bookName" placeholder="Book name" class="space-textarea" style="height: 40px; flex: 1;" />
+        <input type="file" id="chapterFiles" accept=".mp3" multiple style="color: white;" />
+        <button id="uploadChapters" class="space-button secondary">
+          <span class="button-text">Upload Chapters</span>
+        </button>
+      </div>
+      <button id="refreshBooks" class="space-button primary" style="margin-bottom: 15px;">
+        <span class="button-text">Refresh Books List</span>
+      </button>
+      <div id="booksList" style="color: white; margin-bottom: 10px;"></div>
+      <div id="playerStatus" style="color: white;"></div>
+    </div>
+  </section>
   
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

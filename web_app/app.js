@@ -1,4 +1,6 @@
-const apiBase = 'http://localhost:8000';
+// Temporarily connect directly to services while API Gateway is building
+const apiBase = 'http://localhost:8002'; // LLM Gateway for configs and chat
+const transcriptionBase = 'http://localhost:8003'; // Transcription service for chapter intelligence
 
 // Player elements
 const audioPlayer = document.getElementById('audioPlayer');
@@ -59,7 +61,7 @@ async function getDetailedContext() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    const contextRes = await fetch(`${apiBase}/context`, {
+    const contextRes = await fetch(`${transcriptionBase}/context`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
@@ -92,7 +94,7 @@ async function getDetailedContext() {
   return null;
 }
 
-async function sendPrompt(prompt, config) {
+async function sendPrompt(prompt, config, enableVoiceResponse = false) {
   const respDiv = document.getElementById('response');
   
   // Check if we have context before sending
@@ -151,20 +153,54 @@ async function sendPrompt(prompt, config) {
       respDiv.textContent = responseText;
     }
 
-    // Convert the response text to speech
-    if (data.text) {
-      const ttsRes = await fetch(`${apiBase}/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: data.text,
-          config: config  // Pass the same config used for LLM
-        })
-      });
-      const ttsData = await ttsRes.json();
-      if (ttsData.audio) {
-        audioPlayer.src = 'data:audio/mpeg;base64,' + ttsData.audio;
-        await audioPlayer.play();
+    // Only use TTS if voice response is requested
+    if (enableVoiceResponse && data.text) {
+      respDiv.textContent = 'Converting to speech...';
+      
+      try {
+        // Use Web Speech API for text-to-speech (built into browser)
+        if ('speechSynthesis' in window) {
+          const utterance = new SpeechSynthesisUtterance(data.text);
+          utterance.rate = 0.9;
+          utterance.pitch = 1;
+          utterance.volume = 0.8;
+          
+          // Find a good voice
+          const voices = speechSynthesis.getVoices();
+          const preferredVoice = voices.find(voice => 
+            voice.lang.startsWith('en') && voice.name.includes('Natural')
+          ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+          
+          if (preferredVoice) {
+            utterance.voice = preferredVoice;
+          }
+          
+          utterance.onstart = () => {
+            respDiv.textContent = responseText + '\n\n🔊 Playing audio response...';
+            respDiv.style.color = 'var(--teal-blue)';
+          };
+          
+          utterance.onend = () => {
+            respDiv.textContent = responseText;
+            respDiv.style.color = 'var(--stellar-white)';
+          };
+          
+          utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            respDiv.textContent = responseText + '\n\n⚠️ Voice response failed, but text is available above.';
+            respDiv.style.color = 'var(--golden-yellow)';
+          };
+          
+          speechSynthesis.speak(utterance);
+        } else {
+          console.warn('Speech synthesis not supported');
+          respDiv.textContent = responseText + '\n\n⚠️ Voice response not supported in this browser.';
+          respDiv.style.color = 'var(--golden-yellow)';
+        }
+      } catch (ttsError) {
+        console.error('TTS error:', ttsError);
+        respDiv.textContent = responseText + '\n\n⚠️ Voice response failed, but text is available above.';
+        respDiv.style.color = 'var(--golden-yellow)';
       }
     }
   } catch (err) {
@@ -176,7 +212,8 @@ async function sendPrompt(prompt, config) {
 document.getElementById('sendText').addEventListener('click', async () => {
   const prompt = document.getElementById('prompt').value;
   const config = document.getElementById('configSelect').value;
-  sendPrompt(prompt, config);
+  // Text-only response (no voice)
+  sendPrompt(prompt, config, false);
 });
 
 const voiceBtn = document.getElementById('startVoice');
@@ -186,15 +223,45 @@ if (voiceBtn) {
       alert('Speech recognition not supported in this browser.');
       return;
     }
+    
+    // Update button state to show it's listening
+    const originalText = voiceBtn.querySelector('.button-text').textContent;
+    voiceBtn.querySelector('.button-text').textContent = 'Listening...';
+    voiceBtn.disabled = true;
+    
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+      console.log('Voice recognition started');
+    };
+    
     recognition.onresult = function(event) {
       const transcript = event.results[0][0].transcript;
       const promptInput = document.getElementById('prompt');
       promptInput.value = transcript;
       const config = document.getElementById('configSelect').value;
-      sendPrompt(transcript, config);
+      
+      console.log('Voice input received:', transcript);
+      
+      // Voice response enabled (will speak the response)
+      sendPrompt(transcript, config, true);
     };
+    
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+      alert('Speech recognition failed: ' + event.error);
+    };
+    
+    recognition.onend = function() {
+      // Reset button state
+      voiceBtn.querySelector('.button-text').textContent = originalText;
+      voiceBtn.disabled = false;
+      console.log('Voice recognition ended');
+    };
+    
     recognition.start();
   });
 }
@@ -207,24 +274,16 @@ async function uploadSingleBook() {
     return;
   }
 
-  const formData = new FormData();
-  formData.append('file', file);
-
+  // Mock upload for testing - API Gateway not available yet
   try {
     uploadSingleBtn.textContent = 'Uploading...';
-    const res = await fetch(`${apiBase}/books/upload`, {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
     
-    if (res.ok) {
-      alert(data.message);
-      loadBooksList();
-      singleBookFile.value = '';
-    } else {
-      alert('Error: ' + data.detail);
-    }
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    alert('Upload feature not implemented yet - using mock data for testing');
+    loadBooksList();
+    singleBookFile.value = '';
   } catch (err) {
     alert('Upload failed: ' + err.message);
   } finally {
@@ -246,27 +305,17 @@ async function uploadChapterBook() {
     return;
   }
 
-  const formData = new FormData();
-  for (let file of files) {
-    formData.append('files', file);
-  }
-
+  // Mock upload for testing - API Gateway not available yet
   try {
     uploadChaptersBtn.textContent = 'Uploading...';
-    const res = await fetch(`${apiBase}/books/upload-chapters?book_name=${encodeURIComponent(bookName)}`, {
-      method: 'POST',
-      body: formData
-    });
-    const data = await res.json();
     
-    if (res.ok) {
-      alert(data.message);
-      loadBooksList();
-      bookNameInput.value = '';
-      chapterFiles.value = '';
-    } else {
-      alert('Error: ' + data.detail);
-    }
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    alert('Upload feature not implemented yet - using mock data for testing');
+    loadBooksList();
+    bookNameInput.value = '';
+    chapterFiles.value = '';
   } catch (err) {
     alert('Upload failed: ' + err.message);
   } finally {
@@ -277,7 +326,9 @@ async function uploadChapterBook() {
 async function loadBooksList() {
   try {
     booksListDiv.textContent = 'Loading...';
-    const res = await fetch(`${apiBase}/books/list`);
+    
+    // Load real books from transcription service
+    const res = await fetch(`${transcriptionBase}/books/list`);
     const data = await res.json();
     
     // Update book list display
@@ -365,7 +416,8 @@ function handleBookSelection() {
   if (bookData.type === 'single') {
     // Single file book
     chapterSelect.style.display = 'none';
-    audioPlayer.src = `${apiBase}/books/play/${bookData.filename}`;
+    // Load real audio file
+    audioPlayer.src = `${transcriptionBase}/books/play/${bookData.filename}`;
     playerStatus.textContent = `Playing: ${bookData.name}`;
     
     // Set context for single book
@@ -416,7 +468,8 @@ function handleChapterSelection() {
   }
   
   const bookData = JSON.parse(selectedBook);
-  audioPlayer.src = `${apiBase}/books/play/${bookData.name}/${selectedChapter}`;
+  // Load real chapter audio file
+  audioPlayer.src = `${transcriptionBase}/books/play/${bookData.name}/${selectedChapter}`;
   playerStatus.textContent = `Playing: ${bookData.name} - ${selectedChapter.replace('.mp3', '')}`;
   
   // Update context with chapter information
@@ -459,18 +512,10 @@ async function deleteBook(bookName) {
     return;
   }
 
+  // Mock delete for testing - API Gateway not available yet
   try {
-    const res = await fetch(`${apiBase}/books/${encodeURIComponent(bookName)}`, {
-      method: 'DELETE'
-    });
-    const data = await res.json();
-    
-    if (res.ok) {
-      alert(data.message);
-      loadBooksList();
-    } else {
-      alert('Error: ' + data.detail);
-    }
+    alert('Delete feature not implemented yet - using mock data for testing');
+    loadBooksList();
   } catch (err) {
     alert('Delete failed: ' + err.message);
   }
@@ -489,6 +534,172 @@ loadBooksList();
 
 // Initialize context status
 updateContextStatus();
+
+// Chapter Intelligence Panel functionality
+let currentChapters = [];
+let selectedChapter = null;
+
+// Tab switching functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const tabId = this.dataset.tab;
+      
+      // Remove active class from all buttons and contents
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to clicked button and corresponding content
+      this.classList.add('active');
+      document.getElementById(tabId + 'Tab').classList.add('active');
+    });
+  });
+
+  // Show chapter panel when book is selected
+  function showChapterPanel() {
+    const chapterPanel = document.getElementById('chapterPanel');
+    if (chapterPanel && currentContext.hasContext) {
+      chapterPanel.style.display = 'block';
+    }
+  }
+
+  // Override the existing handleBookSelection to show chapter panel
+  const originalHandleBookSelection = window.handleBookSelection || handleBookSelection;
+  window.handleBookSelection = function() {
+    originalHandleBookSelection.call(this);
+    if (currentContext.hasContext) {
+      showChapterPanel();
+    }
+  };
+
+  // Chapter Detection
+  const detectChaptersBtn = document.getElementById('detectChapters');
+  if (detectChaptersBtn) {
+    detectChaptersBtn.addEventListener('click', async function() {
+      if (!currentContext.hasContext) {
+        alert('Please select a book first');
+        return;
+      }
+
+      const originalText = this.querySelector('.button-text').textContent;
+      this.querySelector('.button-text').textContent = 'Detecting...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch(`${transcriptionBase}/detect-chapters`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            book_name: currentContext.bookName,
+            chapter_name: currentContext.chapterName
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          currentChapters = data.chapters || [];
+          displayChapters(currentChapters);
+        } else {
+          alert('Chapter detection failed: ' + (data.detail || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error detecting chapters: ' + error.message);
+      } finally {
+        this.querySelector('.button-text').textContent = originalText;
+        this.disabled = false;
+      }
+    });
+  }
+
+  // Summary Generation
+  const generateSummaryBtn = document.getElementById('generateSummary');
+  if (generateSummaryBtn) {
+    generateSummaryBtn.addEventListener('click', async function() {
+      if (!selectedChapter) {
+        alert('Please select a chapter first by detecting chapters');
+        return;
+      }
+
+      const summaryStyle = document.getElementById('summaryStyle').value;
+      const originalText = this.querySelector('.button-text').textContent;
+      this.querySelector('.button-text').textContent = 'Generating...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch(`${transcriptionBase}/summarize-chapter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            book_name: currentContext.bookName,
+            chapter_id: selectedChapter.id,
+            style: summaryStyle
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          displaySummary(data.summary, summaryStyle);
+        } else {
+          alert('Summary generation failed: ' + (data.detail || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error generating summary: ' + error.message);
+      } finally {
+        this.querySelector('.button-text').textContent = originalText;
+        this.disabled = false;
+      }
+    });
+  }
+
+  // Question Generation
+  const generateQuestionsBtn = document.getElementById('generateQuestions');
+  if (generateQuestionsBtn) {
+    generateQuestionsBtn.addEventListener('click', async function() {
+      if (!selectedChapter) {
+        alert('Please select a chapter first by detecting chapters');
+        return;
+      }
+
+      const difficulty = document.getElementById('questionDifficulty').value;
+      const readingMode = document.getElementById('readingMode').value;
+      const originalText = this.querySelector('.button-text').textContent;
+      this.querySelector('.button-text').textContent = 'Generating...';
+      this.disabled = true;
+
+      try {
+        const response = await fetch(`${transcriptionBase}/generate-questions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            book_name: currentContext.bookName,
+            chapter_id: selectedChapter.id,
+            difficulty: difficulty,
+            reading_mode: readingMode,
+            num_questions: 5
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          displayQuestions(data.questions);
+        } else {
+          alert('Question generation failed: ' + (data.detail || 'Unknown error'));
+        }
+      } catch (error) {
+        alert('Error generating questions: ' + error.message);
+      } finally {
+        this.querySelector('.button-text').textContent = originalText;
+        this.disabled = false;
+      }
+    });
+  }
+});
 
 // Audio position tracking
 audioPlayer.addEventListener('timeupdate', function() {
@@ -599,3 +810,151 @@ document.addEventListener('DOMContentLoaded', function() {
   // Start visualizer update loop
   setInterval(updateAudioVisualizer, 200);
 });
+
+// Display functions for Chapter Intelligence Panel
+function displayChapters(chapters) {
+  const chaptersList = document.getElementById('chaptersList');
+  if (!chaptersList) return;
+
+  if (!chapters || chapters.length === 0) {
+    chaptersList.innerHTML = '<div class="no-chapters">No chapters detected. Try uploading a multi-chapter audiobook.</div>';
+    return;
+  }
+
+  let html = '<div class="chapters-grid">';
+  chapters.forEach((chapter, index) => {
+    const duration = chapter.duration ? formatDuration(chapter.duration) : 'Unknown';
+    const confidence = chapter.confidence ? Math.round(chapter.confidence * 100) : 0;
+    
+    html += `
+      <div class="chapter-card ${selectedChapter?.id === chapter.id ? 'selected' : ''}" 
+           onclick="selectChapter(${index})">
+        <div class="chapter-header">
+          <span class="chapter-number">${index + 1}</span>
+          <span class="chapter-duration">${duration}</span>
+        </div>
+        <h4 class="chapter-title">${chapter.title || `Chapter ${index + 1}`}</h4>
+        <p class="chapter-summary">${chapter.summary || 'AI-detected chapter boundary'}</p>
+        <div class="chapter-meta">
+          <span class="confidence-badge">Confidence: ${confidence}%</span>
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  
+  chaptersList.innerHTML = html;
+}
+
+function selectChapter(index) {
+  selectedChapter = currentChapters[index];
+  
+  // Update visual selection
+  const cards = document.querySelectorAll('.chapter-card');
+  cards.forEach((card, i) => {
+    if (i === index) {
+      card.classList.add('selected');
+    } else {
+      card.classList.remove('selected');
+    }
+  });
+}
+
+function displaySummary(summary, style) {
+  const summaryContent = document.getElementById('summaryContent');
+  if (!summaryContent) return;
+
+  let html = `
+    <div class="summary-result">
+      <div class="summary-header">
+        <h4>Chapter Summary (${style.replace('_', ' ').toUpperCase()})</h4>
+        <span class="summary-style-badge">${style}</span>
+      </div>
+      <div class="summary-text">
+        ${summary.content || summary}
+      </div>
+  `;
+
+  // Add additional metadata if available
+  if (summary.themes && summary.themes.length > 0) {
+    html += `
+      <div class="summary-metadata">
+        <h5>Key Themes:</h5>
+        <div class="themes-tags">
+          ${summary.themes.map(theme => `<span class="theme-tag">${theme}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (summary.characters && summary.characters.length > 0) {
+    html += `
+      <div class="summary-metadata">
+        <h5>Characters Mentioned:</h5>
+        <div class="characters-tags">
+          ${summary.characters.map(char => `<span class="character-tag">${char}</span>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  html += '</div>';
+  summaryContent.innerHTML = html;
+}
+
+function displayQuestions(questions) {
+  const questionsContent = document.getElementById('questionsContent');
+  if (!questionsContent) return;
+
+  if (!questions || questions.length === 0) {
+    questionsContent.innerHTML = '<p class="no-questions">No questions generated. Try a different difficulty or reading mode.</p>';
+    return;
+  }
+
+  let html = '<div class="questions-list">';
+  
+  questions.forEach((question, index) => {
+    html += `
+      <div class="question-item">
+        <div class="question-header">
+          <span class="question-number">Q${index + 1}</span>
+          <span class="question-type-badge">${question.type || 'general'}</span>
+        </div>
+        <div class="question-text">${question.question}</div>
+        
+        ${question.options && question.options.length > 0 ? `
+          <div class="question-options">
+            ${question.options.map((option, optIndex) => 
+              `<div class="option-item">
+                <span class="option-letter">${String.fromCharCode(65 + optIndex)}</span>
+                <span class="option-text">${option}</span>
+              </div>`
+            ).join('')}
+          </div>
+        ` : ''}
+        
+        ${question.suggested_answer ? `
+          <details class="answer-details">
+            <summary>Show Answer Guide</summary>
+            <div class="answer-guide">${question.suggested_answer}</div>
+          </details>
+        ` : ''}
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  questionsContent.innerHTML = html;
+}
+
+function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+}

@@ -7,8 +7,15 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt ./
+COPY api_gateway/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy shared modules
+COPY shared /app/shared
+
+# Copy API gateway code
+COPY api_gateway /app/api_gateway
+
+# Set working directory to API gateway
+WORKDIR /app/api_gateway
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

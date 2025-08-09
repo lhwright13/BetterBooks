@@ -229,4 +229,111 @@ class ApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  /// Detects chapters in an audiobook using AI chapter detection
+  /// Returns a list of DetectedChapter objects with timestamps and metadata
+  /// Used to automatically segment long audiobooks into logical chapters
+  static Future<List<DetectedChapter>> detectChapters(String bookName, String? chapterName) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/detect-chapters'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'book_name': bookName,
+          'chapter_name': chapterName,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final chapters = data['chapters'] as List<dynamic>?;
+        
+        if (chapters != null) {
+          return chapters.map((chapterData) => DetectedChapter.fromJson(chapterData)).toList();
+        }
+        
+        return [];
+      } else {
+        throw Exception('Failed to detect chapters: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Chapter detection error: $e');
+    }
+  }
+
+  /// Generates a summary for a specific chapter using AI
+  /// Returns a ChapterSummary object with different summary styles and metadata
+  /// Supports multiple summary styles: brief, detailed, themes, key_points, etc.
+  static Future<ChapterSummary> generateChapterSummary(
+    String bookName,
+    String chapterId,
+    String style,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/summarize-chapter'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'book_name': bookName,
+          'chapter_id': chapterId,
+          'style': style,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final summaryData = data['summary'];
+        
+        if (summaryData != null) {
+          return ChapterSummary.fromJson(summaryData);
+        }
+        
+        throw Exception('No summary data in response');
+      } else {
+        throw Exception('Failed to generate summary: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Summary generation error: $e');
+    }
+  }
+
+  /// Generates discussion questions for a chapter using AI
+  /// Returns a list of ChapterQuestion objects for educational engagement
+  /// Supports different difficulty levels and reading modes
+  static Future<List<ChapterQuestion>> generateChapterQuestions(
+    String bookName,
+    String chapterId,
+    String difficulty,
+    String readingMode, {
+    int numQuestions = 5,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/generate-questions'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'book_name': bookName,
+          'chapter_id': chapterId,
+          'difficulty': difficulty,
+          'reading_mode': readingMode,
+          'num_questions': numQuestions,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final questions = data['questions'] as List<dynamic>?;
+        
+        if (questions != null) {
+          return questions.map((questionData) => ChapterQuestion.fromJson(questionData)).toList();
+        }
+        
+        return [];
+      } else {
+        throw Exception('Failed to generate questions: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Question generation error: $e');
+    }
+  }
 }

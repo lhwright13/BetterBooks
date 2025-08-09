@@ -11,6 +11,7 @@ mobile application and all backend microservices for intelligent audiobook inter
   - `context_service/` – Manages book context and embeddings.
   - `llm_gateway/` – Abstraction layer over the chosen language model.
   - `tts_service/` – Generates audio snippets.
+  - `transcription_service/` – Audio transcription with AI-powered chapter detection.
 - `proto/` – gRPC/Protobuf definitions.
 - `infra/` – Terraform and Helm deployment configurations.
 - `llm_configs/` – Example personas and model settings selectable in the demo UI.
@@ -59,6 +60,7 @@ installed.
    - **Context Service:** <http://localhost:8001>
    - **LLM Gateway:** <http://localhost:8002>
    - **TTS Service:** <http://localhost:8003>
+   - **Transcription Service:** <http://localhost:8004>
   - **Web Demo:** <http://localhost:8080>
 
   Open <http://localhost:8080> in your browser to view the simple demo page. A drop-down lets you choose any configuration from `llm_configs/` before sending a prompt.
@@ -82,6 +84,7 @@ dependencies and run `pytest` from the repository root:
 pip install -r services/api_gateway/requirements.txt \
     -r services/context_service/requirements.txt \
     -r services/llm_gateway/requirements.txt \
+    -r services/transcription_service/requirements.txt \
     pgvector pytest
 pytest -q
 ```
@@ -117,24 +120,30 @@ logger.info("Message", key="value")
 - `/health/ready` - Readiness probe
 - `/health/live` - Liveness probe
 
-### Metrics
-- `/metrics` - Prometheus metrics endpoint
-- Grafana: http://localhost:3000 (admin/admin)
-- Prometheus: http://localhost:9090
+### Prometheus Metrics ✅
+- **Prometheus UI**: http://localhost:9090 (metrics collection and queries)
+- **Grafana Dashboard**: http://localhost:3000 (admin/admin - visualization)
+- **Metrics Endpoints**: All services expose `/metrics` for Prometheus scraping
+- **Service Discovery**: Automatic target discovery for all microservices
+- **Custom Metrics**: HTTP requests, LLM operations, database queries, system resources
 ```python
 from metrics import setup_metrics
 metrics = setup_metrics(app, "service_name")
 counter = metrics.create_counter("my_counter", "Description")
+histogram = metrics.create_histogram("request_duration", "Request duration")
 ```
 
-### Distributed Tracing
-- Jaeger UI: http://localhost:16686
-- Automatic instrumentation for FastAPI, HTTP, DB
+### Distributed Tracing ✅
+- **Jaeger UI**: http://localhost:16686 (trace visualization and analysis)
+- **Automatic Instrumentation**: FastAPI, HTTP requests, database queries, Redis operations
+- **Service Integration**: API Gateway and Context Service fully instrumented
+- **Trace Propagation**: B3 format for cross-service trace correlation
 ```python
 from tracing import setup_tracing, get_development_tracing_config
 tracer = setup_tracing(get_development_tracing_config("service_name"))
 with tracer.start_as_current_span("operation") as span:
     span.set_attribute("key", "value")
+    span.set_attribute("user_id", "12345")
 ```
 
 ### Database Connection Pooling
@@ -147,6 +156,35 @@ db_manager = await get_database_manager()
 async with database_connection() as conn:
     results = await conn.execute("SELECT * FROM table")
 ```
+
+## ✅ Recently Implemented Features
+
+### AI-Powered Chapter Detection System (Phase 2.0 - COMPLETED)
+Our audiobook platform now includes a sophisticated AI-powered chapter detection system that automatically segments audiobooks into meaningful chapters with rich metadata.
+
+#### 🧠 What's Working Now:
+- **Multi-Modal Chapter Detection**: Combines semantic content analysis, audio signal processing, and AI validation
+- **Smart Chapter Summaries**: AI-powered summarization with 5 different styles (brief, detailed, themes, key points, Q&A)
+- **Smart Boundary Detection**: Uses TF-IDF analysis to identify topic transitions in transcript content  
+- **Audio Feature Analysis**: Detects silence periods, energy changes, and spectral transitions using librosa
+- **LLM-Generated Metadata**: Creates chapter titles, summaries, and topic extraction using Gemini API
+- **Content Analysis**: Automatic extraction of themes, characters, and key points from chapter text
+- **Database Integration**: Stores chapters and summaries with full metadata in PostgreSQL with optimized indexes
+- **RESTful API**: Complete API endpoints for chapter detection, summary generation, and data management
+- **Performance Caching**: Intelligent caching system for transcripts and chapter detection results
+
+#### 🚀 Ready for Testing:
+1. **Start services**: `docker-compose up transcription_service llm_gateway --build`
+2. **Test chapter detection**: Send POST requests to `http://localhost:8004/detect-chapters`
+3. **Test summary generation**: Send POST requests to `http://localhost:8004/generate-summaries`
+4. **View available styles**: Check `GET /summary-styles` for supported summary formats
+5. **Monitor performance**: Check service stats at `GET /stats`
+
+#### 📊 Technical Specifications:
+- **Detection Accuracy**: Multi-feature scoring with 0-1 confidence ratings
+- **Chapter Constraints**: 5-60 minute duration enforcement for quality control
+- **Processing Speed**: Optimized for large audiobook files with parallel analysis
+- **Database Schema**: 8 new tables supporting AI features, Q&A systems, and user analytics
 
 ---
 
@@ -178,14 +216,24 @@ async with database_connection() as conn:
   - ✅ Integrate structured logging (JSON format)
   - ✅ Set up health check endpoints for all services
   - ✅ Add Prometheus metrics collection
-  - Implement distributed tracing with Jaeger
+  - ✅ Implement distributed tracing with Jaeger
   - **Learning Focus**: Observability in distributed systems
-  - 📁 **Files Created**: `services/shared/logging_config.py`, `services/shared/logging_middleware.py`, `services/shared/health_checks.py`
+  - 📁 **Files Created**: `services/shared/logging_config.py`, `services/shared/logging_middleware.py`, `services/shared/health_checks.py`, `services/shared/tracing.py`, `services/shared/metrics.py`
   - 📝 **Implementation Notes**: 
     - Added structured JSON logging with request correlation IDs
     - Implemented comprehensive health checks with dependency monitoring
     - Added system metrics (CPU, memory, disk) to health endpoints
     - Created `/health/detailed`, `/health/ready`, and `/health/live` endpoints
+    - **Distributed Tracing**: OpenTelemetry integration with Jaeger backend
+    - **Automatic Instrumentation**: FastAPI, database, HTTP, and Redis operations
+    - **Trace Context Propagation**: B3 format for cross-service correlation
+    - **Service-Specific Helpers**: LLM, Database, and HTTP tracing utilities
+  - 🔧 **Prometheus Metrics Integration**: 
+    - **Comprehensive Service Coverage**: All services (API Gateway, Context, LLM Gateway, TTS, Transcription) 
+    - **Standard HTTP Metrics**: Request count, duration histograms, in-progress gauges
+    - **Business Metrics**: LLM token usage, database query performance, chapter detection stats
+    - **Grafana Dashboards**: Pre-configured visualization with service health monitoring
+    - **Service Discovery**: Automatic target registration in `prometheus.yml`
   - ✅ **Testing**: Created and ran comprehensive tests validating:
     - JSON structured logging format and field inclusion
     - Request ID correlation across log entries
@@ -200,18 +248,22 @@ async with database_connection() as conn:
     - Docker-compose setup with Prometheus + Grafana
 
 #### 1.2 Database Optimization
-- [ ] **Optimize PostgreSQL for production**
-  - Add connection pooling with pgbouncer
-  - Set up read replicas for scaling
-  - Implement proper indexing strategy
-  - Add database migrations system
+- [x] **Optimize PostgreSQL for production**
+  - ✅ Add connection pooling with pgbouncer
+  - ✅ Set up read replicas for scaling
+  - ✅ Implement proper indexing strategy
+  - ✅ Add database migrations system
   - **Learning Focus**: Database performance and scaling
+  - 📁 **Files Created**: `services/shared/database_manager.py`, `services/shared/database_indexes.py`, `services/shared/database_migrations.py`
+  - 📁 **Config Files**: `pgbouncer_primary.ini`, `pgbouncer_replica.ini`, `postgresql_primary.conf`, `postgresql_replica.conf`
+  - 📁 **Migrations**: `migrations/V001-V003_*.sql`
 
-- [ ] **Enhance vector search capabilities**
-  - Optimize pgvector indexing (HNSW vs IVFFlat)
-  - Implement hybrid search (semantic + keyword)
-  - Add vector similarity caching
+- [x] **Enhance vector search capabilities**
+  - ✅ Optimize pgvector indexing (HNSW vs IVFFlat)
+  - ✅ Implement hybrid search (semantic + keyword)
+  - ✅ Add vector similarity caching
   - **Learning Focus**: Advanced vector database operations
+  - 📝 **Implementation Notes**: Added HNSW and IVFFlat indexes with performance tuning
 
 ### Advanced Error Handling & Resilience
 
@@ -269,35 +321,89 @@ async with database_connection() as conn:
 ## 🧠 **PHASE 2: AI-Powered Features Implementation**
 *High-impact AI features that meaningfully improve user experience*
 
+### Intelligent Audio Processing
+
+#### 2.0 AI-Powered Chapter Detection ✅
+- [x] **Implement intelligent chapter detection**
+  - ✅ **Core Detection Engine**: Multi-modal AI system combining semantic content analysis, audio feature detection, and LLM-powered boundary validation
+  - ✅ **Semantic Analysis**: TF-IDF vectorization with cosine similarity for topic transition detection
+  - ✅ **Audio Analysis**: Silence detection, energy change analysis, and spectral feature analysis using librosa
+  - ✅ **LLM Integration**: AI-generated chapter titles, summaries, and boundary validation using Gemini API
+  - ✅ **Database Schema**: Complete PostgreSQL schema with indexes for chapter storage, metadata, and AI summaries
+  - ✅ **API Integration**: RESTful endpoints integrated into transcription service
+  - ✅ **Caching System**: Intelligent caching for transcript and chapter detection results
+  - ✅ **Performance Optimization**: Configurable thresholds, parallel processing, and smart boundary filtering
+  - **Learning Focus**: Audio signal processing, semantic analysis, and AI content understanding
+  - 📁 **Files Created**: 
+    - `services/shared/chapter_detection.py` - 765-line AI detection engine with multi-modal analysis
+    - `services/shared/chapter_storage.py` - Database integration and semantic search
+    - `migrations/V004_20250108_add_chapter_detection.sql` - Complete schema with 8 new tables
+    - `CHAPTER_DETECTION_IMPLEMENTATION.md` - Comprehensive documentation
+  - 📁 **API Endpoints**: 
+    - `POST /detect-chapters` - Main chapter detection endpoint
+    - `POST /analyze-book` - Full book analysis with summaries
+    - `GET /chapters/{book_id}` - Chapter retrieval
+    - `GET /stats` - Service statistics and cache metrics
+  - 📝 **Technical Features**: 
+    - Minimum/maximum chapter duration enforcement (5-60 minutes)
+    - Confidence scoring for all detected boundaries (0-1 scale)  
+    - Multi-feature boundary detection (semantic + silence + energy + spectral)
+    - LLM-generated metadata with fallback mechanisms
+    - Database functions for chapter lookup and reading statistics
+
 ### Smart Learning Features
 
-#### 2.1 Smart Chapter Summaries
-- [ ] **Auto-generate chapter summaries**
-  - Create summaries after each chapter completion
-  - Support multiple summary styles (brief/detailed/themes)
-  - Store summaries for quick reference
-  - **Learning Focus**: Text summarization and content distillation
-  - 📁 **Files to Create**: `services/summary_service/`, summary API endpoints
-  - **API Design**:
-    ```python
-    POST /summarize/chapter
-    {
-      "book": "gatsby", 
-      "chapter": 3,
-      "style": "brief|detailed|themes"
-    }
-    ```
+#### 2.1 Smart Chapter Summaries ✅
+- [x] **Auto-generate chapter summaries**
+  - ✅ **AI-Powered Generation**: Multi-style summaries using Gemini API with confidence scoring
+  - ✅ **5 Summary Styles**: Brief (1-2 sentences), Detailed (comprehensive), Themes (literary analysis), Key Points (bullet format), Question-Based (Q&A format)
+  - ✅ **Smart Content Analysis**: Automatic extraction of key points, themes, and character mentions
+  - ✅ **Database Integration**: Full storage and retrieval system with PostgreSQL backend
+  - ✅ **REST API Endpoints**: Complete API for summary generation and management
+  - ✅ **Chapter Integration**: Seamless integration with existing chapter detection system
+  - ✅ **Performance Optimization**: Confidence scoring, fallback mechanisms, and error handling
+  - **Learning Focus**: Text summarization, content distillation, and AI-powered metadata generation
+  - 📁 **Files Created**: 
+    - `services/shared/chapter_summaries.py` - 850+ line AI summary generator with 5 styles
+    - `services/shared/summary_types.py` - Core data structures and enums
+    - `services/shared/summary_storage.py` - Database storage and retrieval system
+    - New API endpoints in `services/transcription_service/main.py`
+  - 📁 **API Endpoints**: 
+    - `POST /generate-summaries` - Generate summaries for multiple chapters
+    - `POST /summarize-chapter` - Generate summary for a specific chapter  
+    - `GET /summary-styles` - List available summary styles with descriptions
+  - 📝 **Technical Features**: 
+    - **Multi-Modal Analysis**: Combines semantic analysis with AI-generated metadata
+    - **Confidence Scoring**: 0-1 confidence ratings for all generated summaries
+    - **Character Recognition**: Automatic extraction of mentioned characters from text
+    - **Theme Analysis**: AI-powered identification of literary themes and symbols
+    - **Fallback Systems**: Graceful degradation when AI generation fails
+    - **Style Configurations**: Customizable length targets and focus areas per style
 
-#### 2.2 Personalized Question Generation  
-- [ ] **Generate discussion questions**
-  - Auto-generate questions based on current listening position
-  - Adaptive difficulty based on user engagement
-  - Support educational and casual reading modes
-  - **Learning Focus**: Question generation and educational AI
-  - **API Design**:
-    ```python
-    GET /questions/current?position=2340&difficulty=intermediate
-    ```
+#### 2.2 Personalized Question Generation ✅
+- [x] **Generate discussion questions**
+  - ✅ **AI-Powered Generation**: Intelligent questions using Gemini API with context awareness
+  - ✅ **7 Question Types**: Comprehension, Analysis, Discussion, Creative, Vocabulary, Prediction, Connection
+  - ✅ **3 Difficulty Levels**: Beginner, Intermediate, Advanced, plus Adaptive mode
+  - ✅ **5 Reading Modes**: Educational, Casual, Child, Professional, Language Learning
+  - ✅ **Smart Question Design**: Templates combined with AI for quality and variety
+  - ✅ **Context Integration**: Uses chapter text, summaries, and position for relevance
+  - ✅ **Educational Features**: Answer guidelines, follow-up questions, and theme connections
+  - **Learning Focus**: Question generation, educational AI, and adaptive learning systems
+  - 📁 **Files Created**: 
+    - `services/shared/question_generation.py` - 700+ line AI question generator
+    - New API endpoints in `services/transcription_service/main.py`
+  - 📁 **API Endpoints**: 
+    - `POST /generate-questions` - Generate personalized questions for a chapter
+    - `GET /question-types` - List available question types with examples
+    - `GET /reading-modes` - List available reading modes with descriptions
+  - 📝 **Technical Features**: 
+    - **Multi-Type Support**: 7 distinct question types for varied engagement
+    - **Adaptive Difficulty**: Adjusts based on user performance (when data available)
+    - **Mode-Specific Tone**: Questions adapt to reading context (educational vs casual)
+    - **Answer Support**: Includes suggested answers and guidelines for self-study
+    - **Follow-Up System**: Each question can have related follow-up questions
+    - **Confidence Scoring**: Quality assessment for generated questions
 
 #### 2.3 Character Relationship Mapping
 - [ ] **Track character mentions and relationships**

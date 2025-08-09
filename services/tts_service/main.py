@@ -2,6 +2,7 @@
 
 import base64
 import os
+import sys
 import json
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -10,6 +11,12 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from google.cloud import texttospeech
 from google.oauth2 import service_account
+
+# Add shared modules to path
+sys.path.append(str(Path(__file__).parent.parent / "shared"))
+
+from metrics import setup_metrics
+from health_checks import HealthCheck, create_health_endpoint
 
 # Initialize Google TTS client
 def create_tts_client():
@@ -26,7 +33,18 @@ def create_tts_client():
 api_key = create_tts_client()
 
 # FastAPI application
-app = FastAPI()
+app = FastAPI(
+    title="EchoWright TTS Service",
+    description="Text-to-speech synthesis service",
+    version="1.0.0"
+)
+
+# Set up metrics
+metrics_collector = setup_metrics(app, "tts_service")
+
+# Set up health checks
+health_check = HealthCheck("tts_service", "1.0.0")
+create_health_endpoint(app, health_check)
 
 # Default TTS configuration
 DEFAULT_TTS_CONFIG = {

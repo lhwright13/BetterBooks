@@ -131,7 +131,9 @@ services:
       - betterbooks_network
 
   api_gateway:
-    build: ./services/api_gateway
+    build:
+      context: ./services
+      dockerfile: api_gateway/Dockerfile
     env_file:
       - .env
     environment:
@@ -196,7 +198,9 @@ services:
       - betterbooks_network
 
   transcription_service:
-    build: ./services/transcription_service
+    build:
+      context: ./services
+      dockerfile: transcription_service/Dockerfile
     env_file:
       - .env
     environment:

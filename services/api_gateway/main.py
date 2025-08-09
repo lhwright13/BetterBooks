@@ -41,6 +41,9 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
+# Add shared modules to path
+sys.path.append(str(Path(__file__).parent.parent / "shared"))
+
 import httpx
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
