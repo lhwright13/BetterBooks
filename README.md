@@ -5,16 +5,40 @@ mobile application and all backend microservices for intelligent audiobook inter
 
 ## Structure
 
-- `mobile_app/` – Flutter application.
-- `services/` – Backend services.
-  - `api_gateway/` – Public REST API.
-  - `context_service/` – Manages book context and embeddings.
-  - `llm_gateway/` – Abstraction layer over the chosen language model.
-  - `tts_service/` – Generates audio snippets.
-  - `transcription_service/` – Audio transcription with AI-powered chapter detection.
-- `proto/` – gRPC/Protobuf definitions.
-- `infra/` – Terraform and Helm deployment configurations.
-- `llm_configs/` – Example personas and model settings selectable in the demo UI.
+### **🏗️ Core Architecture**
+- **`core/`** – Core functionality modules
+  - `ai/` – AI-powered features (chapter detection, summaries, questions)
+  - `database/` – Database management and migrations
+  - `infrastructure/` – Logging, metrics, health checks, tracing
+  - `shared/` – Common utilities and models
+
+### **🚀 Platform Applications**
+- **`platform/backend/services/`** – Microservices architecture
+  - `api_gateway/` – Central API gateway and routing
+  - `context_service/` – Vector embeddings and similarity search
+  - `llm_gateway/` – AI persona management and text completion
+  - `transcription_service/` – Audio transcription with AI chapter detection
+  - `tts_service/` – Text-to-speech synthesis
+- **`platform/frontend/web_app/`** – Web-based demo interface
+- **`platform/mobile/mobile_app/`** – Flutter mobile application
+
+### **⚙️ Configuration & Deployment**
+- **`config/`** – Organized configuration files
+  - `docker/` – Docker Compose and container configs
+  - `local/` – Local development configurations
+  - `production/` – Production settings and LLM personas
+  - `helm/` – Kubernetes deployment configurations
+- **`docs/`** – Comprehensive documentation
+  - `api/` – API documentation and guides
+  - `architecture/` – System design and codebase structure
+  - `deployment/` – Setup and deployment guides
+- **`tests/`** – Organized test suites
+  - `unit/` – Unit tests for core modules
+  - `integration/` – End-to-end integration tests
+
+### **📁 Additional Resources**
+- `book_files/` – Sample audiobook content for testing
+- `scripts/` – Utility scripts for development and deployment
 
 Each service is a small FastAPI application packaged with a Dockerfile and
 currently exposes only a simple `/health` endpoint.

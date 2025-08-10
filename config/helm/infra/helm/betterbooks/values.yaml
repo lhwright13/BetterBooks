@@ -1,0 +1,100 @@
+# BetterBooks Production Values
+
+global:
+  # Docker registry for images
+  registry: "gcr.io/betterbooks-prod"
+  
+  # Environment
+  environment: production
+  
+  # Database configuration
+  database:
+    host: "betterbooks-db"
+    port: 5432
+    name: "betterbooks"
+    secretName: "app-secrets"
+    
+  # External services
+  gemini:
+    secretName: "app-secrets"
+    secretKey: "gemini-api-key"
+
+# Load balancer configuration
+ingress:
+  enabled: true
+  className: "gce"
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: "betterbooks-ip"
+  hosts:
+    - host: api.betterbooks.app
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 80
+
+# Service configurations
+api_gateway:
+  replicaCount: 2
+  image:
+    repository: gcr.io/betterbooks-prod/api-gateway
+    tag: "latest"
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8000
+  env:
+    - name: CONTEXT_SERVICE_URL
+      value: "http://context-service:80"
+    - name: LLM_GATEWAY_URL
+      value: "http://llm-gateway:80"  
+    - name: TTS_SERVICE_URL
+      value: "http://tts-service:80"
+    - name: TRANSCRIPTION_SERVICE_URL
+      value: "http://transcription-service:80"
+
+context_service:
+  replicaCount: 1
+  image:
+    repository: gcr.io/betterbooks-prod/context-service
+    tag: "latest"
+  env:
+    - name: DATABASE_URL
+      valueFrom:
+        secretKeyRef:
+          name: app-secrets
+          key: database-url
+
+llm_gateway:
+  replicaCount: 2  
+  image:
+    repository: gcr.io/betterbooks-prod/llm-gateway
+    tag: "latest"
+  env:
+    - name: GEMINI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: app-secrets
+          key: gemini-api-key
+
+tts_service:
+  replicaCount: 1
+  image:
+    repository: gcr.io/betterbooks-prod/tts-service
+    tag: "latest"
+  env:
+    - name: GEMINI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: app-secrets
+          key: gemini-api-key
+
+transcription_service:
+  replicaCount: 1
+  image:
+    repository: gcr.io/betterbooks-prod/transcription-service  
+    tag: "latest"

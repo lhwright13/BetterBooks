@@ -1,0 +1,7 @@
+image:
+  repository: betterbooks/context-service
+  tag: latest
+service:
+  type: ClusterIP
+  port: 80
+databaseUrl: postgres://betterbooks:betterbooks@postgres:5432/betterbooks

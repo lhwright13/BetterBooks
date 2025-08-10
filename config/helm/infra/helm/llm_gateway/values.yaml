@@ -1,0 +1,6 @@
+image:
+  repository: betterbooks/llm-gateway
+  tag: latest
+service:
+  type: ClusterIP
+  port: 80

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tts-service.fullname" . }}
+  labels:
+    app: {{ include "tts-service.name" . }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "tts-service.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "tts-service.name" . }}
+    spec:
+      containers:
+        - name: tts-service
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: 8000
+          env:
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: gemini-api-key
+          volumeMounts:
+            - name: llm-configs
+              mountPath: /app/llm_configs
+              readOnly: true
+      volumes:
+        - name: llm-configs
+          configMap:
+            name: llm-configs
