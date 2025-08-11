@@ -46,7 +46,7 @@ currently exposes only a simple `/health` endpoint.
 ## Running the stack locally
 
 **🔐 Important: Complete security setup first!**
-See [SECURITY_SETUP.md](SECURITY_SETUP.md) for detailed configuration instructions.
+See [SECURITY_SETUP.md](docs/setup/SECURITY_SETUP.md) for detailed configuration instructions.
 
 This repository includes a `docker-compose.yml` file for spinning up all
 services along with a Postgres database. Docker and Docker Compose must be
@@ -57,7 +57,7 @@ installed.
 1. **Set up environment configuration:**
    ```bash
    cp .env.example .env
-   # Edit .env with your API keys (see SECURITY_SETUP.md)
+   # Edit .env with your API keys (see docs/setup/SECURITY_SETUP.md)
    ```
 
 2. **Start the platform:**
@@ -126,7 +126,7 @@ TTS model download is required.
 ## Documentation
 
 - [Customization Guide](docs/CUSTOMIZATION_GUIDE.md) - Extending the UI, experimenting with models, adjusting prompts
-- [Security Setup](SECURITY_SETUP.md) - API key configuration and security best practices  
+- [Security Setup](docs/setup/SECURITY_SETUP.md) - API key configuration and security best practices  
 - [Logging & Monitoring](docs/LOGGING_AND_MONITORING.md) - Structured logging and health check implementation
 
 ## Quick Reference
@@ -226,7 +226,7 @@ Our audiobook platform now includes a sophisticated AI-powered chapter detection
   - ✅ Create `.env.example` files for each service
   - ✅ Implement proper secrets management structure
   - ✅ **Learning Focus**: Understanding security best practices in microservices
-  - 📁 **Files Created**: `.env.example` files for all services, `config_manager.py`, `SECURITY_SETUP.md`
+  - 📁 **Files Created**: `.env.example` files for all services, `config_manager.py`, `docs/setup/SECURITY_SETUP.md`
 
 - [x] **Implement API authentication & authorization**
   - ✅ Add JWT-based authentication to API Gateway
@@ -362,7 +362,7 @@ Our audiobook platform now includes a sophisticated AI-powered chapter detection
     - `services/shared/chapter_detection.py` - 765-line AI detection engine with multi-modal analysis
     - `services/shared/chapter_storage.py` - Database integration and semantic search
     - `migrations/V004_20250108_add_chapter_detection.sql` - Complete schema with 8 new tables
-    - `CHAPTER_DETECTION_IMPLEMENTATION.md` - Comprehensive documentation
+    - `docs/features/CHAPTER_DETECTION_IMPLEMENTATION.md` - Comprehensive documentation
   - 📁 **API Endpoints**: 
     - `POST /detect-chapters` - Main chapter detection endpoint
     - `POST /analyze-book` - Full book analysis with summaries

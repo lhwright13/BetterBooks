@@ -1,14 +1,14 @@
-# CI/CD Pipeline Setup Guide
+# GitHub Actions CI/CD Pipeline Setup Guide
 
-This document provides comprehensive instructions for setting up and managing the GitLab CI/CD pipeline for the EchoWright audiobook platform.
+This document provides comprehensive instructions for setting up and managing the GitHub Actions CI/CD pipeline for the EchoWright audiobook platform.
 
 ## Overview
 
-The CI/CD pipeline provides:
+The GitHub Actions CI/CD pipeline provides:
 - ✅ **Automated Testing** - Unit, integration, and performance tests
-- 🔒 **Security Scanning** - Dependency and container vulnerability scans  
-- 🐳 **Multi-Service Builds** - Automated Docker image building
-- 🚀 **Multi-Environment Deployment** - Staging and production deployments
+- 🔒 **Security Scanning** - Comprehensive vulnerability detection and analysis
+- 🐳 **Multi-Service Builds** - Automated Docker image building with GitHub Container Registry
+- 🚀 **Multi-Environment Deployment** - Staging and production deployments with approval gates
 - 📊 **Quality Gates** - Code formatting, test coverage, and performance checks
 
 ## Prerequisites
@@ -19,103 +19,106 @@ The CI/CD pipeline provides:
 - Flutter SDK 3.1.0+ (for mobile builds)
 - Git
 
-### GitLab Setup
-- GitLab project with CI/CD enabled
-- Container Registry enabled
-- GitLab Runners (shared or dedicated)
+### GitHub Setup
+- GitHub repository with Actions enabled
+- GitHub Container Registry (ghcr.io) access
+- GitHub Environments configured for staging and production
 
 ### Infrastructure Requirements
 - **Kubernetes Cluster** (staging and production)
-- **Container Registry** (GitLab Registry or external)
+- **GitHub Container Registry** (ghcr.io)
 - **External Secrets Management** (Vault, AWS Secrets Manager)
 - **Monitoring Stack** (Prometheus, Grafana, Jaeger)
 
-## Pipeline Stages
+## GitHub Actions Workflows
 
-### 1. Validate Stage
-```yaml
-stages: [validate, test, security, build, deploy-staging, integration-test, deploy-production]
-```
+### 1. Main CI/CD Workflow (`.github/workflows/ci.yml`)
+**Jobs:**
+- **validate-code** - Code formatting and style checks (Black, isort, flake8)
+- **validate-docker** - Docker Compose validation
+- **validate-flutter** - Flutter analysis and testing
+- **unit-tests** - Python unit tests with coverage reporting
+- **integration-tests** - Full service integration testing
+- **security-scan** - Dependency and static code analysis
+- **container-security** - Docker image vulnerability scanning
+- **build-services** - Multi-platform Docker builds (amd64, arm64)
+- **build-mobile** - Flutter APK and App Bundle builds
 
-**Code Quality Checks:**
-- Python code formatting (Black, isort, flake8)
-- Docker Compose validation
-- Flutter analysis and tests
+### 2. Staging Deployment (`.github/workflows/deploy-staging.yml`)
+**Triggered on:** Push to `develop` branch
+- Automated deployment to staging environment
+- Post-deployment smoke tests
+- Integration test execution
+- Performance testing with k6
+- Slack notifications
 
-### 2. Test Stage
-**Unit Tests:**
-- Python services with pytest
-- Coverage reporting (minimum 80%)
-- Mocked external dependencies
-
-**Integration Tests:**
-- Docker Compose test environment
-- Real service communication testing
-- Health check validation
-
-### 3. Security Stage
-**Dependency Scanning:**
-- Python package vulnerability check (Safety)
-- Static code analysis (Bandit, Semgrep)
-- Docker image scanning (Trivy)
-
-### 4. Build Stage
-**Multi-Service Building:**
-- Parallel Docker image builds for all services
-- Image tagging with commit SHA and `latest`
-- Push to GitLab Container Registry
-
-**Mobile Builds:**
-- Flutter APK and App Bundle generation
-- Artifact storage for distribution
-
-### 5. Deploy Stages
-**Staging Deployment:**
-- Automatic deployment to staging environment
-- Smoke tests and health checks
-- Manual promotion gate
-
-**Production Deployment:**
-- Manual deployment approval required
-- Blue-green or rolling deployment strategy
+### 3. Production Deployment (`.github/workflows/deploy-production.yml`)
+**Triggered on:** Push to `main` branch (with manual approval)
+- Pre-deployment validation checks
+- Production deployment with rollback capability
 - Comprehensive health monitoring
+- Post-deployment critical path testing
+- Performance baseline verification
+
+### 4. Security Scanning (`.github/workflows/security.yml`)
+**Comprehensive Security Analysis:**
+- **Dependency Scanning** - Safety, pip-audit
+- **Static Analysis** - Bandit, Semgrep with SARIF upload
+- **Container Scanning** - Trivy for all service images
+- **Secrets Scanning** - TruffleHog, GitLeaks
+- **Mobile Security** - Flutter dependency analysis
+- **Infrastructure Scanning** - Checkov for Terraform/K8s/Docker
+- **Security Report** - Automated summary generation
 
 ## Setup Instructions
 
-### 1. GitLab Configuration
+### 1. GitHub Repository Configuration
 
-**Required CI/CD Variables:**
+**Required Secrets:**
+Navigate to **Settings > Secrets and Variables > Actions** and add:
+
 ```bash
-# Database
-POSTGRES_PASSWORD              # Staging/production DB passwords
-POSTGRES_PASSWORD_STAGING
-POSTGRES_PASSWORD_PROD
+# Database Credentials
+POSTGRES_PASSWORD_STAGING      # Staging database password
+POSTGRES_PASSWORD_PROD        # Production database password
 
-# Redis
-REDIS_PASSWORD_STAGING
-REDIS_PASSWORD_PROD
+# Redis Credentials  
+REDIS_PASSWORD_STAGING        # Staging Redis password
+REDIS_PASSWORD_PROD          # Production Redis password
 
 # API Keys
-GEMINI_API_KEY_STAGING        # Gemini API key for staging
-GEMINI_API_KEY_PROD          # Gemini API key for production
+GEMINI_API_KEY_STAGING       # Gemini API key for staging
+GEMINI_API_KEY_PROD         # Gemini API key for production
 
 # Security
 JWT_SECRET_KEY_STAGING       # JWT signing key for staging
 JWT_SECRET_KEY_PROD         # JWT signing key for production
 
-# Kubernetes
-KUBE_CONTEXT_STAGING        # Kubernetes context for staging
-KUBE_CONTEXT_PRODUCTION     # Kubernetes context for production
+# Kubernetes Configuration
+KUBE_CONFIG_DATA_STAGING     # Base64 encoded kubeconfig for staging
+KUBE_CONFIG_DATA_PRODUCTION  # Base64 encoded kubeconfig for production
 
-# Monitoring (optional)
-ALERT_EMAIL                 # Email for alerts
-SLACK_WEBHOOK              # Slack webhook for notifications
+# AWS Credentials (if using EKS)
+AWS_ACCESS_KEY_ID           # AWS access key
+AWS_SECRET_ACCESS_KEY       # AWS secret key  
+AWS_REGION                 # AWS region
+
+# Notifications
+SLACK_WEBHOOK_URL          # Slack webhook for deployment notifications
+
+# Security Scanning (optional)
+GITLEAKS_LICENSE          # GitLeaks license key
 ```
 
-**Container Registry Setup:**
-1. Enable Container Registry in GitLab project settings
-2. Configure registry URL: `registry.gitlab.com/your-group/echowright`
-3. Set up registry authentication for deployment environments
+**GitHub Container Registry Setup:**
+1. Enable GitHub Container Registry for your repository
+2. Registry URL: `ghcr.io/your-username/your-repo`
+3. Authentication handled automatically via `GITHUB_TOKEN`
+
+**GitHub Environments Setup:**
+1. Go to **Settings > Environments**
+2. Create `staging` environment (auto-deploy from `develop`)
+3. Create `production` environment with required reviewers and deployment protection rules
 
 ### 2. Kubernetes Setup
 
@@ -234,8 +237,8 @@ bandit -r platform/backend/services/
 
 **Pipeline Failures:**
 ```bash
-# Check GitLab Runner logs
-gitlab-runner logs
+# Check GitHub Actions workflow logs
+# View in repository Actions tab
 
 # Debug Docker build issues
 docker build --no-cache platform/backend/services/api_gateway/
@@ -347,7 +350,7 @@ kubectl rollout status deployment/api-gateway -n echowright-prod
 ## Support and Documentation
 
 ### Additional Resources
-- [GitLab CI/CD Documentation](https://docs.gitlab.com/ee/ci/)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [Kubernetes Deployment Guide](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
 - [Helm Chart Documentation](https://helm.sh/docs/)
 - [Prometheus Monitoring](https://prometheus.io/docs/)
@@ -355,7 +358,7 @@ kubectl rollout status deployment/api-gateway -n echowright-prod
 ### Getting Help
 - **Slack Channel:** #echowright-devops
 - **Documentation:** `docs/` directory
-- **Issues:** GitLab Issues with `devops` label
+- **Issues:** GitHub Issues with `devops` label
 - **On-call:** PagerDuty rotation for production issues
 
 ---

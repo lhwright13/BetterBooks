@@ -97,7 +97,7 @@ services:
       SERVER_RESET_QUERY: DISCARD ALL
     volumes:
       - ./pgbouncer_primary.ini:/etc/pgbouncer/pgbouncer.ini
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+      - ./config/database/userlist.txt:/etc/pgbouncer/userlist.txt
     ports:
       - "6432:6432"
     depends_on:
@@ -122,7 +122,7 @@ services:
       SERVER_RESET_QUERY: DISCARD ALL
     volumes:
       - ./pgbouncer_replica.ini:/etc/pgbouncer/pgbouncer.ini
-      - ./userlist.txt:/etc/pgbouncer/userlist.txt
+      - ./config/database/userlist.txt:/etc/pgbouncer/userlist.txt
     ports:
       - "6433:6432"
     depends_on:

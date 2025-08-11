@@ -3,7 +3,7 @@
 
 global:
   environment: production
-  registry: registry.gitlab.com/your-group/echowright
+  registry: ghcr.io/your-username/echowright
   imageTag: stable
   pullPolicy: IfNotPresent
 
