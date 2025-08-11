@@ -1,0 +1,199 @@
+# Helm values for staging environment
+# Override default values for staging deployment
+
+global:
+  environment: staging
+  registry: registry.gitlab.com/your-group/echowright
+  imageTag: latest
+  pullPolicy: Always
+
+# Resource limits for staging (smaller than production)
+resources:
+  api_gateway:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  context_service:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+  
+  llm_gateway:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  tts_service:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  
+  transcription_service:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "500m"
+
+# Replica counts for staging
+replicaCount:
+  api_gateway: 2
+  context_service: 1
+  llm_gateway: 1
+  tts_service: 1
+  transcription_service: 1
+
+# Database configuration
+database:
+  host: postgres-staging.internal
+  port: 5432
+  name: echowright_staging
+  user: echowright_staging
+  # Password should be set via secrets
+  ssl_mode: require
+
+# Redis configuration
+redis:
+  host: redis-staging.internal
+  port: 6379
+  # Password should be set via secrets
+
+# Ingress configuration for staging
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+  hosts:
+    - host: staging.echowright.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: staging-tls
+      hosts:
+        - staging.echowright.com
+
+# Service configuration
+service:
+  type: ClusterIP
+  api_gateway:
+    port: 8000
+  context_service:
+    port: 8001
+  llm_gateway:
+    port: 8002
+  tts_service:
+    port: 8003
+  transcription_service:
+    port: 8004
+
+# Environment variables
+env:
+  # Logging
+  LOG_LEVEL: INFO
+  
+  # Features
+  ENABLE_METRICS: "true"
+  ENABLE_TRACING: "true"
+  
+  # External APIs (use staging/test keys)
+  GEMINI_API_KEY: "staging-gemini-key"  # Should be set via secrets
+  
+  # Performance tuning
+  WORKER_CONNECTIONS: "1000"
+  MAX_CONCURRENT_REQUESTS: "100"
+  
+  # Security
+  JWT_ALGORITHM: "HS256"
+  CORS_ORIGINS: "*"  # More permissive for staging
+  
+  # Caching
+  CACHE_TTL: "300"  # 5 minutes
+  ENABLE_CACHING: "true"
+
+# Monitoring and observability
+monitoring:
+  prometheus:
+    enabled: true
+    port: 9090
+  
+  jaeger:
+    enabled: true
+    endpoint: http://jaeger-collector.monitoring:14268/api/traces
+  
+  grafana:
+    enabled: true
+    port: 3000
+
+# Health checks
+healthChecks:
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+  successThreshold: 1
+
+# Autoscaling (HPA)
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Storage
+persistence:
+  enabled: false  # Use external services in staging
+  size: 10Gi
+  storageClass: gp2
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Network policies
+networkPolicy:
+  enabled: true
+  allowExternal: true
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Node affinity (prefer staging nodes)
+nodeAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+    nodeSelectorTerms:
+    - matchExpressions:
+      - key: environment
+        operator: In
+        values:
+        - staging
+
+# Tolerations
+tolerations:
+  - key: environment
+    operator: Equal
+    value: staging
+    effect: NoSchedule

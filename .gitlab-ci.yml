@@ -1,0 +1,333 @@
+# GitLab CI/CD Pipeline for EchoWright Audiobook Platform
+# Automated build, test, and deployment pipeline with multi-environment support
+
+variables:
+  # Docker registry configuration
+  DOCKER_REGISTRY: $CI_REGISTRY
+  DOCKER_IMAGE_TAG: $CI_COMMIT_SHORT_SHA
+  
+  # Service configurations
+  SERVICES: "api_gateway context_service llm_gateway tts_service transcription_service"
+  
+  # Test configuration
+  POSTGRES_DB: betterbooks_test
+  POSTGRES_USER: test_user
+  POSTGRES_PASSWORD: test_password
+  GEMINI_API_KEY: test-key-for-ci
+  
+  # Deployment configuration
+  KUBE_NAMESPACE_STAGING: echowright-staging
+  KUBE_NAMESPACE_PRODUCTION: echowright-prod
+
+stages:
+  - validate
+  - test
+  - security
+  - build
+  - deploy-staging
+  - integration-test
+  - deploy-production
+
+# === VALIDATION STAGE ===
+
+validate:code-format:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - pip install black isort flake8
+  script:
+    - black --check --diff platform/backend/services/
+    - isort --check-only --diff platform/backend/services/
+    - flake8 platform/backend/services/ --max-line-length=100 --ignore=E203,W503
+  allow_failure: false
+  only:
+    - merge_requests
+    - main
+    - develop
+
+validate:docker-compose:
+  stage: validate
+  image: docker/compose:latest
+  services:
+    - docker:dind
+  script:
+    - docker-compose config --quiet
+    - echo "Docker Compose validation successful"
+  only:
+    - merge_requests
+    - main
+    - develop
+
+validate:flutter-analysis:
+  stage: validate
+  image: cirrusci/flutter:stable
+  script:
+    - cd platform/mobile/mobile_app/
+    - flutter pub get
+    - flutter analyze
+    - flutter test --coverage
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: lcov
+        path: platform/mobile/mobile_app/coverage/lcov.info
+  coverage: '/lines......: \d+\.\d+\%/'
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# === TESTING STAGE ===
+
+test:unit-tests:
+  stage: test
+  image: python:3.11
+  services:
+    - postgres:15
+    - redis:latest
+  variables:
+    POSTGRES_HOST: postgres
+    REDIS_HOST: redis
+  before_script:
+    - pip install --upgrade pip
+    - pip install pytest pytest-cov pytest-asyncio
+    - for service in $SERVICES; do
+        pip install -r platform/backend/services/$service/requirements.txt;
+      done
+    - pip install pgvector
+  script:
+    - pytest tests/ -v --cov=platform/backend/services --cov-report=xml --cov-report=term
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    paths:
+      - coverage.xml
+  coverage: '/TOTAL.+?(\d+\%)$/'
+  only:
+    - merge_requests
+    - main
+    - develop
+
+test:integration-tests:
+  stage: test
+  image: docker/compose:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    GEMINI_API_KEY: test-key-integration
+  before_script:
+    - apk add --no-cache curl jq
+  script:
+    - docker-compose -f docker-compose.test.yml up --build -d
+    - sleep 30  # Wait for services to start
+    - ./scripts/run_integration_tests.sh
+  after_script:
+    - docker-compose -f docker-compose.test.yml logs
+    - docker-compose -f docker-compose.test.yml down -v
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# === SECURITY STAGE ===
+
+security:dependency-scan:
+  stage: security
+  image: python:3.11-slim
+  before_script:
+    - pip install safety bandit semgrep
+  script:
+    - safety check --json --output safety-report.json || true
+    - bandit -r platform/backend/services/ -f json -o bandit-report.json || true
+    - semgrep --config=auto platform/backend/services/ --json --output=semgrep-report.json || true
+  artifacts:
+    reports:
+      sast: semgrep-report.json
+    paths:
+      - safety-report.json
+      - bandit-report.json
+      - semgrep-report.json
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+    - develop
+
+security:docker-scan:
+  stage: security
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t temp-scan:latest platform/backend/services/api_gateway/
+    - docker run --rm -v /var/run/docker.sock:/var/run/docker.sock 
+        aquasec/trivy image --format json --output trivy-report.json temp-scan:latest || true
+  artifacts:
+    paths:
+      - trivy-report.json
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - main
+    - develop
+
+# === BUILD STAGE ===
+
+.build-service: &build-service
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd platform/backend/services/$SERVICE_NAME/
+    - docker build 
+        --tag $CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+        --tag $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest .
+    - docker push $CI_REGISTRY_IMAGE/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE/$SERVICE_NAME:latest
+  only:
+    - main
+    - develop
+
+build:api-gateway:
+  <<: *build-service
+  variables:
+    SERVICE_NAME: api_gateway
+
+build:context-service:
+  <<: *build-service
+  variables:
+    SERVICE_NAME: context_service
+
+build:llm-gateway:
+  <<: *build-service
+  variables:
+    SERVICE_NAME: llm_gateway
+
+build:tts-service:
+  <<: *build-service
+  variables:
+    SERVICE_NAME: tts_service
+
+build:transcription-service:
+  <<: *build-service
+  variables:
+    SERVICE_NAME: transcription_service
+
+build:mobile-app:
+  stage: build
+  image: cirrusci/flutter:stable
+  script:
+    - cd platform/mobile/mobile_app/
+    - flutter pub get
+    - flutter build apk --release
+    - flutter build appbundle --release
+  artifacts:
+    paths:
+      - platform/mobile/mobile_app/build/app/outputs/flutter-apk/app-release.apk
+      - platform/mobile/mobile_app/build/app/outputs/bundle/release/app-release.aab
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+
+# === STAGING DEPLOYMENT ===
+
+deploy:staging:
+  stage: deploy-staging
+  image: bitnami/kubectl:latest
+  environment:
+    name: staging
+    url: https://staging.echowright.com
+  before_script:
+    - kubectl config use-context $KUBE_CONTEXT_STAGING
+  script:
+    - helm upgrade --install echowright-staging ./config/helm/
+        --namespace $KUBE_NAMESPACE_STAGING
+        --create-namespace
+        --set image.tag=$CI_COMMIT_SHORT_SHA
+        --set environment=staging
+        --set ingress.hosts[0]=staging.echowright.com
+        --values ./config/helm/values-staging.yaml
+        --wait --timeout=10m
+  only:
+    - develop
+  when: manual
+
+# === INTEGRATION TESTING ===
+
+test:staging-integration:
+  stage: integration-test
+  image: python:3.11-slim
+  needs: ["deploy:staging"]
+  variables:
+    API_BASE_URL: https://staging.echowright.com
+  before_script:
+    - pip install requests pytest
+  script:
+    - python -m pytest tests/integration/ -v --api-url=$API_BASE_URL
+  only:
+    - develop
+  when: on_success
+
+test:staging-performance:
+  stage: integration-test
+  image: loadimpact/k6:latest
+  needs: ["deploy:staging"]
+  variables:
+    API_BASE_URL: https://staging.echowright.com
+  script:
+    - k6 run --env API_BASE_URL=$API_BASE_URL tests/performance/load-test.js
+  artifacts:
+    reports:
+      performance: k6-report.json
+  only:
+    - develop
+  when: manual
+
+# === PRODUCTION DEPLOYMENT ===
+
+deploy:production:
+  stage: deploy-production
+  image: bitnami/kubectl:latest
+  environment:
+    name: production
+    url: https://echowright.com
+  before_script:
+    - kubectl config use-context $KUBE_CONTEXT_PRODUCTION
+  script:
+    - helm upgrade --install echowright-prod ./config/helm/
+        --namespace $KUBE_NAMESPACE_PRODUCTION
+        --create-namespace
+        --set image.tag=$CI_COMMIT_SHORT_SHA
+        --set environment=production
+        --set ingress.hosts[0]=echowright.com
+        --values ./config/helm/values-production.yaml
+        --wait --timeout=15m
+    - kubectl rollout status deployment/api-gateway -n $KUBE_NAMESPACE_PRODUCTION
+    - kubectl rollout status deployment/llm-gateway -n $KUBE_NAMESPACE_PRODUCTION
+  only:
+    - main
+  when: manual
+  allow_failure: false
+
+# === CLEANUP ===
+
+cleanup:old-images:
+  stage: .post
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker system prune -f
+    - docker image prune -f --filter="dangling=true"
+  when: always
+  only:
+    - main
+    - develop

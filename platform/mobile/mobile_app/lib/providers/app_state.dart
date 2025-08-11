@@ -119,11 +119,11 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> playBook(Book book, [Chapter? chapter]) async {
+    String? audioUrl;
     try {
       _currentBook = book;
       _currentChapter = chapter;
       
-      String audioUrl;
       if (chapter != null) {
         audioUrl = chapter.audioUrl;
       } else if (book.audioUrl != null) {
@@ -144,7 +144,7 @@ class AppState extends ChangeNotifier {
       _error = null;
       notifyListeners();
     } catch (e) {
-      await _handleAudioError(e, audioUrl);
+      await _handleAudioError(e, audioUrl ?? '');
     }
   }
 

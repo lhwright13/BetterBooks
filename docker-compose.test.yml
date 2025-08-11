@@ -1,0 +1,170 @@
+# Test environment Docker Compose for CI/CD pipeline
+# Lightweight version for automated testing with mocked external dependencies
+
+version: '3.8'
+
+networks:
+  test_network:
+    driver: bridge
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
+
+services:
+  # === TEST DATABASE ===
+  test_postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: betterbooks_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+      - ./core/database/migrations:/migrations:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - test_network
+
+  test_redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - test_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - test_network
+
+  # === BACKEND SERVICES ===
+  test_api_gateway:
+    build:
+      context: ./platform/backend/services/api_gateway/
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_HOST=test_postgres
+      - POSTGRES_DB=betterbooks_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - REDIS_HOST=test_redis
+      - REDIS_PORT=6379
+      - CONTEXT_SERVICE_URL=http://test_context_service:8001
+      - LLM_GATEWAY_URL=http://test_llm_gateway:8002
+      - TTS_SERVICE_URL=http://test_tts_service:8003
+      - TRANSCRIPTION_SERVICE_URL=http://test_transcription_service:8004
+      - JWT_SECRET_KEY=test-jwt-secret-for-ci
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      test_postgres:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test_context_service:
+    build:
+      context: ./platform/backend/services/context_service/
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_HOST=test_postgres
+      - POSTGRES_DB=betterbooks_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+    ports:
+      - "8001:8001"
+    depends_on:
+      test_postgres:
+        condition: service_healthy
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test_llm_gateway:
+    build:
+      context: ./platform/backend/services/llm_gateway/
+      dockerfile: Dockerfile
+    environment:
+      - GEMINI_API_KEY=test-key-for-ci
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+      - MOCK_EXTERNAL_APIS=true
+    ports:
+      - "8002:8002"
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test_tts_service:
+    build:
+      context: ./platform/backend/services/tts_service/
+      dockerfile: Dockerfile
+    environment:
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+      - MOCK_TTS=true
+    ports:
+      - "8003:8003"
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test_transcription_service:
+    build:
+      context: ./platform/backend/services/transcription_service/
+      dockerfile: Dockerfile
+    environment:
+      - POSTGRES_HOST=test_postgres
+      - POSTGRES_DB=betterbooks_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD=test_password
+      - LLM_GATEWAY_URL=http://test_llm_gateway:8002
+      - ENVIRONMENT=test
+      - LOG_LEVEL=INFO
+      - MOCK_EXTERNAL_APIS=true
+    ports:
+      - "8004:8004"
+    depends_on:
+      test_postgres:
+        condition: service_healthy
+      test_llm_gateway:
+        condition: service_healthy
+    networks:
+      - test_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

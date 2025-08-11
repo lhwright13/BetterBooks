@@ -18,7 +18,7 @@ do
     echo "📦 Building $service..."
     
     # Build image
-    docker build -t "$REGISTRY/$service:latest" "./services/$service/"
+    docker build -t "$REGISTRY/$service:latest" -f "./platform/backend/services/$service/Dockerfile" "./platform/backend/services/"
     
     # Push to registry
     echo "⬆️ Pushing $service..."
