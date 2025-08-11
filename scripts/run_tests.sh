@@ -6,9 +6,9 @@ set -euo pipefail
 
 # Install only the dependencies required for the tests (lighter than the full
 # runtime set because the TTS service is mocked).
-pip install -r services/api_gateway/requirements.txt \
-            -r services/context_service/requirements.txt \
-            -r services/llm_gateway/requirements.txt \
+pip install -r platform/backend/services/api_gateway/requirements.txt \
+            -r platform/backend/services/context_service/requirements.txt \
+            -r platform/backend/services/llm_gateway/requirements.txt \
             pgvector pytest
 
 # Execute pytest in quiet mode

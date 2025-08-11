@@ -48,7 +48,9 @@ if _app_configs.exists():
     CONFIG_DIR = _app_configs
 else:
     _parents = Path(__file__).resolve().parents
-    CONFIG_DIR = (_parents[2] if len(_parents) > 2 else _parents[-1]) / "llm_configs"
+    # Navigate to repository root then to config/production/llm_configs
+    repo_root = _parents[4] if len(_parents) > 4 else _parents[-1]
+    CONFIG_DIR = repo_root / "config" / "production" / "llm_configs"
 
 # Validate API key before configuring
 api_key = cfg["api_key"]

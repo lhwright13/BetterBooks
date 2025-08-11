@@ -1,6 +1,0 @@
-image:
-  repository: betterbooks/api-gateway
-  tag: latest
-service:
-  type: ClusterIP
-  port: 80

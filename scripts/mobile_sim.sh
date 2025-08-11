@@ -7,7 +7,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-MOBILE_APP_DIR="$PROJECT_ROOT/mobile_app"
+MOBILE_APP_DIR="$PROJECT_ROOT/platform/mobile/mobile_app"
 
 # Check if mobile app directory exists
 if [ ! -d "$MOBILE_APP_DIR" ]; then

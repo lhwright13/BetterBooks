@@ -8,13 +8,16 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# Add shared modules to path
-sys.path.append(str(Path(__file__).parent / "services" / "shared"))
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import only the core classes (not the generator which needs aiohttp)
 try:
-    from summary_types import SummaryStyle, ChapterSummary, SummaryRequest
-    from chapter_detection import DetectedChapter
+    from core.ai import summary_types, chapter_detection
+    SummaryStyle = summary_types.SummaryStyle
+    ChapterSummary = summary_types.ChapterSummary
+    SummaryRequest = summary_types.SummaryRequest
+    DetectedChapter = chapter_detection.DetectedChapter
     print("✅ Successfully imported core summary classes")
 except ImportError as e:
     print(f"❌ Failed to import classes: {e}")

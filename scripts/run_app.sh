@@ -32,7 +32,7 @@
 # Development notes:
 #   - Press Ctrl+C to stop all services
 #   - Book files should be placed in ./book_files/ directory
-#   - LLM persona configs in ./llm_configs/ directory
+#   - LLM persona configs in ./config/production/llm_configs/ directory
 #   - Service logs are color-coded by service name
 #   - Database data persists between runs in Docker volume
 

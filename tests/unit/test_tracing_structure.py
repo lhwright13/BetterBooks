@@ -9,8 +9,8 @@ import os
 import sys
 from pathlib import Path
 
-# Add services/shared to path for imports
-sys.path.append(str(Path(__file__).parent / "services" / "shared"))
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 def test_tracing_module_structure():
     """Test that the tracing module has the expected structure."""
@@ -18,7 +18,7 @@ def test_tracing_module_structure():
     
     try:
         # Test that we can import the tracing module
-        import tracing
+        from core.infrastructure import tracing
         print("✅ Tracing module imports successfully")
         
         # Test that key classes exist

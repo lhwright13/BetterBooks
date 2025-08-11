@@ -10,16 +10,17 @@ import sys
 from pathlib import Path
 from typing import List, Dict
 
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 def test_migration_manager_structure():
     """Test that the migration manager module has the expected structure."""
     print("Testing database migrations module structure...")
     
     try:
         # Add shared modules to path
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        
         # Test that we can import the migration manager
-        import database_migrations
+        from core.database import database_migrations
         print("✅ Database migrations module imports successfully")
         
         # Test that key classes exist
@@ -142,8 +143,7 @@ def test_sql_parsing():
     print("\\nTesting SQL parsing...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_migrations
+        from core.database import database_migrations
         
         # Test SQL parsing with markers
         sql_content = """
@@ -263,8 +263,7 @@ def test_checksum_validation():
     print("\\nTesting checksum validation...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_migrations
+        from core.database import database_migrations
         
         # Create two identical migrations
         migration1 = database_migrations.Migration(
@@ -326,8 +325,7 @@ def test_migration_safety_features():
     print("\\nTesting migration safety features...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_migrations
+        from core.database import database_migrations
         
         # Test migration with rollback SQL
         migration_with_rollback = database_migrations.Migration(

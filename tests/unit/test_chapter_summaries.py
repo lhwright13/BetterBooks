@@ -16,14 +16,16 @@ from datetime import datetime
 from pathlib import Path
 
 import sys
-sys.path.append(str(Path(__file__).parent / "services" / "shared"))
 
-from chapter_summaries import (
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from core.ai.chapter_summaries import (
     ChapterSummaryGenerator, SummaryStyle, ChapterSummary, SummaryRequest,
     generate_chapter_summaries, format_summaries_for_display
 )
-from chapter_detection import DetectedChapter
-from summary_storage import SummaryStorageManager
+from core.ai.chapter_detection import DetectedChapter
+from core.ai.summary_storage import SummaryStorageManager
 
 
 class TestSummaryGeneration:
@@ -394,7 +396,7 @@ class TestAPIEndpoints:
     
     def test_summary_request_validation(self):
         """Test API request schema validation."""
-        from services.transcription_service.main import SummaryGenerationRequest
+        from platform.backend.services.transcription_service.simple_main import SummaryGenerationRequest
         
         # Valid request
         valid_request = SummaryGenerationRequest(
@@ -411,7 +413,7 @@ class TestAPIEndpoints:
     
     def test_summary_response_structure(self):
         """Test API response schema."""
-        from services.transcription_service.main import SummaryResponse
+        from platform.backend.services.transcription_service.simple_main import SummaryResponse
         
         response = SummaryResponse(
             book_title="Test Book",

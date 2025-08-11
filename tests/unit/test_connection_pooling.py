@@ -13,6 +13,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch, AsyncMock
 import yaml
 
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 def test_docker_compose_pgbouncer():
     """Test that docker-compose includes pgbouncer configuration."""
     print("Testing pgbouncer configuration in docker-compose.yml...")
@@ -151,11 +154,8 @@ def test_database_manager_structure():
     print("\\nTesting database manager module...")
     
     try:
-        # Add shared modules to path
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        
         # Test that we can import the database manager
-        import database_manager
+        from core.database import database_manager
         print("✅ Database manager module imports successfully")
         
         # Test that key classes exist

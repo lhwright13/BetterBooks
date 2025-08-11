@@ -12,8 +12,8 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-# Add services/shared to path for imports
-sys.path.append(str(Path(__file__).parent / "services" / "shared"))
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # import pytest  # Not needed for basic testing
 from opentelemetry import trace
@@ -22,7 +22,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExpor
 from opentelemetry.trace.status import Status, StatusCode
 
 # Import our tracing components
-from tracing import (
+from core.infrastructure.tracing import (
     TracingConfig, setup_tracing, instrument_external_libraries,
     LLMTracingHelper, DatabaseTracingHelper, HTTPTracingHelper,
     create_span_with_context, add_span_attributes, record_exception_in_span,

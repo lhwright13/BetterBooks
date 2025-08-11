@@ -7,8 +7,9 @@ set -euo pipefail
 
 # Install Python dependencies for all services and test utilities in a single
 # invocation of pip to avoid duplicate work.
-pip install -r services/api_gateway/requirements.txt \
-            -r services/context_service/requirements.txt \
-            -r services/llm_gateway/requirements.txt \
-            -r services/tts_service/requirements.txt \
+pip install -r platform/backend/services/api_gateway/requirements.txt \
+            -r platform/backend/services/context_service/requirements.txt \
+            -r platform/backend/services/llm_gateway/requirements.txt \
+            -r platform/backend/services/tts_service/requirements.txt \
+            -r platform/backend/services/transcription_service/requirements.txt \
             pgvector pytest

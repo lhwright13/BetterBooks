@@ -6,12 +6,21 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-# Add shared modules to path
-sys.path.append(str(Path(__file__).parent / "services" / "shared"))
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import only the core summary types
 try:
-    from summary_types import SummaryStyle, ChapterSummary, SummaryRequest
+    import importlib.util
+    
+    # Import summary_types module directly to avoid numpy dependencies
+    spec = importlib.util.spec_from_file_location('summary_types', Path(__file__).parent.parent.parent / 'core' / 'ai' / 'summary_types.py')
+    summary_types = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(summary_types)
+    
+    SummaryStyle = summary_types.SummaryStyle
+    ChapterSummary = summary_types.ChapterSummary
+    SummaryRequest = summary_types.SummaryRequest
     print("✅ Successfully imported core summary types")
 except ImportError as e:
     print(f"❌ Failed to import classes: {e}")

@@ -16,6 +16,9 @@ import sys
 from pathlib import Path
 from typing import Dict, List
 
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 # Test with mock data if audio processing isn't available
 MOCK_TRANSCRIPT_SEGMENTS = [
     {"start": 0.0, "end": 30.0, "text": "Chapter 1: The Beginning. In the beginning, there was nothing but darkness and silence."},
@@ -53,10 +56,7 @@ class ChapterDetectionTester:
         self.print_header("Chapter Detection Engine Tests")
         
         try:
-            # Add the shared modules path
-            sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-            
-            from chapter_detection import ChapterDetectionEngine, DetectedChapter
+            from core.ai.chapter_detection import ChapterDetectionEngine, DetectedChapter
             
             self.print_test("Chapter Detection Import", True, "Successfully imported chapter detection module")
             
@@ -141,8 +141,7 @@ class ChapterDetectionTester:
         self.print_header("Mock Chapter Detection Tests")
         
         try:
-            sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-            from chapter_detection import detect_chapters_for_audiobook, format_chapters_for_display
+            from core.ai.chapter_detection import detect_chapters_for_audiobook, format_chapters_for_display
             
             # Create a temporary mock audio file path
             mock_audio_path = "/tmp/mock_audiobook.mp3"
@@ -192,7 +191,6 @@ class ChapterDetectionTester:
         
         try:
             # Test cache key generation
-            sys.path.append(str(Path(__file__).parent / "services" / "transcription_service"))
             
             # Mock the cache functions
             import hashlib

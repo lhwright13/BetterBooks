@@ -10,16 +10,17 @@ import sys
 from pathlib import Path
 from typing import List, Dict
 
+# Add project root to path to import core modules
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 def test_index_manager_structure():
     """Test that the index manager module has the expected structure."""
     print("Testing database indexing module structure...")
     
     try:
         # Add shared modules to path
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        
         # Test that we can import the index manager
-        import database_indexes
+        from core.database import database_indexes
         print("✅ Database indexes module imports successfully")
         
         # Test that key classes exist
@@ -72,8 +73,7 @@ def test_index_definitions():
     print("\\nTesting index definitions...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_indexes
+        from core.database import database_indexes
         
         index_manager = database_indexes.DatabaseIndexManager()
         indexes = index_manager.get_index_definitions()
@@ -134,8 +134,7 @@ def test_sql_generation():
     print("\\nTesting SQL generation...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_indexes
+        from core.database import database_indexes
         
         index_manager = database_indexes.DatabaseIndexManager()
         
@@ -275,8 +274,7 @@ def test_vector_index_optimization():
     print("\\nTesting vector index optimization...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_indexes
+        from core.database import database_indexes
         
         index_manager = database_indexes.DatabaseIndexManager()
         
@@ -324,8 +322,7 @@ def test_query_performance_indexes():
     print("\\nTesting query performance indexes...")
     
     try:
-        sys.path.append(str(Path(__file__).parent / "services" / "shared"))
-        import database_indexes
+        from core.database import database_indexes
         
         index_manager = database_indexes.DatabaseIndexManager()
         

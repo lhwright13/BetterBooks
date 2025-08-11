@@ -81,7 +81,7 @@ def load_tts_config(config_name: Optional[str] = None) -> Dict[str, Any]:
     # Try to load from llm_configs directory (mounted in Docker)
     config_paths = [
         Path("/app/llm_configs") / f"{config_name}.json",
-        Path(__file__).parent.parent.parent / "llm_configs" / f"{config_name}.json"
+        Path(__file__).parent.parent.parent.parent.parent / "config" / "production" / "llm_configs" / f"{config_name}.json"
     ]
     
     for config_path in config_paths:
