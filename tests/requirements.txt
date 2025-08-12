@@ -58,10 +58,10 @@ rich>=13.4.0
 
 # Security testing
 bandit>=1.7.0
-safety>=2.3.0
+safety>=2.2.0  # Lowered version for Python 3.10 compatibility
 
-# Documentation testing
-pytest-doctest>=0.0.1
+# Documentation testing (removing non-existent package)
+# pytest-doctest>=0.0.1
 
 # Parallel testing
 pytest-xdist>=3.3.0

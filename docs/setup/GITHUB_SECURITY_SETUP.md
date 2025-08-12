@@ -78,8 +78,9 @@ After enabling these features, your security workflows will provide:
 
 ### 🔧 Troubleshooting
 
-**Issue**: "Code scanning is not enabled"
+**Issue**: "Code scanning is not enabled for this repository"
 - **Solution**: Follow Step 1 above to enable code scanning
+- **Temporary Fix**: Security scans will still run and upload artifacts, but results won't appear in Security tab until enabled
 
 **Issue**: "Resource not accessible by integration"  
 - **Solution**: Check workflow permissions in Step 4 above

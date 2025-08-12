@@ -90,7 +90,7 @@ jobs:
         semgrep --config=p/python --config=p/docker --config=p/secrets platform/backend/services/ || true
     
     - name: Upload static analysis results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v2
+      uses: github/codeql-action/upload-sarif@v3
       if: always()
       with:
         sarif_file: semgrep-report.json
@@ -120,7 +120,15 @@ jobs:
     - name: Build Docker image
       run: |
         echo "🐳 Building ${{ matrix.service }} for security scan..."
-        docker build -t security-scan:${{ matrix.service }} platform/backend/services/${{ matrix.service }}/
+        if [ -f "platform/backend/services/${{ matrix.service }}/Dockerfile" ]; then
+          docker build -t security-scan:${{ matrix.service }} platform/backend/services/${{ matrix.service }}/
+        else
+          echo "⚠️ Dockerfile not found for ${{ matrix.service }}, creating minimal image for scanning"
+          echo "FROM python:3.11-slim" > temp_dockerfile
+          echo "WORKDIR /app" >> temp_dockerfile
+          echo "COPY platform/backend/services/${{ matrix.service }}/ /app/" >> temp_dockerfile
+          docker build -t security-scan:${{ matrix.service }} -f temp_dockerfile .
+        fi
     
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
@@ -131,11 +139,12 @@ jobs:
         severity: 'CRITICAL,HIGH,MEDIUM'
     
     - name: Upload Trivy scan results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && hashFiles('trivy-${{ matrix.service }}.sarif') != ''
       with:
         sarif_file: 'trivy-${{ matrix.service }}.sarif'
         category: 'container-${{ matrix.service }}'
+      continue-on-error: true
     
     - name: Run Trivy filesystem scan
       uses: aquasecurity/trivy-action@master
@@ -147,11 +156,12 @@ jobs:
         severity: 'CRITICAL,HIGH'
     
     - name: Upload filesystem scan results
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && hashFiles('trivy-fs-${{ matrix.service }}.sarif') != ''
       with:
         sarif_file: 'trivy-fs-${{ matrix.service }}.sarif'
         category: 'filesystem-${{ matrix.service }}'
+      continue-on-error: true
 
   secrets-scanning:
     name: Secrets and Credential Scanning
