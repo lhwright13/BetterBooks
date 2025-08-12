@@ -49,8 +49,8 @@ services:
   # === BACKEND SERVICES ===
   test_api_gateway:
     build:
-      context: ./platform/backend/services/api_gateway/
-      dockerfile: Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/api_gateway/Dockerfile
     environment:
       - POSTGRES_HOST=test_postgres
       - POSTGRES_DB=betterbooks_test
@@ -82,8 +82,8 @@ services:
 
   test_context_service:
     build:
-      context: ./platform/backend/services/context_service/
-      dockerfile: Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/context_service/Dockerfile
     environment:
       - POSTGRES_HOST=test_postgres
       - POSTGRES_DB=betterbooks_test
@@ -106,8 +106,8 @@ services:
 
   test_llm_gateway:
     build:
-      context: ./platform/backend/services/llm_gateway/
-      dockerfile: Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/llm_gateway/Dockerfile
     environment:
       - GEMINI_API_KEY=test-key-for-ci
       - ENVIRONMENT=test
@@ -125,8 +125,8 @@ services:
 
   test_tts_service:
     build:
-      context: ./platform/backend/services/tts_service/
-      dockerfile: Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/tts_service/Dockerfile
     environment:
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
@@ -143,8 +143,8 @@ services:
 
   test_transcription_service:
     build:
-      context: ./platform/backend/services/transcription_service/
-      dockerfile: Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/transcription_service/Dockerfile
     environment:
       - POSTGRES_HOST=test_postgres
       - POSTGRES_DB=betterbooks_test

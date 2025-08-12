@@ -81,8 +81,8 @@ services:
 
   context_service:
     build:
-      context: ./platform/backend/services
-      dockerfile: context_service/Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/context_service/Dockerfile
     env_file:
       - .env
     environment:
@@ -102,8 +102,8 @@ services:
 
   llm_gateway:
     build:
-      context: ./platform/backend/services
-      dockerfile: llm_gateway/Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/llm_gateway/Dockerfile
     env_file:
       - .env
     environment:
@@ -122,8 +122,8 @@ services:
 
   transcription_service:
     build:
-      context: ./platform/backend/services
-      dockerfile: transcription_service/Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/transcription_service/Dockerfile
     env_file:
       - .env
     environment:
@@ -146,8 +146,8 @@ services:
 
   tts_service:
     build:
-      context: ./platform/backend/services
-      dockerfile: tts_service/Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/tts_service/Dockerfile
     env_file:
       - .env
     ports:
@@ -159,8 +159,8 @@ services:
 
   api_gateway:
     build:
-      context: ./platform/backend/services
-      dockerfile: api_gateway/Dockerfile
+      context: ./platform/backend/
+      dockerfile: services/api_gateway/Dockerfile
     env_file:
       - .env
     environment:

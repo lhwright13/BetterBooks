@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ENV PATH="/root/.cargo/bin:$PATH"
 
-COPY tts_service/requirements.txt ./
+COPY services/tts_service/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY tts_service .
+COPY services/tts_service .
 
 # Set Python path to include core modules
-ENV PYTHONPATH="/app/core:/app:$PYTHONPATH"
+ENV PYTHONPATH="/app/core:/app"
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

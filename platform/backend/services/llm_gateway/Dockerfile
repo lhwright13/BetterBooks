@@ -7,12 +7,12 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY llm_gateway/requirements.txt ./
+COPY services/llm_gateway/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY llm_gateway .
+COPY services/llm_gateway .
 
 # Set Python path to include core modules
-ENV PYTHONPATH="/app/core:/app:$PYTHONPATH"
+ENV PYTHONPATH="/app/core:/app"
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

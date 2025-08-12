@@ -7,11 +7,11 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY api_gateway/requirements.txt ./
+COPY services/api_gateway/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy API gateway code
-COPY api_gateway /app/api_gateway
+COPY services/api_gateway /app/api_gateway
 
 # Core modules will be mounted as volume in docker-compose for development
 # In production, they should be copied: COPY ../../core /app/core
@@ -20,6 +20,6 @@ COPY api_gateway /app/api_gateway
 WORKDIR /app/api_gateway
 
 # Set Python path to include core modules
-ENV PYTHONPATH="/app/core:/app:$PYTHONPATH"
+ENV PYTHONPATH="/app/core:/app"
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
