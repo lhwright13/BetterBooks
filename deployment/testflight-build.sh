@@ -5,7 +5,7 @@
 echo "🍎 Building EchoWright for TestFlight..."
 
 # Navigate to mobile app directory
-cd mobile_app
+cd platform/mobile/mobile_app
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -14,11 +14,11 @@ flutter pub get
 
 # Build for iOS release
 echo "📱 Building iOS release..."
-flutter build ipa --release --dart-define=API_BASE_URL=https://api.muuchi.app
+flutter build ipa --release --dart-define=API_BASE_URL=https://api.echowright.app
 
 echo "✅ Build complete!"
 echo ""
-echo "📂 IPA Location: build/ios/ipa/muuchi.ipa"
+echo "📂 IPA Location: build/ios/ipa/EchoWright.ipa"
 echo ""
 echo "Next steps:"
 echo "1. Open Xcode Organizer (Window > Organizer)"
@@ -28,3 +28,6 @@ echo "4. Choose 'App Store Connect'"
 echo "5. Upload for TestFlight"
 echo ""
 echo "Or use Transporter app to upload the IPA directly"
+echo ""
+echo "⚠️  IMPORTANT: Make sure to update YOUR_TEAM_ID in ios/ExportOptions.plist"
+echo "   with your Apple Developer Team ID before building for App Store"

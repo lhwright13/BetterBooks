@@ -38,6 +38,7 @@ Book files are served from /app/book_files directory (mounted volume in Docker).
 
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -61,6 +62,14 @@ from core.infrastructure.tracing import (
     TracingConfig, setup_tracing, instrument_fastapi, instrument_external_libraries,
     get_development_tracing_config, LLMTracingHelper, HTTPTracingHelper, 
     create_span_with_context, add_span_attributes
+)
+from core.infrastructure.circuit_breaker import (
+    CircuitBreaker, CircuitBreakerError, ExponentialBackoff,
+    create_http_circuit_breaker, create_llm_circuit_breaker
+)
+from core.infrastructure.error_handling import (
+    setup_error_handling, ApplicationError, ValidationError,
+    ExternalServiceError, TimeoutError, handle_external_service_error
 )
 
 # Import authentication components  
@@ -96,6 +105,41 @@ tracer = setup_tracing(tracing_config)
 # Instrument external libraries for automatic tracing
 instrument_external_libraries()
 
+# Initialize circuit breakers for external services
+llm_circuit_breaker = create_llm_circuit_breaker(
+    name="LLM_Gateway",
+    failure_threshold=3,
+    recovery_timeout=30
+)
+
+tts_circuit_breaker = CircuitBreaker(
+    name="TTS_Service",
+    failure_threshold=3,
+    recovery_timeout=20,
+    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
+)
+
+context_circuit_breaker = CircuitBreaker(
+    name="Context_Service",
+    failure_threshold=5,
+    recovery_timeout=15,
+    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
+)
+
+transcription_circuit_breaker = CircuitBreaker(
+    name="Transcription_Service",
+    failure_threshold=3,
+    recovery_timeout=30,
+    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
+)
+
+# Exponential backoff for retries
+retry_backoff = ExponentialBackoff(
+    max_retries=3,
+    base_delay=1.0,
+    max_delay=10.0
+)
+
 # Main FastAPI application used by the unit tests and docker-compose setup
 app = FastAPI(
     title="EchoWright API Gateway",
@@ -105,6 +149,13 @@ app = FastAPI(
 
 # Add logging middleware
 app.add_middleware(LoggingMiddleware, logger=logger)
+
+# Set up comprehensive error handling
+error_handler = setup_error_handling(
+    app,
+    service_name="api_gateway",
+    include_stack_trace=(os.getenv("ENVIRONMENT", "development") == "development")
+)
 
 # Security middleware - restrict hosts in production
 if os.getenv("ENVIRONMENT", "development") == "production":
@@ -237,11 +288,20 @@ async def complete(
 
         # Create span for HTTP client request to LLM Gateway
         with HTTPTracingHelper.trace_http_client_request(tracer, "POST", f"{LLM_URL}/complete") as http_span:
-            resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
-            HTTPTracingHelper.add_http_response_attributes(http_span, resp.status_code)
-            
             try:
-                resp.raise_for_status()
+                # Use circuit breaker for LLM Gateway call
+                async def make_llm_request():
+                    resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
+                    HTTPTracingHelper.add_http_response_attributes(http_span, resp.status_code)
+                    resp.raise_for_status()
+                    return resp
+                
+                # Execute with circuit breaker and retry logic
+                resp = await retry_backoff.retry(
+                    llm_circuit_breaker.call,
+                    make_llm_request
+                )
+                
                 # Track successful LLM request
                 duration = time.time() - start_time
                 llm_requests_total.labels(model="gemini", status="success").inc()
@@ -250,27 +310,55 @@ async def complete(
                 # Add success attributes to span
                 add_span_attributes(span, status="success", duration_seconds=duration)
                 
-            except httpx.HTTPStatusError as e:
-                # Track failed LLM request
-                llm_requests_total.labels(model="gemini", status="error").inc()
-                # Log the error with structured fields
-                logger.error(
-                    "LLM Gateway error",
-                    status_code=resp.status_code,
-                    error_detail=resp.text,
+                return resp.json()
+                
+            except CircuitBreakerError as e:
+                # Circuit breaker is open
+                llm_requests_total.labels(model="gemini", status="circuit_open").inc()
+                logger.warning(
+                    "LLM Gateway circuit breaker open",
+                    error=str(e),
                     request_id=get_request_id()
                 )
                 
-                # Record error in span
-                span.record_exception(e)
-                add_span_attributes(span, status="error", error_code=resp.status_code)
+                # If circuit breaker has fallback, it will be used
+                if hasattr(e, 'fallback_response'):
+                    return e.fallback_response
+                    
+                # Otherwise return service unavailable
+                raise HTTPException(
+                    status_code=503,
+                    detail="LLM service temporarily unavailable. Please try again later."
+                )
                 
-                # Bubble up the error from the LLM Gateway so the client receives a
-                # meaningful status code instead of a generic 500 from this service.
-                detail = resp.json().get("detail", resp.text)
-                raise HTTPException(status_code=resp.status_code, detail=detail)
-
-        return resp.json()
+            except (httpx.HTTPStatusError, httpx.TimeoutException) as e:
+                # Track failed LLM request
+                llm_requests_total.labels(model="gemini", status="error").inc()
+                
+                if isinstance(e, httpx.HTTPStatusError):
+                    # Log the error with structured fields
+                    logger.error(
+                        "LLM Gateway error",
+                        status_code=e.response.status_code,
+                        error_detail=e.response.text,
+                        request_id=get_request_id()
+                    )
+                    
+                    # Record error in span
+                    span.record_exception(e)
+                    add_span_attributes(span, status="error", error_code=e.response.status_code)
+                    
+                    # Bubble up the error from the LLM Gateway
+                    detail = e.response.json().get("detail", e.response.text)
+                    raise HTTPException(status_code=e.response.status_code, detail=detail)
+                else:
+                    # Timeout error
+                    logger.error(
+                        "LLM Gateway timeout",
+                        error=str(e),
+                        request_id=get_request_id()
+                    )
+                    raise HTTPException(status_code=504, detail="LLM Gateway request timeout")
 
 
 @app.post("/tts")
@@ -329,6 +417,47 @@ def list_configs() -> dict:
 
     resp = httpx.get(f"{LLM_URL}/configs")
     return resp.json()
+
+
+@app.get("/circuit-breakers/status")
+async def get_circuit_breaker_status(
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+) -> dict:
+    """Get status of all circuit breakers (admin only)."""
+    return {
+        "circuit_breakers": {
+            "llm_gateway": llm_circuit_breaker.get_status(),
+            "tts_service": tts_circuit_breaker.get_status(),
+            "context_service": context_circuit_breaker.get_status(),
+            "transcription_service": transcription_circuit_breaker.get_status()
+        },
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.post("/circuit-breakers/{service}/reset")
+async def reset_circuit_breaker(
+    service: str,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+) -> dict:
+    """Manually reset a circuit breaker (admin only)."""
+    breakers = {
+        "llm_gateway": llm_circuit_breaker,
+        "tts_service": tts_circuit_breaker,
+        "context_service": context_circuit_breaker,
+        "transcription_service": transcription_circuit_breaker
+    }
+    
+    if service not in breakers:
+        raise HTTPException(status_code=404, detail=f"Circuit breaker for service '{service}' not found")
+    
+    breakers[service].reset()
+    logger.info(f"Circuit breaker for {service} manually reset by admin", user_id=current_user.id)
+    
+    return {
+        "message": f"Circuit breaker for {service} has been reset",
+        "new_status": breakers[service].get_status()
+    }
 
 
 @app.post("/context/search")

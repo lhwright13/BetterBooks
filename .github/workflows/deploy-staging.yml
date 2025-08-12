@@ -68,7 +68,7 @@ jobs:
     
     - name: Deploy to staging
       run: |
-        helm upgrade --install echowright-staging ./config/helm/ \
+        helm upgrade --install echowright-staging ./config/helm/infra/helm/betterbooks/ \
           --namespace ${{ env.KUBE_NAMESPACE }} \
           --create-namespace \
           --set global.imageTag=${{ github.sha }} \

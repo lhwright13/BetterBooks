@@ -1,9 +1,9 @@
-// Production API configuration for BetterBooks
+// Production API configuration for EchoWright
 // Routes all requests through API Gateway for proper load balancing and auth
 
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'https://api.betterbooks.app' // Production domain
+  defaultValue: 'https://api.echowright.app' // Production domain
 );
 
 // Fallback for development/testing

@@ -26,7 +26,7 @@ import 'screens/library_screen.dart';
 import 'screens/enhanced_player_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
-import 'theme/retro_theme.dart';
+import 'theme/modern_theme.dart';
 
 /// Entry point for the EchoWright application
 /// Initializes the app and sets up the root widget
@@ -42,12 +42,12 @@ class EchoWrightApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      // Create global app state that manages books, personas, and playback
+      // Create global app state that manages books, personas, and playbook
       create: (context) => AppState(),
       child: MaterialApp(
         title: 'EchoWright',
-        // Space mission control theme
-        theme: SpaceTheme.theme,
+        // Modern audiobook experience theme
+        theme: ModernTheme.theme,
         // Default route opens the main home screen
         initialRoute: '/',
         // Navigation routes for all app screens

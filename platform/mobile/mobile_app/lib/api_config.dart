@@ -15,11 +15,12 @@
  * - LLM Gateway (port 8002) - AI persona and text generation
  * - Context Service (port 8001) - Vector embeddings and book context
  * - TTS Service (port 8003) - Text-to-speech synthesis
+ * - Transcription Service (port 8004) - Chapter detection and analysis
  * 
  * Environment configurations:
  * - Development: http://localhost:8000 (default)
- * - Staging: https://staging.muuchi.app
- * - Production: https://api.muuchi.app
+ * - Staging: https://staging.echowright.app
+ * - Production: https://api.echowright.app
  */
 
 /// Base URL of the API Gateway that routes requests to backend microservices

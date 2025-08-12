@@ -134,7 +134,7 @@ jobs:
         echo "🚀 Starting production deployment..."
         
         # Use external secrets for production (assuming they're already set up)
-        helm upgrade --install echowright-prod ./config/helm/ \
+        helm upgrade --install echowright-prod ./config/helm/infra/helm/betterbooks/ \
           --namespace ${{ env.KUBE_NAMESPACE }} \
           --create-namespace \
           --set global.imageTag=${{ github.sha }} \
