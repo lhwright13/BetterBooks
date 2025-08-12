@@ -53,6 +53,7 @@ from pydantic import BaseModel
 from core.infrastructure.logging_config import setup_logging, get_request_id
 from core.infrastructure.logging_middleware import LoggingMiddleware
 from core.infrastructure.health_checks import HealthCheck, create_health_endpoint, check_service_endpoint
+from core.infrastructure.compression_middleware import CompressionMiddleware
 from core.infrastructure.metrics import (
     setup_metrics, llm_requests_total, llm_request_duration_seconds,
     tts_requests_total, active_users, books_processed_total,
@@ -150,6 +151,19 @@ app = FastAPI(
 # Add logging middleware
 app.add_middleware(LoggingMiddleware, logger=logger)
 
+# Add compression middleware  
+compression_middleware = CompressionMiddleware(
+    app,
+    minimum_size=500,  # Compress responses >= 500 bytes
+    compression_level=6,  # Balanced compression/speed
+    exclude_paths={"/health", "/metrics"}  # Skip compression for monitoring endpoints
+)
+app.add_middleware(CompressionMiddleware, 
+    minimum_size=500,
+    compression_level=6, 
+    exclude_paths={"/health", "/metrics"}
+)
+
 # Set up comprehensive error handling
 error_handler = setup_error_handling(
     app,
@@ -203,6 +217,18 @@ health_check.add_check("tts_service", check_tts_service)
 
 # Create health endpoints
 create_health_endpoint(app, health_check)
+
+# Add compression statistics endpoint
+@app.get("/compression/stats")
+def get_compression_stats():
+    """Get compression middleware statistics."""
+    return compression_middleware.get_stats()
+
+@app.post("/compression/reset")
+def reset_compression_stats():
+    """Reset compression statistics."""
+    compression_middleware.reset_stats()
+    return {"message": "Compression statistics reset"}
 
 # Set up Prometheus metrics
 metrics_collector = setup_metrics(app, "api_gateway")

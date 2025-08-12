@@ -4,11 +4,23 @@ import os
 import sys
 import types
 from pathlib import Path
+import redis
 
 # Import core components
 from core.infrastructure.logging_config import setup_logging, get_request_id
 from core.infrastructure.logging_middleware import LoggingMiddleware
 from core.infrastructure.metrics import setup_metrics, llm_tokens_used
+
+# Try to import semantic cache, fallback gracefully if not available
+try:
+    from core.infrastructure.semantic_cache import SemanticCache, CacheType, cache_response
+    SEMANTIC_CACHE_AVAILABLE = True
+except ImportError as e:
+    logger_temp = logging.getLogger(__name__)
+    logger_temp.warning(f"Semantic cache not available: {e}")
+    SemanticCache = None
+    CacheType = None
+    SEMANTIC_CACHE_AVAILABLE = False
 
 try:  # pragma: no cover - library may not be installed during tests
     import google.generativeai as genai
@@ -86,6 +98,20 @@ app.add_middleware(LoggingMiddleware, logger=logger)
 # Set up Prometheus metrics
 metrics_collector = setup_metrics(app, "llm_gateway")
 
+# Set up semantic cache
+semantic_cache = None
+if SEMANTIC_CACHE_AVAILABLE:
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    try:
+        redis_client = redis.from_url(redis_url, decode_responses=False)
+        # Test Redis connection first
+        redis_client.ping()
+        semantic_cache = SemanticCache(redis_client)
+        logger.info("Semantic cache initialized", redis_url=redis_url)
+    except Exception as e:
+        logger.warning(f"Failed to initialize semantic cache (Redis may not be available): {e}")
+        semantic_cache = None
+
 # Custom metrics for LLM Gateway
 model_selection_counter = metrics_collector.create_counter(
     "model_selections_total",
@@ -97,6 +123,12 @@ prompt_length_histogram = metrics_collector.create_histogram(
     "prompt_length_chars",
     "Prompt length in characters",
     buckets=(10, 50, 100, 500, 1000, 5000, 10000)
+)
+
+cache_performance_counter = metrics_collector.create_counter(
+    "cache_operations_total",
+    "Total cache operations",
+    ["operation", "result"]
 )
 
 @app.get("/health")
@@ -115,7 +147,7 @@ class CompletionRequest(BaseModel):
 
 @app.post("/complete")
 def complete(req: CompletionRequest) -> dict:
-    """Call Gemini to generate a text completion."""
+    """Call Gemini to generate a text completion with semantic caching."""
     
     # Track prompt length
     prompt_length_histogram.observe(len(req.prompt))
@@ -139,6 +171,29 @@ def complete(req: CompletionRequest) -> dict:
     prompt = modify_prompt(req.prompt, local_prompt_options)
     if local_base_preprompt:
         prompt = f"{local_base_preprompt}\n\n{prompt}"
+    
+    # Try semantic cache first
+    if semantic_cache and SEMANTIC_CACHE_AVAILABLE:
+        cache_key = {
+            "prompt": prompt,
+            "max_tokens": req.max_tokens,
+            "config": req.config or "default",
+            "model": cfg_local["model"]
+        }
+        
+        cached_response = semantic_cache.get(
+            CacheType.LLM_RESPONSE,
+            cache_key,
+            query_text=req.prompt
+        )
+        
+        if cached_response:
+            cache_performance_counter.labels(operation="get", result="hit").inc()
+            logger.debug("Cache hit for LLM completion", config=req.config)
+            return cached_response
+        
+        cache_performance_counter.labels(operation="get", result="miss").inc()
+    
     try:
         # Validate local API key
         local_api_key = cfg_local.get("api_key", "")
@@ -182,7 +237,32 @@ def complete(req: CompletionRequest) -> dict:
     if not hasattr(resp, 'text') or resp.text is None:
         raise HTTPException(status_code=502, detail="Invalid response from language model")
     
-    return {"text": resp.text.strip()}
+    response_data = {"text": resp.text.strip()}
+    
+    # Cache the response for future use
+    if semantic_cache and SEMANTIC_CACHE_AVAILABLE:
+        cache_key = {
+            "prompt": prompt,
+            "max_tokens": req.max_tokens,
+            "config": req.config or "default",
+            "model": cfg_local["model"]
+        }
+        
+        cache_success = semantic_cache.set(
+            CacheType.LLM_RESPONSE,
+            cache_key,
+            response_data,
+            query_text=req.prompt
+        )
+        
+        if cache_success:
+            cache_performance_counter.labels(operation="set", result="success").inc()
+            logger.debug("Cached LLM response", config=req.config)
+        else:
+            cache_performance_counter.labels(operation="set", result="failure").inc()
+            logger.warning("Failed to cache LLM response", config=req.config)
+    
+    return response_data
 
 
 @app.get("/configs")
@@ -193,4 +273,81 @@ def list_configs() -> dict:
     if CONFIG_DIR.exists():
         configs = [p.stem for p in CONFIG_DIR.glob("*.json")]
     return {"configs": configs}
+
+
+@app.get("/cache/stats")
+def get_cache_stats() -> dict:
+    """Get semantic cache performance statistics."""
+    if not SEMANTIC_CACHE_AVAILABLE or not semantic_cache:
+        return {
+            "cache_enabled": False,
+            "error": "Semantic cache not available",
+            "reason": "Missing dependencies or Redis connection"
+        }
+    
+    stats = semantic_cache.get_stats()
+    return {
+        "cache_enabled": True,
+        "statistics": stats,
+        "total_entries": sum(
+            stat_data.get("hits", 0) + stat_data.get("misses", 0) 
+            for stat_data in stats.values()
+        )
+    }
+
+
+@app.post("/cache/clear")
+def clear_cache(pattern: str = "*") -> dict:
+    """Clear cache entries matching pattern."""
+    if not SEMANTIC_CACHE_AVAILABLE or not semantic_cache:
+        return {"error": "Cache not available"}
+    
+    try:
+        cleared_count = semantic_cache.invalidate_pattern(pattern)
+        logger.info(f"Cleared {cleared_count} cache entries", pattern=pattern)
+        return {
+            "success": True,
+            "cleared_entries": cleared_count,
+            "pattern": pattern
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear cache: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/cache/warm")
+def warm_cache() -> dict:
+    """Warm cache with common prompts."""
+    if not SEMANTIC_CACHE_AVAILABLE or not semantic_cache:
+        return {"error": "Cache not available"}
+    
+    # Common prompts for warming
+    warm_data = [
+        {
+            "key_data": {"prompt": "What is this chapter about?", "config": "default"},
+            "content": {"text": "This chapter discusses..."},
+            "query_text": "What is this chapter about?"
+        },
+        {
+            "key_data": {"prompt": "Summarize this section", "config": "default"},
+            "content": {"text": "The section covers..."},
+            "query_text": "Summarize this section"
+        },
+        {
+            "key_data": {"prompt": "Who are the main characters?", "config": "default"},
+            "content": {"text": "The main characters include..."},
+            "query_text": "Who are the main characters?"
+        }
+    ]
+    
+    try:
+        warmed_count = semantic_cache.warm_cache(CacheType.LLM_RESPONSE, warm_data)
+        logger.info(f"Warmed {warmed_count} cache entries")
+        return {
+            "success": True,
+            "warmed_entries": warmed_count
+        }
+    except Exception as e:
+        logger.error(f"Failed to warm cache: {e}")
+        return {"error": str(e)}
 

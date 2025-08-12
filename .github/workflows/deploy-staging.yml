@@ -142,7 +142,7 @@ jobs:
         python -m pytest tests/integration/ -v --api-url=$API_BASE_URL
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: staging-test-results
@@ -173,7 +173,7 @@ jobs:
         k6 run --env API_BASE_URL=$API_BASE_URL tests/performance/load-test.js
     
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-test-results
         path: k6-report.json
