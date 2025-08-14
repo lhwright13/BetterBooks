@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 import aiohttp
-from chapter_detection import DetectedChapter
-from chapter_summaries import ChapterSummary
+from .chapter_detection import DetectedChapter
+from .chapter_summaries import ChapterSummary
 
 
 class QuestionDifficulty(Enum):

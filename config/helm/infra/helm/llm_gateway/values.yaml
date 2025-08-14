@@ -1,6 +1,6 @@
 image:
-  repository: betterbooks/llm-gateway
+  repository: betterbooksacr.azurecr.io/llm_gateway
   tag: latest
 service:
   type: ClusterIP
-  port: 80
+  port: 8002

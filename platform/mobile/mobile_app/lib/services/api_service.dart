@@ -31,7 +31,7 @@
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../api_config_prod.dart';
+import '../api_config.dart';
 import '../models/book.dart';
 import '../models/persona.dart';
 
@@ -39,6 +39,45 @@ import '../models/persona.dart';
 /// Provides methods for books, personas, chat, TTS, and context operations
 class ApiService {
   static const Duration _timeoutDuration = Duration(seconds: 30); // Network timeout for all requests
+  static String? _authToken; // Store auth token for API calls
+
+  /// Get authentication headers including Bearer token if available
+  static Map<String, String> _getHeaders() {
+    final headers = {'Content-Type': 'application/json'};
+    if (_authToken != null) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    return headers;
+  }
+
+  /// Register or login user and store auth token
+  static Future<bool> authenticate() async {
+    try {
+      // Try to register a test user (will fail if already exists, but that's ok)
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': 'iostest',
+          'email': 'ios@test.com', 
+          'password': 'test123'
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _authToken = data['tokens']['access_token'];
+        print('Authentication successful, token stored');
+        return true;
+      } else {
+        print('Auth failed: ${response.statusCode} - ${response.body}');
+        return false;
+      }
+    } catch (e) {
+      print('Auth error: $e');
+      return false;
+    }
+  }
 
   /// Tests connectivity to the EchoWright backend API Gateway
   /// Returns true if the health endpoint responds successfully
@@ -64,9 +103,14 @@ class ApiService {
   /// Handles both single-file audiobooks and multi-chapter books
   static Future<List<Book>> getBooks() async {
     try {
+      // Ensure we're authenticated before making the request
+      if (_authToken == null) {
+        await authenticate();
+      }
+
       final response = await http.get(
         Uri.parse('$apiBaseUrl/books/list'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -78,10 +122,11 @@ class ApiService {
         // Handle single-file audiobooks (e.g., standalone MP3 files)
         if (data['single_books'] != null) {
           for (final bookData in data['single_books']) {
+            final bookName = bookData['name'] ?? bookData['filename'] ?? 'Unknown';
             books.add(Book.fromJson({
-              'id': bookData,
-              'title': bookData.replaceAll('.mp3', ''), // Clean filename for display
-              'audio_url': '$apiBaseUrl/books/play/$bookData', // Direct streaming URL
+              'id': bookName,
+              'title': bookName.replaceAll('.mp3', ''), // Clean filename for display
+              'audio_url': '$apiBaseUrl/books/play/$bookName', // Direct streaming URL
             }));
           }
         }

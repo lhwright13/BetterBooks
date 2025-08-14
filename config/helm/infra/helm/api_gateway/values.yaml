@@ -1,6 +1,6 @@
 image:
-  repository: betterbooks/api-gateway
+  repository: betterbooksacr.azurecr.io/api_gateway
   tag: latest
 service:
   type: ClusterIP
-  port: 80
+  port: 8000

@@ -229,8 +229,8 @@ class CircuitBreaker:
             
             raise CircuitBreakerError(f"{self.name}: Circuit breaker is OPEN")
         
-        # Circuit is HALF_OPEN - limit concurrent attempts
-        if self._state == CircuitState.HALF_OPEN and self._half_open_attempts >= 1:
+        # Circuit is HALF_OPEN - limit concurrent attempts based on success threshold
+        if self._state == CircuitState.HALF_OPEN and self._half_open_attempts >= self.success_threshold:
             self._stats.rejected_calls += 1
             
             if self.fallback_function:

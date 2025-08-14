@@ -14,11 +14,13 @@ spec:
       labels:
         app: {{ include "llm-gateway.name" . }}
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
         - name: llm-gateway
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
-            - containerPort: 8000
+            - containerPort: 8002
           env:
             - name: GEMINI_API_KEY
               valueFrom:

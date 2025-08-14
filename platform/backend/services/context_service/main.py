@@ -20,10 +20,10 @@ from core.database.database_migrations import get_migration_manager, apply_migra
 from core.infrastructure.logging_config import setup_logging
 from core.infrastructure.health_checks import HealthCheck, create_health_endpoint, check_database
 from core.infrastructure.metrics import setup_metrics
-from core.infrastructure.tracing import (
-    setup_tracing, instrument_fastapi, instrument_external_libraries,
-    get_development_tracing_config, DatabaseTracingHelper
-)
+# from core.infrastructure.tracing import (
+#     setup_tracing, instrument_fastapi, instrument_external_libraries,
+#     get_development_tracing_config, DatabaseTracingHelper
+# )
 
 # Set up structured logging
 logger = setup_logging(
@@ -32,15 +32,15 @@ logger = setup_logging(
 )
 
 # Set up distributed tracing
-environment = os.getenv("ENVIRONMENT", "development")
-if environment == "development":
-    tracing_config = get_development_tracing_config("context_service")
-else:
-    from tracing import get_production_tracing_config
-    tracing_config = get_production_tracing_config("context_service")
+# environment = os.getenv("ENVIRONMENT", "development")
+# if environment == "development":
+#     tracing_config = get_development_tracing_config("context_service")
+# else:
+#     from tracing import get_production_tracing_config
+#     tracing_config = get_production_tracing_config("context_service")
 
-tracer = setup_tracing(tracing_config)
-instrument_external_libraries()
+# tracer = setup_tracing(tracing_config)
+# instrument_external_libraries()
 
 # Database initialization
 async def init_database():
@@ -60,8 +60,9 @@ async def init_database():
             # Enable pgvector extension
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
             
-            # Register vector type
-            register_vector(conn._sync_connection)
+            # Register vector type - skipping for compatibility
+            # TODO: Fix pgvector registration for psycopg3
+            logger.info("Skipping vector type registration for compatibility")
             
             # Create embeddings table with optimized structure
             await conn.execute("""
@@ -147,7 +148,7 @@ create_health_endpoint(app, health_check)
 metrics_collector = setup_metrics(app, "context_service")
 
 # Instrument FastAPI with tracing
-instrument_fastapi(app, "context_service")
+# instrument_fastapi(app, "context_service")
 
 # Custom metrics
 embedding_queries = metrics_collector.create_counter(

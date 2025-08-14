@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 import aiohttp
-from chapter_detection import DetectedChapter
+from .chapter_detection import DetectedChapter
 
 
 class SummaryStyle(Enum):

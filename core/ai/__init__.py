@@ -12,7 +12,8 @@ Contains all AI functionality for the EchoWright platform:
 from .chapter_detection import ChapterDetectionEngine, DetectedChapter
 from .chapter_summaries import ChapterSummaryGenerator
 from .question_generation import QuestionGenerator  
-from .summary_types import SummaryStyle, QuestionType, ReadingMode
+from .summary_types import SummaryStyle
+from .question_generation import QuestionType, ReadingMode
 
 __all__ = [
     'ChapterDetectionEngine',

@@ -7,12 +7,13 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/context_service/requirements.txt ./
+COPY platform/backend/services/context_service/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY services/context_service .
+COPY platform/backend/services/context_service .
+COPY core /app/core
 
 # Set Python path to include core modules
 ENV PYTHONPATH="/app/core:/app"
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_state.dart';
-import '../api_config_prod.dart';
+import '../api_config.dart';
 import '../theme/retro_theme.dart';
 import '../widgets/space_background.dart';
 import '../widgets/holographic_components.dart';

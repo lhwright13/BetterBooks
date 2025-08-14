@@ -7,14 +7,14 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/api_gateway/requirements.txt ./
+COPY platform/backend/services/api_gateway/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy API gateway code
-COPY services/api_gateway /app/api_gateway
+COPY platform/backend/services/api_gateway /app/api_gateway
 
-# Core modules will be mounted as volume in docker-compose for development
-# In production, they should be copied: COPY ../../core /app/core
+# Copy core modules for production
+COPY core /app/core
 
 # Set working directory to API gateway
 WORKDIR /app/api_gateway

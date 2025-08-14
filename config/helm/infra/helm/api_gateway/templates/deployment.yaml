@@ -14,6 +14,8 @@ spec:
       labels:
         app: {{ include "api-gateway.name" . }}
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
         - name: api-gateway
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -21,8 +23,18 @@ spec:
             - containerPort: 8000
           env:
             - name: CONTEXT_SERVICE_URL
-              value: http://context-service:80
+              value: http://context-service:8001
             - name: LLM_GATEWAY_URL
-              value: http://llm-gateway:80
+              value: http://llm-gateway:8002
             - name: TTS_SERVICE_URL
-              value: http://tts-service:80
+              value: http://tts-service:8003
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: gemini-api-key
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: jwt-secret-key

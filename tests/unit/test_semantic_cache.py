@@ -148,13 +148,17 @@ class TestBasicCacheOperations:
     
     def test_size_limit_enforcement(self, semantic_cache):
         """Test that oversized content is rejected."""
-        # Create content that exceeds size limit
-        large_content = "x" * (100 * 1024 * 1024)  # 100MB
+        # Create content that will exceed the LLM_RESPONSE limit (50MB)
+        # We'll create a dict with large values to exceed the limit after serialization + compression
+        large_dict = {
+            f"key_{i}": "x" * (1024 * 1024)  # 1MB each
+            for i in range(55)  # 55MB total
+        }
         
         success = semantic_cache.set(
             CacheType.LLM_RESPONSE,
             "large_key",
-            large_content
+            large_dict
         )
         
         assert not success

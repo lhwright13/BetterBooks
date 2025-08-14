@@ -36,7 +36,7 @@ class DatabaseConfig:
         max_idle_time: float = 300.0,
         retry_attempts: int = 3,
         retry_delay: float = 1.0,
-        enable_read_replica: bool = True,
+        enable_read_replica: bool = False,
         read_write_split: bool = True
     ):
         self.database_url = database_url or os.getenv(
@@ -166,15 +166,16 @@ class DatabaseManager:
                 enable_read_replica=self.config.enable_read_replica
             )
             
-            # Initialize primary pool (for writes)
+            # Initialize primary pool (for writes) using modern async pattern
             self.primary_pool = AsyncConnectionPool(
                 self.config.database_url,
                 min_size=self.config.min_connections,
                 max_size=self.config.max_connections,
                 timeout=self.config.connection_timeout,
                 max_idle=self.config.max_idle_time,
-                row_factory=dict_row
+                open=False  # Don't open in constructor
             )
+            await self.primary_pool.open()  # Open explicitly
             
             # Test primary connection
             async with self.primary_pool.connection() as conn:
@@ -191,8 +192,9 @@ class DatabaseManager:
                         max_size=max(5, self.config.max_connections // 2),
                         timeout=self.config.connection_timeout,
                         max_idle=self.config.max_idle_time,
-                        row_factory=dict_row
+                        open=False  # Don't open in constructor
                     )
+                    await self.replica_pool.open()  # Open explicitly
                     
                     # Test replica connection
                     async with self.replica_pool.connection() as conn:

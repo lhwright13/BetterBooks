@@ -3,6 +3,7 @@
 import os
 import sys
 import types
+import logging
 from pathlib import Path
 import redis
 

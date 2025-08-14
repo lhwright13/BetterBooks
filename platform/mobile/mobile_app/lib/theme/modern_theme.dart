@@ -212,7 +212,7 @@ class ModernTheme {
       ),
       
       // Card Theme
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: backgroundCard,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.black26,

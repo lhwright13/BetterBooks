@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
-import '../api_config_prod.dart';
+import '../api_config.dart';
 import '../widgets/css_ripple_widget.dart';
 import '../widgets/audio_input_handler.dart';
 import '../widgets/holographic_components.dart'; // TODO: Rename to architectural_components.dart

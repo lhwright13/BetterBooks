@@ -13,8 +13,8 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import dict_row
 
-from database_manager import execute_query, database_connection
-from chapter_detection import DetectedChapter
+from ..database.database_manager import execute_query, database_connection
+from .chapter_detection import DetectedChapter
 
 
 class ChapterStorageManager:

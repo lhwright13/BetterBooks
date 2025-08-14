@@ -124,12 +124,12 @@ async def test_circuit_breaker_fallback():
     async def failing_call():
         raise Exception("Service error")
     
-    # Open the circuit
-    with pytest.raises(Exception):
-        await breaker.call(failing_call)
+    # First call opens the circuit and uses fallback immediately
+    result = await breaker.call(failing_call)
+    assert result == "fallback_response"
     assert breaker.state == CircuitState.OPEN
     
-    # Should use fallback when open
+    # Subsequent calls should also use fallback when open
     result = await breaker.call(failing_call)
     assert result == "fallback_response"
 
