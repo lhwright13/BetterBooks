@@ -83,6 +83,8 @@ services:
     build:
       context: ./platform/backend/
       dockerfile: services/context_service/Dockerfile
+      cache_from:
+        - betterbooks/context_service:latest
     env_file:
       - .env
     environment:
@@ -104,6 +106,8 @@ services:
     build:
       context: ./platform/backend/
       dockerfile: services/llm_gateway/Dockerfile
+      cache_from:
+        - betterbooks/llm_gateway:latest
     env_file:
       - .env
     environment:
@@ -123,7 +127,9 @@ services:
   transcription_service:
     build:
       context: ./platform/backend/
-      dockerfile: services/transcription_service/Dockerfile
+      dockerfile: services/transcription_service/Dockerfile_minimal
+      cache_from:
+        - betterbooks/transcription_service:latest
     env_file:
       - .env
     environment:
@@ -131,6 +137,13 @@ services:
       ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # Azure Speech Service configuration
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-eastus}
+      AZURE_SPEECH_LANGUAGE: ${AZURE_SPEECH_LANGUAGE:-en-US}
+      AZURE_SPEECH_PROFANITY_FILTER: ${AZURE_SPEECH_PROFANITY_FILTER:-false}
+      AZURE_SPEECH_ENABLE_DICTATION: ${AZURE_SPEECH_ENABLE_DICTATION:-true}
+      AZURE_SPEECH_ENABLE_PUNCTUATION: ${AZURE_SPEECH_ENABLE_PUNCTUATION:-true}
     depends_on:
       pgbouncer:
         condition: service_started
@@ -148,6 +161,8 @@ services:
     build:
       context: ./platform/backend/
       dockerfile: services/tts_service/Dockerfile
+      cache_from:
+        - betterbooks/tts_service:latest
     env_file:
       - .env
     ports:
@@ -161,6 +176,8 @@ services:
     build:
       context: ./platform/backend/
       dockerfile: services/api_gateway/Dockerfile
+      cache_from:
+        - betterbooks/api_gateway:latest
     env_file:
       - .env
     environment:

@@ -1,7 +1,7 @@
 """
-JWT Authentication Module for EchoWright API Gateway
+JWT Authentication Module for BetterBooks API Gateway
 
-Provides JWT token-based authentication and authorization middleware for the API Gateway.
+Provides JWT token-based authentication and authorization middleware for the BetterBooks API Gateway.
 Implements user registration, login, role-based access control (RBAC), and request validation.
 
 Key Features:
@@ -371,9 +371,9 @@ def ensure_admin_user():
     
     if not admin_exists:
         admin_data = UserRegistration(
-            email="admin@echowright.com",
+            email="admin@betterbooks.com",
             username="admin",
-            password="admin123",  # Change in production!
+            password=os.getenv('DEFAULT_ADMIN_PASSWORD', 'TempPass123!'),  # MUST change in production!
             role=UserRole.ADMIN
         )
         admin_user = create_user(admin_data)

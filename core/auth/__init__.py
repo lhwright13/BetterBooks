@@ -1,7 +1,7 @@
 """
 Authentication and Authorization Module
 
-Contains authentication components for the EchoWright platform:
+Contains authentication components for the BetterBooks platform:
 - User authentication and JWT handling
 - Role-based access control
 - Rate limiting

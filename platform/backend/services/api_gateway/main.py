@@ -82,7 +82,7 @@ from core.auth.auth_routes import auth_router
 CONTEXT_URL = os.getenv("CONTEXT_SERVICE_URL", "http://context_service:8000")
 LLM_URL = os.getenv("LLM_GATEWAY_URL", "http://llm_gateway:8000")
 TTS_URL = os.getenv("TTS_SERVICE_URL", "http://tts_service:8000")
-TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription_service:8003")
+TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription_service:8000")
 
 # Book files directory - will be mounted in Docker
 BOOK_FILES_DIR = Path("/app/book_files")
@@ -522,6 +522,202 @@ async def get_context(
     
     return resp.json()
 
+
+# ==============================================
+# TRANSCRIPTION ENDPOINTS
+# ==============================================
+
+class TranscriptionResponse(BaseModel):
+    """Response model for transcription results."""
+    text: str
+    language: str
+    service: str
+    duration_ms: Optional[int] = None
+    segments: Optional[List[str]] = None
+    word_timestamps: Optional[List[dict]] = None
+
+class AudioFormat(BaseModel):
+    """Audio format specification."""
+    sample_rate: int = 16000
+    channels: int = 1
+    bits_per_sample: int = 16
+
+@app.get("/transcription/health")
+async def transcription_health():
+    """Check transcription service health."""
+    try:
+        with transcription_circuit_breaker:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{TRANSCRIPTION_URL}/health")
+                resp.raise_for_status()
+                return resp.json()
+    except CircuitBreakerError:
+        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
+    except Exception as e:
+        logger.error(f"Transcription health check failed: {e}")
+        raise HTTPException(status_code=503, detail="Transcription service unavailable")
+
+@app.get("/transcription/config")
+async def transcription_config():
+    """Get transcription service configuration."""
+    try:
+        with transcription_circuit_breaker:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{TRANSCRIPTION_URL}/config")
+                resp.raise_for_status()
+                return resp.json()
+    except CircuitBreakerError:
+        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
+    except Exception as e:
+        logger.error(f"Failed to get transcription config: {e}")
+        raise HTTPException(status_code=503, detail="Transcription service unavailable")
+
+@app.get("/transcription/supported-languages")
+async def get_supported_languages():
+    """Get list of supported languages for transcription."""
+    try:
+        with transcription_circuit_breaker:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(f"{TRANSCRIPTION_URL}/supported-languages")
+                resp.raise_for_status()
+                return resp.json()
+    except CircuitBreakerError:
+        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
+    except Exception as e:
+        logger.error(f"Failed to get supported languages: {e}")
+        raise HTTPException(status_code=503, detail="Transcription service unavailable")
+
+@app.post("/transcription/file", response_model=TranscriptionResponse)
+async def transcribe_file(
+    file: UploadFile = File(..., description="Audio file to transcribe"),
+    language: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """Transcribe an uploaded audio file using Azure Speech Service."""
+    logger.info(
+        "File transcription requested",
+        filename=file.filename,
+        content_type=file.content_type,
+        language=language,
+        user_id=current_user.id if current_user else None,
+        request_id=get_request_id()
+    )
+    
+    # Validate file type
+    allowed_types = [
+        "audio/wav", "audio/mpeg", "audio/mp3", "audio/m4a", 
+        "audio/ogg", "audio/flac", "audio/aac"
+    ]
+    
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported file type: {file.content_type}. Supported types: {', '.join(allowed_types)}"
+        )
+    
+    try:
+        with transcription_circuit_breaker:
+            # Prepare files for multipart upload
+            files_data = {"file": (file.filename, await file.read(), file.content_type)}
+            params = {"language": language} if language else {}
+            
+            async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for file processing
+                resp = await client.post(
+                    f"{TRANSCRIPTION_URL}/transcribe/file",
+                    files=files_data,
+                    params=params
+                )
+                resp.raise_for_status()
+                
+            result = resp.json()
+            logger.info(
+                "File transcription completed",
+                filename=file.filename,
+                text_length=len(result.get("text", "")),
+                duration_ms=result.get("duration_ms"),
+                service=result.get("service"),
+                request_id=get_request_id()
+            )
+            
+            return result
+            
+    except CircuitBreakerError:
+        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
+        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
+    except httpx.TimeoutException:
+        logger.error("Transcription service timeout", filename=file.filename, request_id=get_request_id())
+        raise HTTPException(status_code=504, detail="Transcription service timeout - file may be too large")
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Transcription service error",
+            status_code=e.response.status_code,
+            error_detail=e.response.text,
+            filename=file.filename,
+            request_id=get_request_id()
+        )
+        detail = e.response.json().get("detail", e.response.text) if e.response.headers.get("content-type", "").startswith("application/json") else e.response.text
+        raise HTTPException(status_code=e.response.status_code, detail=detail)
+    except Exception as e:
+        logger.error(f"Unexpected transcription error: {e}", filename=file.filename, request_id=get_request_id())
+        raise HTTPException(status_code=500, detail="Internal transcription service error")
+
+@app.post("/transcription/stream", response_model=TranscriptionResponse)
+async def transcribe_stream(
+    audio_format: AudioFormat = AudioFormat(),
+    language: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """Transcribe audio from a raw stream (for real-time transcription)."""
+    logger.info(
+        "Stream transcription requested",
+        audio_format=audio_format.dict(),
+        language=language,
+        user_id=current_user.id if current_user else None,
+        request_id=get_request_id()
+    )
+    
+    try:
+        with transcription_circuit_breaker:
+            # This endpoint expects raw audio data in the request body
+            # For now, return a placeholder response
+            return TranscriptionResponse(
+                text="Stream transcription endpoint - implementation pending",
+                language=language or "en-US",
+                service="azure",
+                duration_ms=0
+            )
+            
+    except CircuitBreakerError:
+        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
+        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
+    except Exception as e:
+        logger.error(f"Stream transcription error: {e}", request_id=get_request_id())
+        raise HTTPException(status_code=500, detail="Stream transcription service error")
+
+@app.post("/transcription/test", response_model=TranscriptionResponse)
+async def test_transcription(current_user: Optional[User] = Depends(get_optional_user)):
+    """Test transcription service connectivity."""
+    try:
+        with transcription_circuit_breaker:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                resp = await client.post(f"{TRANSCRIPTION_URL}/transcribe/test")
+                resp.raise_for_status()
+                
+            result = resp.json()
+            logger.info("Transcription test completed", result=result, request_id=get_request_id())
+            return result
+            
+    except CircuitBreakerError:
+        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
+        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
+    except Exception as e:
+        logger.error(f"Transcription test error: {e}", request_id=get_request_id())
+        raise HTTPException(status_code=500, detail="Transcription test failed")
+
+
+# ==============================================
+# BOOK MANAGEMENT ENDPOINTS  
+# ==============================================
 
 @app.post("/books/upload")
 async def upload_book(

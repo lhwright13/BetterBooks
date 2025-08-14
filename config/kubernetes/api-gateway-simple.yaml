@@ -16,7 +16,10 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: gcr.io/betterbooks-prod/api_gateway:latest
+        # Azure Container Registry (ACR) image
+        # Replace <registry-name> with your ACR name
+        image: betterbooks.azurecr.io/api_gateway:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
@@ -38,6 +41,13 @@ spec:
             port: 8000
           initialDelaySeconds: 30
           periodSeconds: 30
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
 ---
 apiVersion: v1
 kind: Service

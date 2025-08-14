@@ -51,6 +51,8 @@ services:
     build:
       context: ../../platform/backend/
       dockerfile: services/api_gateway/Dockerfile
+      cache_from:
+        - betterbooks/api_gateway:latest
     environment:
       - POSTGRES_HOST=test_postgres
       - POSTGRES_DB=betterbooks_test
@@ -58,10 +60,12 @@ services:
       - POSTGRES_PASSWORD=test_password
       - REDIS_HOST=test_redis
       - REDIS_PORT=6379
-      - CONTEXT_SERVICE_URL=http://test_context_service:8001
-      - LLM_GATEWAY_URL=http://test_llm_gateway:8002
-      - TTS_SERVICE_URL=http://test_tts_service:8003
-      - TRANSCRIPTION_SERVICE_URL=http://test_transcription_service:8004
+      - CONTEXT_SERVICE_URL=http://test_context_service:8000
+      - LLM_GATEWAY_URL=http://test_llm_gateway:8000
+      - TTS_SERVICE_URL=http://test_tts_service:8000
+      - TRANSCRIPTION_SERVICE_URL=http://test_transcription_service:8000
+      - DATABASE_URL=postgresql://test_user:test_password@test_postgres:5432/betterbooks_test
+      - REDIS_URL=redis://test_redis:6379/2
       - JWT_SECRET_KEY=test-jwt-secret-for-ci
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
@@ -84,22 +88,22 @@ services:
     build:
       context: ../../platform/backend/
       dockerfile: services/context_service/Dockerfile
+      cache_from:
+        - betterbooks/context_service:latest
     environment:
-      - POSTGRES_HOST=test_postgres
-      - POSTGRES_DB=betterbooks_test
-      - POSTGRES_USER=test_user
-      - POSTGRES_PASSWORD=test_password
+      - DATABASE_URL=postgresql://test_user:test_password@test_postgres:5432/betterbooks_test
+      - REDIS_URL=redis://test_redis:6379/0
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
     ports:
-      - "8001:8001"
+      - "8001:8000"
     depends_on:
       test_postgres:
         condition: service_healthy
     networks:
       - test_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -108,17 +112,20 @@ services:
     build:
       context: ../../platform/backend/
       dockerfile: services/llm_gateway/Dockerfile
+      cache_from:
+        - betterbooks/llm_gateway:latest
     environment:
       - GEMINI_API_KEY=test-key-for-ci
+      - REDIS_URL=redis://test_redis:6379/1
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
       - MOCK_EXTERNAL_APIS=true
     ports:
-      - "8002:8002"
+      - "8002:8000"
     networks:
       - test_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -127,16 +134,18 @@ services:
     build:
       context: ../../platform/backend/
       dockerfile: services/tts_service/Dockerfile
+      cache_from:
+        - betterbooks/tts_service:latest
     environment:
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
       - MOCK_TTS=true
     ports:
-      - "8003:8003"
+      - "8003:8000"
     networks:
       - test_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -144,18 +153,17 @@ services:
   test_transcription_service:
     build:
       context: ../../platform/backend/
-      dockerfile: services/transcription_service/Dockerfile
+      dockerfile: services/transcription_service/Dockerfile_minimal
+      cache_from:
+        - betterbooks/transcription_service:latest
     environment:
-      - POSTGRES_HOST=test_postgres
-      - POSTGRES_DB=betterbooks_test
-      - POSTGRES_USER=test_user
-      - POSTGRES_PASSWORD=test_password
-      - LLM_GATEWAY_URL=http://test_llm_gateway:8002
+      - DATABASE_URL=postgresql://test_user:test_password@test_postgres:5432/betterbooks_test
+      - LLM_GATEWAY_URL=http://test_llm_gateway:8000
       - ENVIRONMENT=test
       - LOG_LEVEL=INFO
       - MOCK_EXTERNAL_APIS=true
     ports:
-      - "8004:8004"
+      - "8004:8000"
     depends_on:
       test_postgres:
         condition: service_healthy
@@ -164,7 +172,7 @@ services:
     networks:
       - test_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -3,8 +3,17 @@ kind: Ingress
 metadata:
   name: betterbooks-ingress
   annotations:
-    kubernetes.io/ingress.class: gce
-    kubernetes.io/ingress.global-static-ip-name: betterbooks-ip
+    # Azure Application Gateway Ingress Controller annotations
+    kubernetes.io/ingress.class: azure/application-gateway
+    # Health probe configuration
+    appgw.ingress.kubernetes.io/health-probe-path: "/health"
+    appgw.ingress.kubernetes.io/health-probe-interval: "10"
+    appgw.ingress.kubernetes.io/health-probe-timeout: "30"
+    appgw.ingress.kubernetes.io/request-timeout: "30"
+    # SSL redirect (if using HTTPS)
+    appgw.ingress.kubernetes.io/ssl-redirect: "false"
+    # Backend protocol
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
 spec:
   rules:
   - host: api.betterbooks.app

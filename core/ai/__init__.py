@@ -1,26 +1,70 @@
 """
-AI-Powered Features Module
+Simplified AI-Powered Features for Pre-Chaptered Books
 
-Contains all AI functionality for the EchoWright platform:
-- Chapter detection and boundary analysis
+Contains AI functionality for BetterBooks using Azure OpenAI:
+- Chapter processing for pre-divided audiobooks
 - Smart chapter summaries with multiple styles
 - Educational question generation
-- Character and theme extraction
-- Content analysis and metadata generation
+- Azure OpenAI integration with cost tracking
 """
 
-from .chapter_detection import ChapterDetectionEngine, DetectedChapter
-from .chapter_summaries import ChapterSummaryGenerator
-from .question_generation import QuestionGenerator  
-from .summary_types import SummaryStyle
-from .question_generation import QuestionType, ReadingMode
+# Core Azure integration
+from .azure_llm_client import AzureLLMClient, LLMResponse, LLMConfig, generate_text, generate_json_response
+
+# Chapter processing
+from .chapter_processor import (
+    ChapterProcessor, ChapterInfo, BookChapters,
+    load_book, get_available_books, get_chapter_content
+)
+
+# Summary generation
+from .summary_generator import (
+    SummaryGenerator, ChapterSummary, SummaryStyle,
+    generate_chapter_summary, generate_all_summaries
+)
+
+# Question generation
+from .simple_question_generator import (
+    SimpleQuestionGenerator, GeneratedQuestion, QuestionSet,
+    QuestionDifficulty, QuestionType, ReadingMode,
+    generate_chapter_questions
+)
+
+# Legacy compatibility (keeping SummaryStyle for existing code)
+from .summary_types import SummaryStyle as LegacySummaryStyle
 
 __all__ = [
-    'ChapterDetectionEngine',
-    'DetectedChapter',
-    'ChapterSummaryGenerator',
-    'QuestionGenerator',
-    'SummaryStyle', 
+    # Azure OpenAI client
+    'AzureLLMClient',
+    'LLMResponse', 
+    'LLMConfig',
+    'generate_text',
+    'generate_json_response',
+    
+    # Chapter processing
+    'ChapterProcessor',
+    'ChapterInfo',
+    'BookChapters',
+    'load_book',
+    'get_available_books',
+    'get_chapter_content',
+    
+    # Summary generation
+    'SummaryGenerator',
+    'ChapterSummary',
+    'SummaryStyle',
+    'generate_chapter_summary',
+    'generate_all_summaries',
+    
+    # Question generation
+    'SimpleQuestionGenerator',
+    'GeneratedQuestion',
+    'QuestionSet',
+    'QuestionDifficulty',
     'QuestionType',
-    'ReadingMode'
+    'ReadingMode',
+    'generate_chapter_questions',
+    
+    # Legacy compatibility
+    'LegacySummaryStyle'
 ]

@@ -1,8 +1,8 @@
 """
-Authentication Routes for EchoWright API Gateway
+Authentication Routes for BetterBooks API Gateway
 
 Provides HTTP endpoints for user authentication, registration, and session management.
-Integrates with the auth module to handle JWT tokens and user operations.
+Integrates with the auth module to handle JWT tokens and user operations for BetterBooks.
 
 Routes:
 - POST /auth/register: User registration
@@ -131,7 +131,7 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(secu
             )
         
         # Get user to ensure they still exist and are active
-        from auth import get_user_by_id
+        from .auth import get_user_by_id
         user = get_user_by_id(user_id)
         if not user or not user.is_active:
             raise HTTPException(
