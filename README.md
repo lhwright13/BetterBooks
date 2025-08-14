@@ -43,6 +43,88 @@ mobile application and all backend microservices for intelligent audiobook inter
 Each service is a small FastAPI application packaged with a Dockerfile and
 currently exposes only a simple `/health` endpoint.
 
+## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        MA[Mobile App<br/>Flutter]
+        WA[Web App<br/>HTML/JS]
+    end
+
+    subgraph "API Gateway"
+        AG[API Gateway<br/>FastAPI<br/>:8000]
+    end
+
+    subgraph "Core Services"
+        LG[LLM Gateway<br/>:8002]
+        CS[Context Service<br/>:8001]
+        TS[TTS Service<br/>:8003]
+        TRS[Transcription Service<br/>:8004]
+    end
+
+    subgraph "Data Layer"
+        DB[(PostgreSQL<br/>with pgvector)]
+        RD[(Redis Cache)]
+        BF[Book Files<br/>Storage]
+    end
+
+    subgraph "External APIs"
+        GM[Google Gemini API]
+        COQI[Coqui TTS Models]
+    end
+
+    subgraph "Observability"
+        PM[Prometheus<br/>:9090]
+        GR[Grafana<br/>:3000]
+        JG[Jaeger<br/>:16686]
+    end
+
+    MA --> AG
+    WA --> AG
+    AG --> LG
+    AG --> CS
+    AG --> TS
+    AG --> TRS
+    
+    LG --> GM
+    CS --> DB
+    TS --> COQI
+    TRS --> DB
+    
+    CS --> RD
+    LG --> RD
+    
+    TRS --> BF
+    TS --> BF
+
+    %% Monitoring connections
+    AG -.-> PM
+    LG -.-> PM
+    CS -.-> PM
+    TS -.-> PM
+    TRS -.-> PM
+    
+    PM --> GR
+    AG -.-> JG
+    LG -.-> JG
+    CS -.-> JG
+
+    classDef client fill:#e1f5fe
+    classDef gateway fill:#f3e5f5
+    classDef service fill:#e8f5e8
+    classDef data fill:#fff3e0
+    classDef external fill:#fce4ec
+    classDef monitor fill:#f1f8e9
+
+    class MA,WA client
+    class AG gateway
+    class LG,CS,TS,TRS service
+    class DB,RD,BF data
+    class GM,COQI external
+    class PM,GR,JG monitor
+```
+
 ## Running the stack locally
 
 **🔐 Important: Complete security setup first!**

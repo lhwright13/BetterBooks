@@ -14,6 +14,50 @@ The AI-powered chapter detection system automatically segments audiobooks into m
 
 ## 🏗️ Architecture
 
+```mermaid
+graph TD
+    subgraph "Input Processing"
+        AF[Audio File] --> TA[Transcript Analysis]
+        AF --> AA[Audio Analysis]
+        TA --> SE[Semantic Engine]
+        AA --> FE[Feature Extraction]
+    end
+
+    subgraph "Detection Pipeline"
+        SE --> SC[Semantic Candidates]
+        FE --> AC[Audio Candidates]
+        SC --> CB[Candidate Boundary]
+        AC --> CB
+        CB --> AI[AI Validation<br/>LLM Gateway]
+        AI --> DC[Detected Chapter]
+    end
+
+    subgraph "AI Enhancement"
+        DC --> TG[Title Generation]
+        DC --> SG[Summary Generation] 
+        DC --> QG[Question Generation]
+        TG --> META[Chapter Metadata]
+        SG --> META
+        QG --> META
+    end
+
+    subgraph "Storage & Retrieval"
+        META --> DB[(PostgreSQL<br/>Chapter Storage)]
+        DB --> API[REST API<br/>Endpoints]
+        API --> CACHE[Redis Cache<br/>Results]
+    end
+
+    classDef input fill:#e1f5fe
+    classDef detection fill:#e8f5e8
+    classDef ai fill:#fff3e0
+    classDef storage fill:#fce4ec
+
+    class AF,TA,AA,SE,FE input
+    class SC,AC,CB,AI,DC detection
+    class TG,SG,QG,META ai
+    class DB,API,CACHE storage
+```
+
 ### Core Components
 
 #### 1. Chapter Detection Engine (`services/shared/chapter_detection.py`)

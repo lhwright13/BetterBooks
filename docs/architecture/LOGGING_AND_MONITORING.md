@@ -24,6 +24,53 @@ The EchoWright platform implements comprehensive logging and monitoring capabili
 - **Prometheus Metrics**: Production-grade metrics collection and alerting
 - **Grafana Dashboards**: Visual monitoring and analytics interface
 
+```mermaid
+graph TD
+    subgraph "Request Flow"
+        REQ[Incoming Request] --> MW[Logging Middleware]
+        MW --> GEN[Generate Request ID]
+        GEN --> LOG1[Log Request Start]
+        LOG1 --> PROC[Process Request]
+        PROC --> LOG2[Log Request End]
+        LOG2 --> RESP[Response]
+    end
+
+    subgraph "Logging Infrastructure"
+        LOG1 --> JSON[JSON Formatter]
+        LOG2 --> JSON
+        JSON --> STDOUT[STDOUT Output]
+        STDOUT --> AGG[Log Aggregation]
+    end
+
+    subgraph "Monitoring Stack"
+        PROC --> METRICS[Collect Metrics]
+        METRICS --> PROM[Prometheus<br/>:9090]
+        PROM --> GRAF[Grafana<br/>:3000]
+        PROC --> TRACE[Create Spans]
+        TRACE --> JAEG[Jaeger<br/>:16686]
+    end
+
+    subgraph "Health Checks"
+        HC[Health Check Endpoints]
+        HC --> BASIC[/health]
+        HC --> DETAIL[/health/detailed]
+        HC --> READY[/health/ready]
+        HC --> LIVE[/health/live]
+        DETAIL --> SYSM[System Metrics]
+        DETAIL --> DEPC[Dependency Checks]
+    end
+
+    classDef request fill:#e1f5fe
+    classDef logging fill:#e8f5e8
+    classDef monitoring fill:#fff3e0
+    classDef health fill:#fce4ec
+
+    class REQ,MW,GEN,PROC,RESP request
+    class LOG1,LOG2,JSON,STDOUT,AGG logging
+    class METRICS,PROM,GRAF,TRACE,JAEG monitoring
+    class HC,BASIC,DETAIL,READY,LIVE,SYSM,DEPC health
+```
+
 ## Structured Logging
 
 ### Features

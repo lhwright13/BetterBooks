@@ -58,6 +58,9 @@ class ErrorResponse(BaseModel):
     request_id: Optional[str] = Field(None, description="Request correlation ID")
     documentation_url: Optional[str] = Field(None, description="Link to error documentation")
     retry_after: Optional[int] = Field(None, description="Seconds to wait before retry")
+    
+    class Config:
+        use_enum_values = True
 
 
 class ApplicationError(Exception):

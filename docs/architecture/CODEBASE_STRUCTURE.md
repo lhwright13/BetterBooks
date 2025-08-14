@@ -89,6 +89,45 @@ Common utilities and models:
 ### **Backend Services (`/platform/backend/services/`)**
 Microservices architecture:
 
+```mermaid
+graph LR
+    subgraph "Service Layer"
+        AG[API Gateway<br/>Port 8000]
+        CS[Context Service<br/>Port 8001]
+        LG[LLM Gateway<br/>Port 8002]
+        TS[TTS Service<br/>Port 8003]
+        TRS[Transcription Service<br/>Port 8004]
+    end
+
+    subgraph "Core Modules"
+        AI[AI Module<br/>core/ai/]
+        DB[Database Module<br/>core/database/]
+        INF[Infrastructure Module<br/>core/infrastructure/]
+        SH[Shared Module<br/>core/shared/]
+    end
+
+    AG --> AI
+    AG --> INF
+    AG --> SH
+    CS --> AI
+    CS --> DB
+    CS --> INF
+    LG --> AI
+    LG --> INF
+    LG --> SH
+    TS --> AI
+    TS --> INF
+    TRS --> AI
+    TRS --> DB
+    TRS --> INF
+
+    classDef service fill:#e8f5e8
+    classDef core fill:#fff3e0
+
+    class AG,CS,LG,TS,TRS service
+    class AI,DB,INF,SH core
+```
+
 ```
 services/
 ├── api_gateway/           # Central API gateway and routing

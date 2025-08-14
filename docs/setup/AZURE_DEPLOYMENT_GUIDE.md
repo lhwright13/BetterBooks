@@ -38,6 +38,61 @@ If you don't have Azure OpenAI access yet, you can use Azure AI Services with mo
 
 ## Step 2: Set Up Azure Resources
 
+### Azure Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Azure Resource Group: betterbooks-rg"
+        subgraph "Compute"
+            ACI[Azure Container Instances<br/>Services: API, LLM, Context, TTS, Transcription]
+            ACIR[Azure Container Registry<br/>Docker Images]
+        end
+
+        subgraph "Data Services"
+            PSQL[Azure Database for PostgreSQL<br/>with pgvector extension]
+            REDIS[Azure Cache for Redis<br/>Session & Caching]
+            STOR[Azure Storage Account<br/>Book Files & Audio]
+        end
+
+        subgraph "Security & Config"
+            KV[Azure Key Vault<br/>API Keys & Secrets]
+            AI[Application Insights<br/>Monitoring & Logs]
+        end
+
+        subgraph "Networking"
+            PIP[Public IP Address]
+            AG[Application Gateway<br/>SSL & Load Balancing]
+        end
+    end
+
+    subgraph "External Services"
+        AOI[Azure OpenAI Service<br/>GPT-4 Models]
+        CDN[Azure CDN<br/>Global Content Delivery]
+    end
+
+    ACI --> PSQL
+    ACI --> REDIS
+    ACI --> STOR
+    ACI --> KV
+    ACI --> AOI
+    ACI --> AI
+    AG --> ACI
+    PIP --> AG
+    STOR --> CDN
+
+    classDef compute fill:#e8f5e8
+    classDef data fill:#fff3e0
+    classDef security fill:#fce4ec
+    classDef network fill:#e1f5fe
+    classDef external fill:#f3e5f5
+
+    class ACI,ACIR compute
+    class PSQL,REDIS,STOR data
+    class KV,AI security
+    class PIP,AG network
+    class AOI,CDN external
+```
+
 ### Run the Setup Script
 ```bash
 # Make script executable

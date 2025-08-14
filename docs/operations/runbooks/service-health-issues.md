@@ -3,6 +3,58 @@
 ## Overview
 This runbook provides step-by-step procedures for diagnosing and resolving service health issues in the BetterBooks platform.
 
+```mermaid
+flowchart TD
+    START([Service Health Alert]) --> CHECK{Check Service Status}
+    
+    CHECK --> |Healthy| MONITOR[Monitor for 5 mins]
+    CHECK --> |Unhealthy| DETAIL[Check Detailed Health]
+    
+    DETAIL --> DEPS{Dependencies OK?}
+    DEPS --> |No| FIXDEP[Fix Dependencies]
+    DEPS --> |Yes| LOGS[Check Service Logs]
+    
+    FIXDEP --> DB{Database Issue?}
+    FIXDEP --> REDIS{Redis Issue?}
+    FIXDEP --> EXT{External API Issue?}
+    
+    DB --> DBFIX[Restart Database<br/>Check Connections]
+    REDIS --> REDISFIX[Restart Redis<br/>Clear Cache]
+    EXT --> EXTFIX[Check API Keys<br/>Verify Endpoints]
+    
+    LOGS --> ERROR{Error Pattern?}
+    ERROR --> |Memory| MEMORY[Increase Memory<br/>Restart Service]
+    ERROR --> |CPU| CPU[Scale Up<br/>Load Balance]
+    ERROR --> |Network| NETWORK[Check Network<br/>Firewall Rules]
+    ERROR --> |Code| CODE[Check Recent Deploys<br/>Consider Rollback]
+    
+    DBFIX --> VERIFY[Verify Fix]
+    REDISFIX --> VERIFY
+    EXTFIX --> VERIFY
+    MEMORY --> VERIFY
+    CPU --> VERIFY
+    NETWORK --> VERIFY
+    CODE --> VERIFY
+    
+    VERIFY --> RECHECK{Service Healthy?}
+    RECHECK --> |Yes| RESOLVED[✅ Issue Resolved<br/>Update Incident]
+    RECHECK --> |No| ESCALATE[🚨 Escalate to Team Lead]
+    
+    MONITOR --> RECHECK
+    
+    classDef start fill:#e1f5fe
+    classDef check fill:#e8f5e8
+    classDef action fill:#fff3e0
+    classDef resolved fill:#c8e6c9
+    classDef escalate fill:#ffcdd2
+
+    class START start
+    class CHECK,DETAIL,DEPS,LOGS,ERROR,RECHECK check
+    class FIXDEP,DBFIX,REDISFIX,EXTFIX,MEMORY,CPU,NETWORK,CODE,VERIFY action
+    class RESOLVED resolved
+    class ESCALATE escalate
+```
+
 ## Symptoms
 - Service health check returning unhealthy status
 - HTTP 503 Service Unavailable errors

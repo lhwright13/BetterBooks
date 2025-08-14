@@ -27,6 +27,35 @@ The circuit breaker operates in three states:
 
 ### State Transitions
 
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    
+    CLOSED --> OPEN : Failure threshold reached
+    OPEN --> HALF_OPEN : Recovery timeout elapsed
+    HALF_OPEN --> CLOSED : Success threshold reached
+    HALF_OPEN --> OPEN : Failure detected
+    
+    state CLOSED {
+        [*] --> Normal_Operation
+        Normal_Operation --> Count_Failures
+        Count_Failures --> Check_Threshold
+        Check_Threshold --> Normal_Operation : Below threshold
+    }
+    
+    state OPEN {
+        [*] --> Reject_Requests
+        Reject_Requests --> Return_Fallback
+        Return_Fallback --> Wait_Recovery
+    }
+    
+    state HALF_OPEN {
+        [*] --> Test_Request
+        Test_Request --> Evaluate_Response
+        Evaluate_Response --> Test_Request : Continue testing
+    }
+```
+
 ```
 CLOSED --[failures >= threshold]--> OPEN
 OPEN --[timeout elapsed]--> HALF_OPEN
