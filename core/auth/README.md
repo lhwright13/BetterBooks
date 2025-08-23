@@ -1,6 +1,6 @@
-# Core Authentication Module for BetterBooks
+# Core Authentication Module for EchoWright
 
-This module provides JWT-based authentication and authorization for the BetterBooks audiobook platform. It includes user registration, login, role-based access control (RBAC), and session management.
+This module provides comprehensive authentication and authorization for the EchoWright audiobook platform. It supports JWT-based authentication, OAuth 2.0 (Google, Apple), email verification, and role-based access control (RBAC).
 
 ## 🏗️ Architecture
 
@@ -30,7 +30,7 @@ graph TD
 | File | Purpose | Time to Execute | Dependencies | Services Using |
 |------|---------|----------------|--------------|----------------|
 | `auth.py` | Core authentication logic, JWT handling, user management | ~50-200ms per request | PyJWT, bcrypt, Redis | API Gateway, all protected endpoints |
-| `auth_routes.py` | FastAPI routes for auth endpoints (login, register, etc.) | ~100-500ms per request | FastAPI, auth.py | Web interface, mobile app |
+| `api_routes.py` | FastAPI routes for auth endpoints (login, OAuth, email verification) | ~100-500ms per request | FastAPI, auth.py, EmailService | Web interface, mobile app |
 | `__init__.py` | Module exports and public interface | ~1ms | None | All services importing auth |
 
 ## 🔧 Configuration
@@ -108,37 +108,57 @@ async def expensive_operation(current_user: User = Depends(get_current_user)):
 
 | Method | Endpoint | Description | Rate Limit | Auth Required |
 |--------|----------|-------------|------------|---------------|
-| `POST` | `/auth/register` | Register new user account | 5/hour | No |
-| `POST` | `/auth/login` | User login with JWT tokens | 10/15min | No |
+| `POST` | `/auth/email/signup` | Register with email/password | 5/hour | No |
+| `POST` | `/auth/email/signin` | Login with email/password | 10/15min | No |
+| `POST` | `/auth/google/signin` | Google OAuth sign-in | 10/15min | No |
+| `POST` | `/auth/apple/signin` | Apple Sign-in | 10/15min | No |
+| `POST` | `/auth/email/send-verification` | Send email verification | 3/hour | No |
+| `POST` | `/auth/email/verify` | Verify email token | No limit | No |
+| `POST` | `/auth/password/reset` | Request password reset | 3/hour | No |
+| `POST` | `/auth/password/reset/confirm` | Confirm password reset | No limit | No |
 | `POST` | `/auth/refresh` | Refresh access token | 20/hour | Refresh token |
-| `POST` | `/auth/logout` | Logout and blacklist token | No limit | Yes |
+| `POST` | `/auth/logout` | Logout and invalidate tokens | No limit | Yes |
 | `GET` | `/auth/me` | Get current user info | No limit | Yes |
-| `GET` | `/auth/users` | List all users | No limit | Admin only |
-| `PUT` | `/auth/users/{id}/role` | Change user role | No limit | Admin only |
-| `PUT` | `/auth/users/{id}/status` | Activate/deactivate user | No limit | Admin only |
 | `GET` | `/auth/health` | Auth service health check | No limit | No |
 
 ### Example Requests
 
-#### Register User
+#### Email Signup
 ```bash
-curl -X POST "http://localhost:8000/auth/register" \
+curl -X POST "http://localhost:8000/auth/email/signup" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "username": "newuser",
     "password": "securepass123",
-    "role": "user"
+    "display_name": "John Doe"
   }'
 ```
 
-#### Login
+#### Email Login
 ```bash
-curl -X POST "http://localhost:8000/auth/login" \
+curl -X POST "http://localhost:8000/auth/email/signin" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
     "password": "securepass123"
+  }'
+```
+
+#### Google OAuth Sign-in
+```bash
+curl -X POST "http://localhost:8000/auth/google/signin" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_token": "GOOGLE_ID_TOKEN_HERE"
+  }'
+```
+
+#### Send Email Verification
+```bash
+curl -X POST "http://localhost:8000/auth/email/send-verification" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com"
   }'
 ```
 
@@ -153,12 +173,14 @@ curl -X GET "http://localhost:8000/auth/me" \
 ### Current Security Measures
 
 1. **Password Hashing**: bcrypt with salt for secure password storage
-2. **JWT Tokens**: Access and refresh token system
-3. **Token Blacklisting**: Logout invalidates tokens (requires Redis)
-4. **Rate Limiting**: Prevents brute force attacks
-5. **Role-Based Access**: Admin, User, Guest roles
-6. **Input Validation**: Pydantic models for request validation
-7. **Account Management**: User activation/deactivation
+2. **JWT Tokens**: Access and refresh token system with automatic expiration
+3. **OAuth 2.0**: Google and Apple Sign-in integration
+4. **Email Verification**: Secure email verification flow with expiring tokens
+5. **Password Reset**: Secure password reset with time-limited tokens
+6. **Token Management**: Secure token storage and automatic refresh
+7. **Rate Limiting**: Prevents brute force attacks on sensitive endpoints
+8. **Input Validation**: Comprehensive Pydantic models for all requests
+9. **Secure Storage**: Platform-specific secure storage (Keychain/Keystore)
 
 ### Security Best Practices
 

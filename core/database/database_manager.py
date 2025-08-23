@@ -149,7 +149,7 @@ class DatabaseManager:
         self.metrics = DatabaseMetrics()
         self._health_cache = {}
         self._health_cache_timeout = 30  # Cache health for 30 seconds
-        self._lock = asyncio.Lock()
+        self._lock = asyncio.Lock() 
     
     async def initialize(self) -> bool:
         """

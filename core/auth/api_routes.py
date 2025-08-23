@@ -8,7 +8,7 @@ Supports both mobile and web clients with proper Apple App Store compliance.
 import logging
 from typing import Dict, Any, Optional, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -21,7 +21,9 @@ from ..payments.apple_store_manager import AppleStoreManager, AppleStoreError
 from ..payments.stripe_manager import StripeManager, StripePaymentError
 from ..database.models.user import (
     User, UserCreate, UserUpdate, IdentityProvider,
-    UserEntitlementsResponse, LibraryEntryResponse, UserLibraryResponse
+    UserEntitlementsResponse, LibraryEntryResponse, UserLibraryResponse,
+    EmailVerificationRequest, EmailVerificationResponse, EmailVerifyTokenRequest,
+    PasswordResetRequest, PasswordResetResponse, PasswordResetConfirmRequest, PasswordResetConfirmResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -434,6 +436,307 @@ async def get_stripe_subscription(current_user: User = Depends(get_current_user)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get subscription info"
+        )
+
+
+# =====================================================
+# EMAIL VERIFICATION ENDPOINTS
+# =====================================================
+
+@router.post("/email/send-verification", response_model=EmailVerificationResponse)
+async def send_verification_email_endpoint(
+    request: EmailVerificationRequest,
+    current_user: User = Depends(get_optional_user_verified)
+):
+    """Send email verification email"""
+    try:
+        # Import here to avoid circular imports
+        from ..services.email_service import get_email_service
+        from ..database.database_manager import get_database_manager
+        
+        email_service = get_email_service()
+        db_manager = await get_database_manager()
+        
+        # Generate verification token
+        token = email_service.generate_verification_token()
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+        
+        # If user is logged in, update their record
+        if current_user:
+            # Update user's verification token
+            await db_manager.execute_query(
+                """
+                UPDATE users 
+                SET email_verification_token = %s,
+                    email_verification_expires_at = %s,
+                    updated_at = %s
+                WHERE id = %s
+                """,
+                (token, expires_at, datetime.utcnow(), current_user.id)
+            )
+            
+            user_name = current_user.display_name
+            email = current_user.email or request.email
+        else:
+            # For non-authenticated requests, check if user exists
+            result = await db_manager.execute_query(
+                "SELECT id, display_name, email FROM users WHERE email = %s",
+                (request.email,)
+            )
+            
+            if not result:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No account found with this email address"
+                )
+            
+            user = result[0]
+            # Update verification token
+            await db_manager.execute_query(
+                """
+                UPDATE users 
+                SET email_verification_token = %s,
+                    email_verification_expires_at = %s,
+                    updated_at = %s
+                WHERE email = %s
+                """,
+                (token, expires_at, datetime.utcnow(), request.email)
+            )
+            
+            user_name = user['display_name']
+            email = request.email
+        
+        # Send verification email
+        success = await email_service.send_verification_email(
+            email=email,
+            verification_token=token,
+            user_name=user_name
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send verification email"
+            )
+        
+        logger.info(f"Verification email sent to: {email}")
+        
+        return EmailVerificationResponse(
+            message="Verification email sent successfully",
+            email=email,
+            expires_at=expires_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email"
+        )
+
+
+@router.post("/email/verify")
+async def verify_email_endpoint(request: EmailVerifyTokenRequest):
+    """Verify email address with token"""
+    try:
+        from ..database.database_manager import get_database_manager
+        from ..services.email_service import get_email_service
+        
+        db_manager = await get_database_manager()
+        
+        # Find user with this verification token
+        result = await db_manager.execute_query(
+            """
+            SELECT id, email, display_name, email_verification_expires_at
+            FROM users 
+            WHERE email_verification_token = %s
+            AND email_verification_expires_at > %s
+            """,
+            (request.token, datetime.utcnow())
+        )
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired verification token"
+            )
+        
+        user = result[0]
+        
+        # Mark email as verified and clear tokens
+        await db_manager.execute_query(
+            """
+            UPDATE users 
+            SET email_verified = TRUE,
+                email_verification_token = NULL,
+                email_verification_expires_at = NULL,
+                updated_at = %s
+            WHERE id = %s
+            """,
+            (datetime.utcnow(), user['id'])
+        )
+        
+        # Send welcome email
+        email_service = get_email_service()
+        await email_service.send_welcome_email(
+            email=user['email'],
+            user_name=user['display_name'] or "User"
+        )
+        
+        logger.info(f"Email verified successfully for user: {user['id']}")
+        
+        return {
+            "message": "Email verified successfully",
+            "user_id": str(user['id'])
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email verification failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Email verification failed"
+        )
+
+
+@router.post("/password/reset", response_model=PasswordResetResponse) 
+async def request_password_reset(request: PasswordResetRequest):
+    """Request password reset email"""
+    try:
+        from ..services.email_service import get_email_service
+        from ..database.database_manager import get_database_manager
+        
+        db_manager = await get_database_manager()
+        email_service = get_email_service()
+        
+        # Find user by email
+        result = await db_manager.execute_query(
+            "SELECT id, display_name, email FROM users WHERE email = %s",
+            (request.email,)
+        )
+        
+        if not result:
+            # For security, return success even if email not found
+            # This prevents email enumeration attacks
+            return PasswordResetResponse(
+                message="If an account with this email exists, a password reset link has been sent",
+                email=request.email,
+                expires_at=datetime.utcnow() + timedelta(hours=1)
+            )
+        
+        user = result[0]
+        
+        # Generate reset token
+        token = email_service.generate_reset_token()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+        
+        # Update user's reset token
+        await db_manager.execute_query(
+            """
+            UPDATE users
+            SET password_reset_token = %s,
+                password_reset_expires_at = %s,
+                updated_at = %s
+            WHERE id = %s
+            """,
+            (token, expires_at, datetime.utcnow(), user['id'])
+        )
+        
+        # Send reset email
+        success = await email_service.send_password_reset_email(
+            email=request.email,
+            reset_token=token,
+            user_name=user['display_name']
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to send password reset email"
+            )
+        
+        logger.info(f"Password reset email sent to: {request.email}")
+        
+        return PasswordResetResponse(
+            message="Password reset link sent successfully",
+            email=request.email,
+            expires_at=expires_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password reset request failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process password reset request"
+        )
+
+
+@router.post("/password/reset/confirm", response_model=PasswordResetConfirmResponse)
+async def confirm_password_reset(request: PasswordResetConfirmRequest):
+    """Confirm password reset with token"""
+    try:
+        from ..database.database_manager import get_database_manager
+        import bcrypt
+        
+        db_manager = await get_database_manager()
+        
+        # Find user with this reset token
+        result = await db_manager.execute_query(
+            """
+            SELECT id, email, display_name, password_reset_expires_at
+            FROM users
+            WHERE password_reset_token = %s
+            AND password_reset_expires_at > %s
+            """,
+            (request.token, datetime.utcnow())
+        )
+        
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+        
+        user = result[0]
+        
+        # Hash new password
+        password_hash = bcrypt.hashpw(
+            request.new_password.encode('utf-8'), 
+            bcrypt.gensalt()
+        ).decode('utf-8')
+        
+        # Update password and clear reset tokens
+        await db_manager.execute_query(
+            """
+            UPDATE users
+            SET password_hash = %s,
+                password_reset_token = NULL,
+                password_reset_expires_at = NULL,
+                updated_at = %s
+            WHERE id = %s
+            """,
+            (password_hash, datetime.utcnow(), user['id'])
+        )
+        
+        logger.info(f"Password reset completed for user: {user['id']}")
+        
+        return PasswordResetConfirmResponse(
+            message="Password reset successfully",
+            user_id=str(user['id'])
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Password reset confirmation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password reset confirmation failed"
         )
 
 

@@ -76,7 +76,7 @@ The EchoWright web interface has been completely redesigned with a retro space-r
 ## Component Architecture
 
 ### Navigation (`space-nav`)
-- Skewed panel design with scanning animation
+- Skewed panel design with scanning animation FIX THIS: no skew please
 - Logo with orbital animation system
 - Status indicators showing system health
 

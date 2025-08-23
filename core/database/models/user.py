@@ -69,6 +69,15 @@ class User:
     updated_at: datetime
     deleted_at: Optional[datetime] = None
     
+    # Email verification fields
+    email_verified: bool = False
+    email_verification_token: Optional[str] = None
+    email_verification_expires_at: Optional[datetime] = None
+    
+    # Password reset fields
+    password_reset_token: Optional[str] = None
+    password_reset_expires_at: Optional[datetime] = None
+    
     @property
     def is_active(self) -> bool:
         """Check if user account is active"""
@@ -82,7 +91,8 @@ class User:
             "display_name": self.display_name,
             "avatar_url": self.avatar_url,
             "created_at": self.created_at.isoformat(),
-            "is_active": self.is_active
+            "is_active": self.is_active,
+            "email_verified": self.email_verified
         }
 
 
@@ -378,3 +388,70 @@ def calculate_trial_period(days: int = 7) -> tuple[datetime, datetime]:
     start = datetime.now(timezone.utc)
     end = start.replace(hour=23, minute=59, second=59) + timedelta(days=days)
     return start, end
+
+
+# =====================================================
+# EMAIL VERIFICATION MODELS
+# =====================================================
+
+class EmailVerificationRequest(BaseModel):
+    """Request to send verification email"""
+    email: EmailStr = Field(..., description="Email address to verify")
+
+
+class EmailVerificationResponse(BaseModel):
+    """Response for email verification request"""
+    message: str
+    email: str
+    expires_at: datetime
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class EmailVerifyTokenRequest(BaseModel):
+    """Request to verify email with token"""
+    token: str = Field(..., description="Email verification token")
+
+
+class PasswordResetRequest(BaseModel):
+    """Request to reset password"""
+    email: EmailStr = Field(..., description="Email address for password reset")
+
+
+class PasswordResetResponse(BaseModel):
+    """Response for password reset request"""
+    message: str
+    email: str
+    expires_at: datetime
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat()
+        }
+
+
+class PasswordResetConfirmRequest(BaseModel):
+    """Request to confirm password reset"""
+    token: str = Field(..., description="Password reset token")
+    new_password: str = Field(..., min_length=8, description="New password")
+    
+    @validator('new_password')
+    def validate_password(cls, v):
+        if len(v) < 8:
+            raise ValueError('Password must be at least 8 characters long')
+        if not any(c.isupper() for c in v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not any(c.islower() for c in v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('Password must contain at least one digit')
+        return v
+
+
+class PasswordResetConfirmResponse(BaseModel):
+    """Response for password reset confirmation"""
+    message: str
+    user_id: str
