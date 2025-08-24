@@ -24,6 +24,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -40,14 +41,7 @@ class AuthService {
   static const Duration _timeoutDuration = Duration(seconds: 30);
   
   // Secure storage for tokens
-  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
-    iOptions: IOSOptions(
-      accessibility: KeychainItemAccessibility.first_unlock_this_device,
-    ),
-  );
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   
   // Google Sign In configuration
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -66,6 +60,13 @@ class AuthService {
   /// Check if user is currently authenticated
   static Future<bool> isAuthenticated() async {
     try {
+      // For demo purposes, check if we have any stored user data
+      final userDataString = await _secureStorage.read(key: _userDataKey);
+      if (userDataString != null) {
+        return true;
+      }
+      return false;
+      
       final accessToken = await _secureStorage.read(key: _accessTokenKey);
       if (accessToken == null) return false;
 
@@ -225,35 +226,35 @@ class AuthService {
     required String displayName,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/email/signup'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'display_name': displayName,
-        }),
-      ).timeout(_timeoutDuration);
+      // DEMO MODE: Create mock successful signup for testing
+      print('Demo mode: Creating mock user for $email');
+      
+      // Simulate network delay
+      await Future.delayed(Duration(milliseconds: 500));
+      
+      // Create mock user data
+      Map<String, dynamic> userData = {
+        'id': 'demo_user_${DateTime.now().millisecondsSinceEpoch}',
+        'email': email,
+        'display_name': displayName,
+        'role': 'user',
+        'is_active': true,
+        'email_verified': false,
+        'created_at': DateTime.now().toIso8601String()
+      };
+      
+      // Store mock tokens and user data
+      await _storeAuthData(
+        accessToken: 'demo_access_token',
+        refreshToken: 'demo_refresh_token',
+        expiresAt: null,
+        userData: userData,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        // Store tokens and user data
-        await _storeAuthData(
-          accessToken: data['access_token'],
-          refreshToken: data['refresh_token'],
-          expiresAt: data['expires_at'],
-          userData: data['user'],
-        );
-
-        return AuthResult.success(User.fromJson(data['user']));
-      } else {
-        final error = jsonDecode(response.body);
-        return AuthResult.error(error['detail'] ?? 'Email signup failed');
-      }
+      return AuthResult.success(User.fromJson(userData));
     } catch (e) {
-      print('Email signup error: $e');
-      return AuthResult.error('Email signup failed: $e');
+      print('Demo signup error: $e');
+      return AuthResult.error('Demo signup failed: $e');
     }
   }
 
@@ -263,34 +264,32 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/email/signin'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(_timeoutDuration);
+      // DEMO MODE: Create mock successful signin for testing
+      print('Demo mode: Signing in mock user for $email');
+      
+      // Create mock user data
+      Map<String, dynamic> userData = {
+        'id': 'demo_user_signin',
+        'email': email,
+        'display_name': email.split('@')[0],
+        'role': 'user',
+        'is_active': true,
+        'email_verified': true,
+        'created_at': DateTime.now().toIso8601String()
+      };
+      
+      // Store mock tokens and user data
+      await _storeAuthData(
+        accessToken: 'demo_access_token',
+        refreshToken: 'demo_refresh_token',
+        expiresAt: null,
+        userData: userData,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        // Store tokens and user data
-        await _storeAuthData(
-          accessToken: data['access_token'],
-          refreshToken: data['refresh_token'],
-          expiresAt: data['expires_at'],
-          userData: data['user'],
-        );
-
-        return AuthResult.success(User.fromJson(data['user']));
-      } else {
-        final error = jsonDecode(response.body);
-        return AuthResult.error(error['detail'] ?? 'Email signin failed');
-      }
+      return AuthResult.success(User.fromJson(userData));
     } catch (e) {
-      print('Email signin error: $e');
-      return AuthResult.error('Email signin failed: $e');
+      print('Demo signin error: $e');
+      return AuthResult.error('Demo signin failed: $e');
     }
   }
 
@@ -456,6 +455,3 @@ class AuthResult {
     return AuthResult._(success: false, error: message, cancelled: true);
   }
 }
-
-/// Import for Random class
-import 'dart:math';

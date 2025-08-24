@@ -41,13 +41,15 @@ class User {
   /// Create User from API JSON response
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as String,
+      id: (json['id'] ?? json['user_id'] ?? 'unknown') as String,
       email: json['email'] as String?,
       displayName: json['display_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       emailVerified: json['email_verified'] as bool? ?? false,
       isActive: json['is_active'] as bool? ?? true,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
       subscription: json['subscription'] != null 
           ? SubscriptionInfo.fromJson(json['subscription'])
           : null,

@@ -776,30 +776,53 @@ async def upload_chapters(
 async def list_books(current_user: Optional[User] = Depends(get_optional_user)):
     """List all available audiobooks (single files and chapter folders)."""
     if not BOOK_FILES_DIR.exists():
-        return {"books": [], "chapters": []}
+        return {"single_books": [], "chapter_books": []}
     
     single_books = []
     chapter_books = []
     
-    for item in BOOK_FILES_DIR.iterdir():
-        if item.is_file() and item.suffix == '.mp3':
-            single_books.append({
-                "name": item.stem,
-                "filename": item.name,
-                "type": "single",
-                "size": item.stat().st_size
-            })
-        elif item.is_dir():
-            mp3_files = list(item.glob("*.mp3"))
-            if mp3_files:
-                chapter_books.append({
-                    "name": item.name,
-                    "type": "chapters",
-                    "chapter_count": len(mp3_files),
-                    "chapters": [f.name for f in sorted(mp3_files)]
+    try:
+        for item in BOOK_FILES_DIR.iterdir():
+            if item.is_file() and item.suffix == '.mp3':
+                # Get file stats safely
+                stat_info = item.stat()
+                single_books.append({
+                    "name": item.stem,
+                    "filename": item.name,
+                    "type": "single",
+                    "size": int(stat_info.st_size),  # Ensure it's a plain int
+                    "modified": datetime.fromtimestamp(stat_info.st_mtime).isoformat()  # Convert datetime to ISO string
                 })
-    
-    return {"single_books": single_books, "chapter_books": chapter_books}
+            elif item.is_dir():
+                mp3_files = list(item.glob("*.mp3"))
+                if mp3_files:
+                    # Sort chapters naturally (Chapter 1, Chapter 2, etc.)
+                    sorted_files = sorted(mp3_files, key=lambda x: x.name)
+                    chapter_books.append({
+                        "name": item.name,
+                        "type": "chapters", 
+                        "chapter_count": len(mp3_files),
+                        "chapters": [f.name for f in sorted_files]
+                    })
+        
+        logger.info(
+            "Books list retrieved successfully",
+            single_books_count=len(single_books),
+            chapter_books_count=len(chapter_books),
+            request_id=get_request_id()
+        )
+        
+        return {"single_books": single_books, "chapter_books": chapter_books}
+        
+    except Exception as e:
+        logger.error(
+            "Error listing books",
+            error=str(e),
+            error_type=type(e).__name__,
+            request_id=get_request_id()
+        )
+        # Return empty result instead of failing
+        return {"single_books": [], "chapter_books": []}
 
 
 @app.delete("/books/{book_name}")

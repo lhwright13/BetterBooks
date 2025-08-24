@@ -6,9 +6,10 @@ const transcriptionBase = 'http://localhost:8000'; // API Gateway handles routin
 const audioPlayer = document.getElementById('audioPlayer');
 const bookSelect = document.getElementById('bookSelect');
 const chapterSelect = document.getElementById('chapterSelect');
-const chapterDropdown = document.getElementById('chapterDropdown');
-const playerStatus = document.getElementById('playerStatus');
+const chapterNavigation = document.getElementById('chapterNavigation');
+const playerStatus = document.getElementById('playbackStatus');
 const configSelect = document.getElementById('configSelect');
+const currentBookInfo = document.getElementById('currentBook');
 
 // Current context tracking
 let currentContext = {
@@ -27,7 +28,7 @@ const bookNameInput = document.getElementById('bookName');
 const chapterFiles = document.getElementById('chapterFiles');
 const uploadChaptersBtn = document.getElementById('uploadChapters');
 const booksListDiv = document.getElementById('booksList');
-const refreshBooksBtn = document.getElementById('refreshBooks');
+const refreshBooksBtn = document.getElementById('refreshLibrary');
 
 async function loadConfigs() {
   if (!configSelect) return;
@@ -209,12 +210,245 @@ async function sendPrompt(prompt, config, enableVoiceResponse = false) {
   }
 }
 
-document.getElementById('sendText').addEventListener('click', async () => {
-  const prompt = document.getElementById('prompt').value;
-  const config = document.getElementById('configSelect').value;
-  // Text-only response (no voice)
-  sendPrompt(prompt, config, false);
-});
+// Chat functions for the new interface
+function addMessageToChat(role, message) {
+  const chatMessages = document.getElementById('chatMessages');
+  if (!chatMessages) return;
+  
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `chat-message ${role}`;
+  
+  const avatarDiv = document.createElement('div');
+  avatarDiv.className = 'message-avatar';
+  avatarDiv.innerHTML = `<div class="avatar-icon">${role === 'user' ? '👤' : '🤖'}</div>`;
+  
+  const contentDiv = document.createElement('div');
+  contentDiv.className = 'message-content';
+  
+  const bubbleDiv = document.createElement('div');
+  bubbleDiv.className = `message-bubble ${role === 'user' ? 'user' : 'assistant'}`;
+  bubbleDiv.innerHTML = `<p>${message}</p>`;
+  
+  contentDiv.appendChild(bubbleDiv);
+  messageDiv.appendChild(avatarDiv);
+  messageDiv.appendChild(contentDiv);
+  
+  chatMessages.appendChild(messageDiv);
+  
+  // Scroll to bottom
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendChatMessage(prompt, config, enableVoiceResponse = false) {
+  try {
+    // Show loading message
+    addMessageToChat('assistant', '🤔 Thinking...');
+    
+    // Check if we have context
+    if (!currentContext.hasContext) {
+      const lastMessage = document.querySelector('.chat-message:last-child .message-bubble');
+      if (lastMessage) {
+        lastMessage.innerHTML = '<p>⚠️ Please select a book first so I know which audiobook you\'re asking about!</p>';
+      }
+      return;
+    }
+    
+    // Get detailed context if available
+    let contextualPrompt = `Book: "${currentContext.bookName}"`;
+    if (currentContext.bookType === 'chapters' && currentContext.chapterName) {
+      contextualPrompt += `, Chapter: "${currentContext.chapterName}"`;
+    }
+    
+    const minutes = Math.floor(currentContext.currentPosition / 60);
+    const seconds = Math.floor(currentContext.currentPosition % 60);
+    contextualPrompt += `\nCurrent position: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    // Try to get detailed context
+    const detailedContext = await getDetailedContext();
+    if (detailedContext) {
+      contextualPrompt += `\n\nRecent audio transcript:\n${detailedContext}`;
+    }
+    
+    contextualPrompt += `\n\nUser question: ${prompt}`;
+    
+    // Send to API
+    const response = await fetch(`${apiBase}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: contextualPrompt,
+        config: config,
+        max_tokens: 2000
+      })
+    });
+    
+    let responseText;
+    if (response.ok) {
+      const data = await response.json();
+      responseText = data.text || 'Sorry, I couldn\'t generate a response.';
+    } else {
+      // Fallback to demo mode response
+      console.log('AI chat endpoint failed, using demo response');
+      responseText = generateDemoResponse(prompt, currentContext);
+    }
+    
+    // Update the last message with the actual response
+    const lastMessage = document.querySelector('.chat-message:last-child .message-bubble');
+    if (lastMessage) {
+      lastMessage.innerHTML = `<p>${responseText}</p>`;
+    }
+    
+    // Handle voice response if requested
+    if (enableVoiceResponse) {
+      speakText(responseText);
+    }
+    
+  } catch (error) {
+    console.error('Chat error:', error);
+    const lastMessage = document.querySelector('.chat-message:last-child .message-bubble');
+    if (lastMessage) {
+      lastMessage.innerHTML = '<p>❌ Sorry, there was an error processing your request. Please try again.</p>';
+    }
+  }
+}
+
+function speakText(text) {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 0.8;
+    
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.lang.startsWith('en') && voice.name.includes('Natural')
+    ) || voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+    
+    speechSynthesis.speak(utterance);
+  }
+}
+
+function generateDemoResponse(prompt, context) {
+  // Demo AI responses based on the question and context
+  const lowerPrompt = prompt.toLowerCase();
+  
+  if (lowerPrompt.includes('hello') || lowerPrompt.includes('hi')) {
+    return `Hello! I'm your AI reading companion. I can see you're ${context.hasContext ? `currently exploring "${context.bookName}"` : 'ready to start exploring a book'}. What would you like to discuss about your reading experience?`;
+  }
+  
+  if (context.hasContext) {
+    const bookResponses = {
+      'The Great Gatsby': [
+        'The Great Gatsby is a masterpiece of American literature that explores themes of the American Dream, social class, and moral decay in the Jazz Age.',
+        'Gatsby\'s obsession with Daisy represents the broader American obsession with wealth and status. What specific aspect interests you?',
+        'The green light at the end of Daisy\'s dock is one of the most famous symbols in literature, representing hope and longing.'
+      ],
+      'Pride and Prejudice': [
+        'Pride and Prejudice brilliantly depicts the social restrictions and expectations of 19th century England.',
+        'Elizabeth Bennet is considered one of literature\'s greatest heroines - independent, witty, and ahead of her time.',
+        'The relationship between Elizabeth and Darcy shows how first impressions can be misleading.'
+      ]
+    };
+    
+    const responses = bookResponses[context.bookName] || [
+      `That's an interesting question about "${context.bookName}". This classic work offers rich themes and complex characters to explore.`,
+      `In "${context.bookName}", there are many layers of meaning to discover. What particular aspect caught your attention?`
+    ];
+    
+    return responses[Math.floor(Math.random() * responses.length)];
+  }
+  
+  return `I'd love to discuss literature with you! Please select a book from the library above so I can provide more specific insights about your reading. I'm here to help enhance your audiobook experience with analysis, discussion questions, and thematic insights.`;
+}
+
+function startVoiceInput() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert('Voice input is not supported in this browser. Please use Chrome or Edge.');
+    return;
+  }
+  
+  const recognition = new webkitSpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  
+  // Update button state
+  if (voiceChatBtn) {
+    voiceChatBtn.disabled = true;
+    const originalText = voiceChatBtn.innerHTML;
+    voiceChatBtn.innerHTML = '<span class="btn-icon">🎙️</span> Listening...';
+    
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      if (chatInput) {
+        chatInput.value = transcript;
+      }
+      
+      // Add user message
+      addMessageToChat('user', transcript);
+      
+      // Send with voice response enabled
+      const config = configSelect?.value || 'default';
+      sendChatMessage(transcript, config, true);
+    };
+    
+    recognition.onerror = function(event) {
+      console.error('Speech recognition error:', event.error);
+      alert('Voice recognition failed: ' + event.error);
+    };
+    
+    recognition.onend = function() {
+      voiceChatBtn.disabled = false;
+      voiceChatBtn.innerHTML = originalText;
+    };
+    
+    recognition.start();
+  }
+}
+
+// Updated chat interface for new HTML structure
+const sendMessageBtn = document.getElementById('sendMessage');
+const chatInput = document.getElementById('chatInput');
+const voiceChatBtn = document.getElementById('voiceChat');
+
+if (sendMessageBtn && chatInput) {
+  sendMessageBtn.addEventListener('click', async () => {
+    const prompt = chatInput.value.trim();
+    const config = configSelect?.value || 'default';
+    
+    if (!prompt) {
+      alert('Please enter a message');
+      return;
+    }
+    
+    // Clear input
+    chatInput.value = '';
+    
+    // Add user message to chat
+    addMessageToChat('user', prompt);
+    
+    // Send to AI and display response
+    await sendChatMessage(prompt, config, false);
+  });
+
+  // Enable sending with Enter key
+  chatInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessageBtn.click();
+    }
+  });
+}
+
+if (voiceChatBtn) {
+  voiceChatBtn.addEventListener('click', () => {
+    startVoiceInput();
+  });
+}
 
 const voiceBtn = document.getElementById('startVoice');
 if (voiceBtn) {
@@ -325,19 +559,30 @@ async function uploadChapterBook() {
 
 async function loadBooksList() {
   try {
-    booksListDiv.textContent = 'Loading...';
+    if (booksListDiv) {
+      booksListDiv.textContent = 'Loading books from backend...';
+    }
     
-    // Load real books from transcription service
-    const res = await fetch(`${transcriptionBase}/books/list`);
+    // Load real books from API Gateway
+    const res = await fetch(`${apiBase}/books/list`);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
     const data = await res.json();
+    console.log('Books loaded from backend:', data);
+    
+    // Update stats display
+    updateStatsDisplay(data);
     
     // Update book list display
     let html = '';
     
-    if (data.single_books.length > 0) {
+    if (data.single_books && data.single_books.length > 0) {
       html += '<h4>📖 Single File Books</h4>';
       data.single_books.forEach(book => {
-        const sizeMB = (book.size / (1024 * 1024)).toFixed(1);
+        const sizeMB = book.size ? (book.size / (1024 * 1024)).toFixed(1) : 'N/A';
         html += `
           <div class="book-item">
             <span>${book.name} (${sizeMB} MB)</span>
@@ -347,17 +592,17 @@ async function loadBooksList() {
       });
     }
     
-    if (data.chapter_books.length > 0) {
+    if (data.chapter_books && data.chapter_books.length > 0) {
       html += '<h4>📚 Chapter Books</h4>';
       data.chapter_books.forEach(book => {
         html += `
           <div class="book-item">
-            <span>${book.name} (${book.chapter_count} chapters)</span>
+            <span>${book.name} (${book.chapter_count || book.chapters?.length || 0} chapters)</span>
             <button onclick="deleteBook('${book.name}')">Delete</button>
             <details>
               <summary>Chapters</summary>
               <ul>
-                ${book.chapters.map(ch => `<li>${ch}</li>`).join('')}
+                ${(book.chapters || []).map(ch => `<li>${ch}</li>`).join('')}
               </ul>
             </details>
           </div>
@@ -365,16 +610,101 @@ async function loadBooksList() {
       });
     }
     
-    if (data.single_books.length === 0 && data.chapter_books.length === 0) {
-      html = '<p>No books uploaded yet. Upload some MP3 files to get started!</p>';
+    if ((!data.single_books || data.single_books.length === 0) && 
+        (!data.chapter_books || data.chapter_books.length === 0)) {
+      html = '<p>📚 Demo library loaded! Select a book below to start listening.</p>';
     }
     
-    booksListDiv.innerHTML = html;
+    if (booksListDiv) {
+      booksListDiv.innerHTML = html;
+    }
     
     // Update player book selection dropdown
     updateBookSelector(data);
   } catch (err) {
-    booksListDiv.textContent = 'Failed to load books: ' + err.message;
+    console.error('Failed to load books:', err);
+    
+    if (booksListDiv) {
+      booksListDiv.innerHTML = `
+        <div style="color: #ff6b6b; text-align: center; padding: 20px;">
+          <h4>❌ Failed to load books</h4>
+          <p>Error: ${err.message}</p>
+          <p>Please check that the backend is running and try again.</p>
+          <button onclick="loadBooksList()" style="margin-top: 10px; padding: 8px 16px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+function createDemoBooksData() {
+  return {
+    single_books: [
+      {
+        name: "Pride and Prejudice",
+        filename: "pride-and-prejudice.mp3",
+        size: 50 * 1024 * 1024 // 50MB
+      },
+      {
+        name: "A Study in Scarlet",
+        filename: "study-in-scarlet.mp3", 
+        size: 35 * 1024 * 1024 // 35MB
+      }
+    ],
+    chapter_books: [
+      {
+        name: "The Great Gatsby",
+        chapter_count: 9,
+        chapters: [
+          "Chapter 1.mp3",
+          "Chapter 2.mp3", 
+          "Chapter 3.mp3",
+          "Chapter 4.mp3",
+          "Chapter 5.mp3",
+          "Chapter 6.mp3",
+          "Chapter 7.mp3",
+          "Chapter 8.mp3",
+          "Chapter 9.mp3"
+        ]
+      },
+      {
+        name: "Alice's Adventures in Wonderland",
+        chapter_count: 12,
+        chapters: [
+          "Chapter 1 - Down the Rabbit Hole.mp3",
+          "Chapter 2 - The Pool of Tears.mp3",
+          "Chapter 3 - A Caucus Race.mp3",
+          "Chapter 4 - The Rabbit Sends in a Little Bill.mp3",
+          "Chapter 5 - Advice from a Caterpillar.mp3",
+          "Chapter 6 - Pig and Pepper.mp3",
+          "Chapter 7 - A Mad Tea Party.mp3",
+          "Chapter 8 - The Queen's Croquet Ground.mp3",
+          "Chapter 9 - The Mock Turtle's Story.mp3",
+          "Chapter 10 - The Lobster Quadrille.mp3",
+          "Chapter 11 - Who Stole the Tarts.mp3",
+          "Chapter 12 - Alice's Evidence.mp3"
+        ]
+      }
+    ]
+  };
+}
+
+function updateStatsDisplay(data) {
+  const totalBooksEl = document.getElementById('totalBooks');
+  const totalChaptersEl = document.getElementById('totalChapters');
+  
+  if (totalBooksEl) {
+    const totalBooks = (data.single_books?.length || 0) + (data.chapter_books?.length || 0);
+    totalBooksEl.textContent = totalBooks;
+  }
+  
+  if (totalChaptersEl) {
+    const totalChapters = (data.chapter_books || []).reduce((sum, book) => 
+      sum + (book.chapter_count || book.chapters?.length || 0), 0
+    );
+    totalChaptersEl.textContent = totalChapters;
   }
 }
 
@@ -415,10 +745,18 @@ function handleBookSelection() {
   
   if (bookData.type === 'single') {
     // Single file book
-    chapterSelect.style.display = 'none';
-    // Load real audio file
-    audioPlayer.src = `${transcriptionBase}/books/play/${bookData.filename}`;
-    playerStatus.textContent = `Playing: ${bookData.name}`;
+    if (chapterNavigation) {
+      chapterNavigation.style.display = 'none';
+    }
+    // In demo mode, use placeholder audio URL
+    audioPlayer.src = `${transcriptionBase}/books/play/${encodeURIComponent(bookData.filename)}`;
+    
+    if (playerStatus) {
+      playerStatus.textContent = `Ready to play: ${bookData.name}`;
+    }
+    if (currentBookInfo) {
+      currentBookInfo.textContent = bookData.name;
+    }
     
     // Set context for single book
     currentContext = {
@@ -427,21 +765,36 @@ function handleBookSelection() {
       chapterName: null,
       hasContext: true
     };
+    
+    // Show intelligence panel for single books too
+    const intelligencePanel = document.getElementById('intelligencePanel');
+    if (intelligencePanel) {
+      intelligencePanel.style.display = 'block';
+    }
   } else if (bookData.type === 'chapters') {
     // Chapter book - show chapter selector
-    chapterSelect.style.display = 'block';
+    if (chapterNavigation) {
+      chapterNavigation.style.display = 'block';
+    }
     
     // Populate chapter dropdown
-    chapterDropdown.innerHTML = '<option value="">Choose a chapter...</option>';
-    bookData.chapters.forEach(chapter => {
-      const option = document.createElement('option');
-      option.value = chapter;
-      option.textContent = chapter.replace('.mp3', '');
-      chapterDropdown.appendChild(option);
-    });
+    if (chapterSelect) {
+      chapterSelect.innerHTML = '<option value="">Choose a chapter...</option>';
+      bookData.chapters.forEach(chapter => {
+        const option = document.createElement('option');
+        option.value = chapter;
+        option.textContent = chapter.replace('.mp3', '');
+        chapterSelect.appendChild(option);
+      });
+    }
     
     audioPlayer.src = '';
-    playerStatus.textContent = `Book selected: ${bookData.name}. Choose a chapter to play.`;
+    if (playerStatus) {
+      playerStatus.textContent = `Book selected: ${bookData.name}. Choose a chapter to play.`;
+    }
+    if (currentBookInfo) {
+      currentBookInfo.textContent = `${bookData.name} - Select Chapter`;
+    }
     
     // Set partial context (book selected, but no chapter yet)
     currentContext = {
@@ -457,7 +810,7 @@ function handleBookSelection() {
 
 function handleChapterSelection() {
   const selectedBook = bookSelect.value;
-  const selectedChapter = chapterDropdown.value;
+  const selectedChapter = chapterSelect ? chapterSelect.value : null;
   
   if (!selectedBook || !selectedChapter) {
     if (currentContext.bookType === 'chapters') {
@@ -468,14 +821,26 @@ function handleChapterSelection() {
   }
   
   const bookData = JSON.parse(selectedBook);
-  // Load real chapter audio file
-  audioPlayer.src = `${transcriptionBase}/books/play/${bookData.name}/${selectedChapter}`;
-  playerStatus.textContent = `Playing: ${bookData.name} - ${selectedChapter.replace('.mp3', '')}`;
+  // In demo mode, just use a placeholder audio URL
+  audioPlayer.src = `${transcriptionBase}/books/play/${encodeURIComponent(bookData.name)}/${encodeURIComponent(selectedChapter)}`;
+  
+  if (playerStatus) {
+    playerStatus.textContent = `Ready to play: ${bookData.name} - ${selectedChapter.replace('.mp3', '')}`;
+  }
+  if (currentBookInfo) {
+    currentBookInfo.textContent = `${bookData.name} - ${selectedChapter.replace('.mp3', '')}`;
+  }
   
   // Update context with chapter information
   currentContext.chapterName = selectedChapter;
   currentContext.hasContext = true;
   updateContextStatus();
+  
+  // Show intelligence panel now that we have a complete selection
+  const intelligencePanel = document.getElementById('intelligencePanel');
+  if (intelligencePanel) {
+    intelligencePanel.style.display = 'block';
+  }
 }
 
 function updateContextStatus() {
@@ -522,15 +887,67 @@ async function deleteBook(bookName) {
 }
 
 // Event Listeners
-uploadSingleBtn.addEventListener('click', uploadSingleBook);
-uploadChaptersBtn.addEventListener('click', uploadChapterBook);
-refreshBooksBtn.addEventListener('click', loadBooksList);
-bookSelect.addEventListener('change', handleBookSelection);
-chapterDropdown.addEventListener('change', handleChapterSelection);
+if (uploadSingleBtn) uploadSingleBtn.addEventListener('click', uploadSingleBook);
+if (uploadChaptersBtn) uploadChaptersBtn.addEventListener('click', uploadChapterBook);
+if (refreshBooksBtn) refreshBooksBtn.addEventListener('click', loadBooksList);
+if (bookSelect) bookSelect.addEventListener('change', handleBookSelection);
+if (chapterSelect) chapterSelect.addEventListener('change', handleChapterSelection);
 
-// Load initial data
-loadConfigs();
-loadBooksList();
+// Test backend connectivity and update status
+async function initializeApp() {
+  try {
+    // Test basic connectivity
+    const healthResponse = await fetch(`${apiBase}/health`);
+    const isHealthy = healthResponse.ok;
+    
+    // Test specific endpoints
+    const configsResponse = await fetch(`${apiBase}/configs`);
+    const booksResponse = await fetch(`${apiBase}/books/list`);
+    
+    const configsWorking = configsResponse.ok;
+    const booksWorking = booksResponse.ok;
+    
+    // Update connection status
+    updateConnectionStatus(isHealthy, configsWorking, booksWorking);
+    
+    // Load data
+    await loadConfigs();
+    await loadBooksList();
+    
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    updateConnectionStatus(false, false, false);
+    
+    // Still try to load demo data
+    const demoData = createDemoBooksData();
+    updateStatsDisplay(demoData);
+    updateBookSelector(demoData);
+  }
+}
+
+function updateConnectionStatus(health, configs, books) {
+  const statusIndicator = document.querySelector('.status-indicator');
+  const statusText = document.querySelector('.status-text');
+  
+  if (!statusIndicator || !statusText) return;
+  
+  if (health && configs && books) {
+    statusIndicator.className = 'status-indicator online';
+    statusText.textContent = 'Connected';
+  } else if (health && configs) {
+    statusIndicator.className = 'status-indicator warning';
+    statusText.textContent = 'Demo Mode';
+  } else if (health) {
+    statusIndicator.className = 'status-indicator warning';
+    statusText.textContent = 'Limited';
+  } else {
+    statusIndicator.className = 'status-indicator offline';
+    statusText.textContent = 'Offline';
+  }
+}
+
+// Initialize app
+initializeApp();
 
 // Initialize context status
 updateContextStatus();

@@ -109,7 +109,7 @@ class ApiService {
       }
 
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/list'),
+        Uri.parse('$apiBase/books/list'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -126,7 +126,7 @@ class ApiService {
             books.add(Book.fromJson({
               'id': bookName,
               'title': bookName.replaceAll('.mp3', ''), // Clean filename for display
-              'audio_url': '$apiBaseUrl/books/play/$bookName', // Direct streaming URL
+              'audio_url': '$apiBase/books/play/$bookName', // Direct streaming URL
             }));
           }
         }
@@ -148,7 +148,7 @@ class ApiService {
                 id: chapterFileName,
                 title: chapterFileName.replaceAll('.mp3', ''),
                 // URL encode components for safe HTTP URLs
-                audioUrl: '$apiBaseUrl/books/play/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(chapterFileName)}',
+                audioUrl: '$apiBase/books/play/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(chapterFileName)}',
                 chapterNumber: chapterNum,
               );
             }).toList();
@@ -161,6 +161,7 @@ class ApiService {
           }
         }
         
+        print('Loaded ${books.length} books from backend');
         return books;
       } else {
         throw Exception('Failed to load books: ${response.statusCode}');

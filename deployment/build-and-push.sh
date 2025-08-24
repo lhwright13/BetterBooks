@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# BetterBooks Docker Build and Push Script
+# EchoWright Docker Build and Push Script for Azure Container Registry
 
-PROJECT_ID="betterbooks-prod"
-REGISTRY="gcr.io/$PROJECT_ID"
+# Azure Container Registry configuration
+REGISTRY="betterbooksacr.azurecr.io"
 
-echo "🏗️ Building and pushing BetterBooks Docker images..."
+echo "🏗️ Building and pushing EchoWright Docker images to Azure Container Registry..."
 
-# Configure Docker for GCR
-gcloud auth configure-docker
+# Configure Docker for Azure Container Registry
+az acr login --name betterbooksacr
 
 # Services to build
 SERVICES=("api_gateway" "context_service" "llm_gateway" "tts_service" "transcription_service")
@@ -17,12 +17,11 @@ for service in "${SERVICES[@]}"
 do
     echo "📦 Building $service..."
     
-    # Build image
-    docker build -t "$REGISTRY/$service:latest" -f "./platform/backend/services/$service/Dockerfile" "./platform/backend/services/"
-    
-    # Push to registry
-    echo "⬆️ Pushing $service..."
-    docker push "$REGISTRY/$service:latest"
+    # Build image with platform specification for Azure compatibility
+    docker buildx build --platform linux/amd64 \
+        -f "./platform/backend/services/$service/Dockerfile" \
+        -t "$REGISTRY/$service:latest" \
+        "." --push
     
     echo "✅ $service complete"
 done
