@@ -36,27 +36,30 @@ from .pagination import (
     get_pagination_params, get_cursor_pagination_params,
     create_paginator, paginate_results
 )
-from .semantic_cache import (
-    SemanticCache, CacheType, CacheConfig, cache_response,
-    create_cache_instance, cache_llm_response, cache_embedding
-)
+# Temporarily disabled - missing numpy dependency
+# from .semantic_cache import (
+#     SemanticCache, CacheType, CacheConfig, cache_response,
+#     create_cache_instance, cache_llm_response, cache_embedding
+# )
 # New high-priority infrastructure components
 from .rate_limiter import (
     setup_rate_limiting, RateLimiter, RateLimitMiddleware,
     OperationType, SubscriptionTier, rate_limit_decorator,
     create_rate_limiter
 )
-from .usage_analytics import (
-    setup_usage_analytics, AnalyticsCollector, AnalyticsMiddleware,
-    EventType, UserType, ContentType, AnalyticsConfig,
-    create_analytics_collector
-)
-from .audio_pipeline import (
-    setup_audio_pipeline, AudioProcessor, AudioConfig,
-    AudioFormat, StreamingQuality, ProcessingMode,
-    ChapterMarker, AudioChunk, VoiceActivity,
-    create_audio_processor
-)
+# Temporarily disabled - dataclass issue
+# from .usage_analytics import (
+#     setup_usage_analytics, AnalyticsCollector, AnalyticsMiddleware,
+#     EventType, UserType, ContentType, AnalyticsConfig,
+#     create_analytics_collector
+# )
+# Temporarily disabled - missing numpy dependency
+# from .audio_pipeline import (
+#     setup_audio_pipeline, AudioProcessor, AudioConfig,
+#     AudioFormat, StreamingQuality, ProcessingMode,
+#     ChapterMarker, AudioChunk, VoiceActivity,
+#     create_audio_processor
+# )
 
 try:
     from .tracing import setup_tracing, get_development_tracing_config

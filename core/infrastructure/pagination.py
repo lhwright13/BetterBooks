@@ -78,7 +78,7 @@ class PaginationParams(BaseModel):
     page_size: int = Field(20, ge=1, le=100, description="Items per page")
     cursor: Optional[str] = Field(None, description="Cursor for cursor-based pagination")
     sort_by: Optional[str] = Field(None, description="Field to sort by")
-    sort_order: str = Field("asc", regex="^(asc|desc)$", description="Sort order")
+    sort_order: str = Field("asc", pattern="^(asc|desc)$", description="Sort order")
     
     @validator('page_size')
     def validate_page_size(cls, v, values):
@@ -95,7 +95,7 @@ class CursorPaginationParams(BaseModel):
     cursor: Optional[str] = Field(None, description="Pagination cursor")
     limit: int = Field(20, ge=1, le=100, description="Number of items to return")
     sort_by: Optional[str] = Field(None, description="Field to sort by")
-    sort_order: str = Field("asc", regex="^(asc|desc)$", description="Sort order")
+    sort_order: str = Field("asc", pattern="^(asc|desc)$", description="Sort order")
 
 
 class Paginator(Generic[T]):

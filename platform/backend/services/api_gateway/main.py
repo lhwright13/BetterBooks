@@ -86,6 +86,7 @@ from core.infrastructure.semantic_cache import create_cache_instance
 # Import authentication components  
 from core.auth.auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit, redis_client
 from auth_routes import auth_router
+from simple_bookstore_routes import router as bookstore_router
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -241,8 +242,19 @@ if redis_client:
 else:
     logger.warning("Redis unavailable - rate limiting disabled")
 
-# Set up usage analytics
+# Set up database connection for bookstore services
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://betterbooks:betterbooks@postgres_primary:5432/betterbooks")
+
+# Initialize database manager for bookstore services
+try:
+    from core.database.database_manager import DatabaseManager
+    db_manager = DatabaseManager(DATABASE_URL)
+    logger.info("Database manager initialized for bookstore services")
+except Exception as e:
+    logger.error(f"Failed to initialize database manager: {e}")
+    db_manager = None
+
+# Set up usage analytics
 if redis_client and DATABASE_URL:
     analytics_config = AnalyticsConfig(
         enabled=os.getenv("ANALYTICS_ENABLED", "true").lower() == "true",
@@ -295,6 +307,9 @@ else:
 
 # Include authentication routes
 app.include_router(auth_router)
+
+# Include bookstore routes  
+app.include_router(bookstore_router)
 
 # Set up comprehensive health checks
 health_check = HealthCheck("api_gateway", "1.0.0")

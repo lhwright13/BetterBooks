@@ -34,5 +34,5 @@
 // Defaults to localhost for development, but can be overridden via build args
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'http://localhost:8002' // API Gateway port (updated to match current port forwarding)
+  defaultValue: 'http://localhost:8000' // API Gateway port
 );

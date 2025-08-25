@@ -7,15 +7,32 @@ EchoWright is an AI-powered audiobook companion platform that transforms the lis
 
 ## ✨ Features
 
+### Core AI Features
 - **🧠 AI-Powered Chapter Detection** - Automatically segments audiobooks with intelligent boundary detection
 - **📚 Smart Summaries** - Multiple summary styles (brief, detailed, themes, key points, Q&A)
 - **🤔 Personalized Questions** - Educational questions tailored to reading context and difficulty
 - **🎭 AI Personas** - Configurable AI companions (Teacher, Tutor, Character-based)
 - **🔍 Semantic Search** - Find content across books using natural language
+- **🎤 Speech Transcription** - Azure Speech Service powered audio transcription with language detection
+
+### E-commerce Platform
+- **📚 Digital Bookstore** - Complete audiobook catalog with purchases, credits, and gift cards
+- **💳 Payment Processing** - Stripe, PayPal, and Apple Pay integration with subscription tiers
+- **⭐ Reviews & Ratings** - User reviews, ratings, and social book discovery
+- **🤖 AI Recommendations** - Machine learning powered book suggestions and personalized collections
+- **📱 User Libraries** - Personal collections, wishlists, and download management
+
+### Authentication & Security
 - **🔐 JWT Authentication** - Secure user authentication with email/password and OAuth support
 - **👤 User Management** - Registration, login, profile management, and session handling
+- **🔒 Role-Based Access** - Admin, moderator, premium, and standard user permissions
+- **🛡️ Rate Limiting** - Subscription-tiered API limits and fraud protection
+
+### Platform Features
 - **📱 Cross-Platform** - Web demo and Flutter mobile app with full authentication integration
 - **🔧 Production-Ready** - Comprehensive monitoring, logging, and deployment tools
+- **🎵 Audio Streaming** - WebSocket-based real-time audio streaming and TTS synthesis
+- **📊 Analytics** - Real-time usage analytics and educational insights
 
 ## 🚀 Quick Start
 
@@ -61,7 +78,9 @@ EchoWright is an AI-powered audiobook companion platform that transforms the lis
 ```
 echowright/
 ├── core/                          # Core functionality modules
-│   ├── ai/                       # AI-powered features
+│   ├── ai/                       # AI-powered features (personas, summaries)
+│   ├── auth/                     # Authentication and authorization
+│   ├── bookstore/                # E-commerce and catalog management
 │   ├── database/                 # Database management and migrations
 │   ├── infrastructure/           # Logging, metrics, health checks
 │   └── shared/                   # Common utilities and models
@@ -89,6 +108,13 @@ echowright/
 - [Security Setup Guide](docs/setup/SECURITY_SETUP.md) - API keys and security configuration
 - [Local Development Guide](docs/setup/LOCAL_BACKEND_GUIDE.md) - Development environment setup
 - [Deployment Guide](docs/setup/AZURE_DEPLOYMENT_GUIDE.md) - Production deployment
+
+### Service Documentation
+- [API Gateway](platform/backend/services/api_gateway/README.md) - Central API gateway with authentication
+- [Transcription Service](platform/backend/services/transcription_service/README.md) - Azure Speech Service integration
+- [Core Auth Module](core/auth/README.md) - JWT authentication and user management
+- [Bookstore Module](core/bookstore/README.md) - E-commerce platform with payments and recommendations
+- [Mobile App](platform/mobile/mobile_app/README.md) - Flutter app with full authentication integration
 
 ### Architecture & Design
 - [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md) - High-level system design
