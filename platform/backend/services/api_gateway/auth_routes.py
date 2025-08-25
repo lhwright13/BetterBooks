@@ -19,7 +19,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 import logging
 from typing import List, Dict, Any
 
-from auth import (
+from core.auth.auth import (
     User, UserRegistration, UserLogin, TokenResponse, UserRole,
     create_user, authenticate_user, get_current_user, get_optional_user,
     require_role, require_admin, check_rate_limit,
@@ -131,7 +131,7 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Depends(secu
             )
         
         # Get user to ensure they still exist and are active
-        from auth import get_user_by_id
+        from core.auth.auth import get_user_by_id
         user = get_user_by_id(user_id)
         if not user or not user.is_active:
             raise HTTPException(
@@ -291,6 +291,24 @@ async def change_user_status(
         "user_id": user_id,
         "is_active": is_active
     }
+
+@auth_router.post("/google/signin")
+async def google_signin(request: Dict[str, Any]):
+    """Google OAuth sign-in endpoint (stub for mobile testing)"""
+    logger.info("Google sign-in attempt (stub)")
+    raise HTTPException(
+        status_code=501,
+        detail="Google OAuth integration not yet implemented. Please use email/password authentication."
+    )
+
+@auth_router.post("/apple/signin") 
+async def apple_signin(request: Dict[str, Any]):
+    """Apple Sign In endpoint (stub for mobile testing)"""
+    logger.info("Apple sign-in attempt (stub)")
+    raise HTTPException(
+        status_code=501,
+        detail="Apple Sign In integration not yet implemented. Please use email/password authentication."
+    )
 
 @auth_router.get("/health")
 async def auth_health():

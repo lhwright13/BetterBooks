@@ -1,6 +1,6 @@
 // Route all requests through API Gateway for proper load balancing and auth
-const apiBase = 'http://localhost:8000'; // API Gateway - routes to all services
-const transcriptionBase = 'http://localhost:8000'; // API Gateway handles routing to transcription service
+const apiBase = 'http://localhost:8002'; // API Gateway - routes to all services (updated to match current port forwarding)
+const transcriptionBase = 'http://localhost:8002'; // API Gateway handles routing to transcription service
 
 // Player elements
 const audioPlayer = document.getElementById('audioPlayer');

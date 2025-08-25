@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_state.dart';
+import '../providers/auth_provider.dart';
 import '../api_config.dart';
 import '../theme/retro_theme.dart';
 import '../widgets/space_background.dart';
@@ -25,8 +26,8 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Consumer<AppState>(
-        builder: (context, appState, child) {
+      body: Consumer2<AppState, AuthProvider>(
+        builder: (context, appState, authProvider, child) {
           return SafeArea(
             child: Padding(
               padding: EdgeInsets.all(SpaceSpacing.md),
@@ -34,7 +35,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Space Mission Control Header
-                  _buildSpaceMissionHeader(),
+                  _buildSpaceMissionHeader(authProvider),
                   SizedBox(height: SpaceSpacing.lg),
                   
                   // Main dashboard content
@@ -48,7 +49,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                             _buildCurrentBookCard(appState),
                             SizedBox(height: SpaceSpacing.xl),
                           ] else ...[
-                            _buildBookSelectCard(appState),
+                            _buildBookSelectCard(appState, authProvider),
                             SizedBox(height: SpaceSpacing.xl),
                           ],
                           
@@ -71,7 +72,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  Widget _buildSpaceMissionHeader() {
+  Widget _buildSpaceMissionHeader(AuthProvider authProvider) {
     return SpaceCommandPanel(
       accentColor: SpaceColors.tealBlue,
       child: Column(
@@ -282,7 +283,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  Widget _buildBookSelectCard(AppState appState) {
+  Widget _buildBookSelectCard(AppState appState, AuthProvider authProvider) {
     return SpaceCommandPanel(
       accentColor: SpaceColors.goldenYellow,
       child: Column(
@@ -290,7 +291,9 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
           EchoWrightLogo(size: 60, animate: true),
           SizedBox(height: SpaceSpacing.lg),
           Text(
-            'WELCOME TO ECHOWRIGHT',
+            authProvider.currentUser != null 
+                ? 'WELCOME BACK, ${authProvider.userDisplayName.toUpperCase()}'
+                : 'WELCOME TO ECHOWRIGHT',
             style: GoogleFonts.orbitron(
               fontSize: 18,
               fontWeight: FontWeight.w700,

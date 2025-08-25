@@ -90,6 +90,11 @@ class User(BaseModel):
     is_active: bool = True
     created_at: datetime
 
+    class Config:
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat()
+        }
+
 class UserRegistration(BaseModel):
     email: EmailStr
     username: str

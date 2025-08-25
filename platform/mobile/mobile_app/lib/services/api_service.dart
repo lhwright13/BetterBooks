@@ -41,6 +41,29 @@ class ApiService {
   static const Duration _timeoutDuration = Duration(seconds: 30); // Network timeout for all requests
   static String? _authToken; // Store auth token for API calls
 
+  /// Set authentication token for API requests
+  /// Should be called after successful login/authentication
+  static void setAuthToken(String token) {
+    _authToken = token;
+    print('ApiService: Auth token set');
+  }
+
+  /// Clear authentication token 
+  /// Should be called on logout or token expiry
+  static void clearAuthToken() {
+    _authToken = null;
+    print('ApiService: Auth token cleared');
+  }
+
+  /// Get current authentication token
+  /// Returns null if no token is set
+  static String? getAuthToken() {
+    return _authToken;
+  }
+
+  /// Check if user is authenticated (has valid token)
+  static bool get isAuthenticated => _authToken != null;
+
   /// Get authentication headers including Bearer token if available
   static Map<String, String> _getHeaders() {
     final headers = {'Content-Type': 'application/json'};
@@ -109,7 +132,7 @@ class ApiService {
       }
 
       final response = await http.get(
-        Uri.parse('$apiBase/books/list'),
+        Uri.parse('$apiBaseUrl/books/list'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -126,7 +149,7 @@ class ApiService {
             books.add(Book.fromJson({
               'id': bookName,
               'title': bookName.replaceAll('.mp3', ''), // Clean filename for display
-              'audio_url': '$apiBase/books/play/$bookName', // Direct streaming URL
+              'audio_url': '$apiBaseUrl/books/play/$bookName', // Direct streaming URL
             }));
           }
         }
@@ -148,7 +171,7 @@ class ApiService {
                 id: chapterFileName,
                 title: chapterFileName.replaceAll('.mp3', ''),
                 // URL encode components for safe HTTP URLs
-                audioUrl: '$apiBase/books/play/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(chapterFileName)}',
+                audioUrl: '$apiBaseUrl/books/play/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(chapterFileName)}',
                 chapterNumber: chapterNum,
               );
             }).toList();
@@ -178,7 +201,7 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/configs'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -207,7 +230,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/complete'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'prompt': message,
           'config': persona,
@@ -232,7 +255,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/tts'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'text': text,
           'config': persona,
@@ -257,7 +280,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/context'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'book_name': bookName,
           'chapter_name': chapterName,
@@ -283,7 +306,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/detect-chapters'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'book_name': bookName,
           'chapter_name': chapterName,
@@ -318,7 +341,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/summarize-chapter'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'book_name': bookName,
           'chapter_id': chapterId,
@@ -356,7 +379,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/generate-questions'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
         body: jsonEncode({
           'book_name': bookName,
           'chapter_id': chapterId,

@@ -1,7 +1,15 @@
-# API Authentication Guide
+# EchoWright API Authentication Guide
 
 ## Overview
-BetterBooks API uses JWT-based authentication with role-based access control (RBAC) for secure access to platform resources.
+EchoWright API uses JWT-based authentication with role-based access control (RBAC) for secure access to platform resources.
+
+**✅ Current Implementation Status:**
+- **JWT Authentication**: Fully implemented with access and refresh tokens
+- **Email/Password Auth**: Registration, login, and user management working
+- **Mobile Integration**: Complete Flutter app integration with secure storage  
+- **OAuth Stubs**: Google/Apple Sign In endpoints prepared for future implementation
+- **Rate Limiting**: Per-user and per-endpoint limits implemented
+- **Admin Controls**: User management and role-based access control
 
 ## Authentication Flow
 
@@ -12,9 +20,8 @@ Content-Type: application/json
 
 {
   "email": "user@example.com",
-  "username": "bookworm",
-  "password": "securePassword123",
-  "full_name": "John Doe"
+  "username": "bookworm", 
+  "password": "securePassword123"
 }
 ```
 
@@ -23,11 +30,16 @@ Content-Type: application/json
 {
   "message": "User registered successfully",
   "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "id": "user_123",
     "email": "user@example.com",
     "username": "bookworm",
-    "role": "user",
-    "created_at": "2025-01-13T10:00:00Z"
+    "role": "user"
+  },
+  "tokens": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "bearer",
+    "expires_in": 1800
   }
 }
 ```
@@ -49,13 +61,7 @@ Content-Type: application/json
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
-  "expires_in": 3600,
-  "user": {
-    "id": "123e4567-e89b-12d3-a456-426614174000",
-    "email": "user@example.com",
-    "username": "bookworm", 
-    "role": "user"
-  }
+  "expires_in": 1800
 }
 ```
 
@@ -75,13 +81,13 @@ Content-Type: application/json
 ## Token Management
 
 ### Access Tokens
-- **Lifetime**: 1 hour
+- **Lifetime**: 30 minutes
 - **Purpose**: Authenticate API requests
 - **Storage**: Client-side (memory preferred, not localStorage)
 - **Format**: JWT with user claims
 
 ### Refresh Tokens
-- **Lifetime**: 30 days
+- **Lifetime**: 7 days
 - **Purpose**: Obtain new access tokens
 - **Storage**: Secure HTTP-only cookies (web) or secure storage (mobile)
 - **Single Use**: Each refresh generates new access + refresh tokens

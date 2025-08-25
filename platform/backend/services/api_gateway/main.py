@@ -72,10 +72,20 @@ from core.infrastructure.error_handling import (
     setup_error_handling, ApplicationError, ValidationError,
     ExternalServiceError, TimeoutError, handle_external_service_error
 )
+from core.infrastructure.rate_limiter import (
+    setup_rate_limiting, RateLimitMiddleware, OperationType
+)
+from core.infrastructure.usage_analytics import (
+    setup_usage_analytics, AnalyticsCollector, EventType, AnalyticsConfig
+)
+from core.infrastructure.audio_pipeline import (
+    setup_audio_pipeline, AudioProcessor, AudioConfig
+)
+from core.infrastructure.semantic_cache import create_cache_instance
 
 # Import authentication components  
-from core.auth.auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit
-from core.auth.auth_routes import auth_router
+from core.auth.auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit, redis_client
+from auth_routes import auth_router
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -151,6 +161,31 @@ app = FastAPI(
 # Add logging middleware
 app.add_middleware(LoggingMiddleware, logger=logger)
 
+# Add user extraction middleware for rate limiting
+@app.middleware("http")
+async def extract_user_middleware(request: Request, call_next):
+    """Extract user information from auth headers for rate limiting."""
+    try:
+        # Try to extract user from Authorization header
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            from fastapi.security import HTTPAuthorizationCredentials
+            credentials = HTTPAuthorizationCredentials(
+                scheme="Bearer", 
+                credentials=auth_header[7:]  # Remove "Bearer " prefix
+            )
+            # Use get_optional_user that was imported
+            user = await get_optional_user(credentials)
+            if user:
+                request.state.user = user
+    except Exception as e:
+        # Don't fail the request if user extraction fails
+        logger.debug(f"User extraction failed: {e}")
+        pass
+    
+    response = await call_next(request)
+    return response
+
 # Add compression middleware  
 compression_middleware = CompressionMiddleware(
     app,
@@ -194,6 +229,69 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Set up rate limiting (after auth setup to access redis_client)
+if redis_client:
+    rate_limiter = setup_rate_limiting(
+        app, 
+        redis_client,
+        skip_paths=["/health", "/metrics", "/docs", "/openapi.json"]
+    )
+    logger.info("Rate limiting enabled with Redis backend")
+else:
+    logger.warning("Redis unavailable - rate limiting disabled")
+
+# Set up usage analytics
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://betterbooks:betterbooks@postgres_primary:5432/betterbooks")
+if redis_client and DATABASE_URL:
+    analytics_config = AnalyticsConfig(
+        enabled=os.getenv("ANALYTICS_ENABLED", "true").lower() == "true",
+        batch_size=int(os.getenv("ANALYTICS_BATCH_SIZE", "100")),
+        flush_interval=int(os.getenv("ANALYTICS_FLUSH_INTERVAL", "60")),
+        retention_days=int(os.getenv("ANALYTICS_RETENTION_DAYS", "365"))
+    )
+    
+    analytics_collector = setup_usage_analytics(
+        app,
+        redis_client,
+        DATABASE_URL,
+        config=analytics_config,
+        track_all_requests=False  # Only track specific endpoints
+    )
+    logger.info("Usage analytics enabled with PostgreSQL and Redis backend")
+else:
+    logger.warning("Database or Redis unavailable - usage analytics disabled")
+    analytics_collector = None
+
+# Set up audio pipeline (requires Redis for caching and buffering)
+if redis_client:
+    # Create semantic cache for audio caching (use database 3 for audio cache)
+    try:
+        # Create a separate Redis client for audio caching
+        audio_redis_client = redis.Redis.from_url(
+            os.getenv("REDIS_URL", "redis://redis:6379/0").replace("/0", "/3")
+        )
+        semantic_cache = create_cache_instance("redis://redis:6379/3")
+    except Exception as e:
+        logger.warning(f"Failed to create semantic cache: {e}")
+        semantic_cache = None
+    
+    audio_config = AudioConfig(
+        sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "22050")),
+        chunk_size=int(os.getenv("AUDIO_CHUNK_SIZE", "1024")),
+        quality=os.getenv("AUDIO_QUALITY", "medium")
+    )
+    
+    audio_processor = setup_audio_pipeline(
+        app,
+        redis_client,
+        cache=semantic_cache,
+        config=audio_config
+    )
+    logger.info("Audio pipeline enabled with WebSocket and caching support")
+else:
+    logger.warning("Redis unavailable - audio pipeline disabled")
+    audio_processor = None
 
 # Include authentication routes
 app.include_router(auth_router)
@@ -275,9 +373,21 @@ class ContextRequest(BaseModel):
 @app.post("/complete")
 async def complete(
     prompt: Prompt,
-    current_user: Optional[User] = Depends(get_optional_user)
+    current_user: Optional[User] = Depends(get_optional_user),
+    request: Request = None
 ) -> dict:
     """Proxy text completion requests to the LLM Gateway with authentication."""
+    
+    # Track AI interaction start
+    if analytics_collector:
+        await analytics_collector.collect_event(
+            EventType.AI_CONVERSATION_START,
+            user=current_user,
+            request=request,
+            persona_id=prompt.config,
+            prompt_length=len(prompt.text),
+            content_type="llm_completion"
+        )
     
     # Create a custom span for the complete operation
     with tracer.start_as_current_span("api_gateway.complete") as span:
@@ -336,7 +446,21 @@ async def complete(
                 # Add success attributes to span
                 add_span_attributes(span, status="success", duration_seconds=duration)
                 
-                return resp.json()
+                response_data = resp.json()
+                
+                # Track AI interaction completion
+                if analytics_collector:
+                    await analytics_collector.collect_event(
+                        EventType.AI_RESPONSE_RECEIVED,
+                        user=current_user,
+                        request=request,
+                        persona_id=prompt.config,
+                        response_length=len(response_data.get("text", "")),
+                        duration_seconds=duration,
+                        content_type="llm_completion"
+                    )
+                
+                return response_data
                 
             except CircuitBreakerError as e:
                 # Circuit breaker is open
@@ -390,9 +514,22 @@ async def complete(
 @app.post("/tts")
 async def tts(
     text: Text,
-    current_user: Optional[User] = Depends(get_optional_user)
+    current_user: Optional[User] = Depends(get_optional_user),
+    request: Request = None
 ) -> dict:
     """Proxy text-to-speech synthesis requests to the TTS Service with authentication."""
+    
+    # Track TTS generation start
+    if analytics_collector:
+        await analytics_collector.collect_event(
+            EventType.AI_RESPONSE_RECEIVED,  # Using existing event type
+            user=current_user,
+            request=request,
+            text_length=len(text.text),
+            config_name=text.config,
+            content_type="tts_audio",
+            service_type="tts"
+        )
     
     # Track request start time
     import time
@@ -850,9 +987,21 @@ def delete_book(
 @app.get("/books/play/{filename}")
 async def play_single_book(
     filename: str,
-    current_user: Optional[User] = Depends(get_optional_user)
+    current_user: Optional[User] = Depends(get_optional_user),
+    request: Request = None
 ):
     """Serve a single MP3 book file."""
+    
+    # Track book start event
+    if analytics_collector:
+        await analytics_collector.collect_event(
+            EventType.BOOK_START,
+            user=current_user,
+            request=request,
+            book_id=filename,
+            content_type="audiobook"
+        )
+    
     file_path = BOOK_FILES_DIR / filename
     if not file_path.exists() or not file_path.suffix == '.mp3':
         raise HTTPException(status_code=404, detail="Book file not found")

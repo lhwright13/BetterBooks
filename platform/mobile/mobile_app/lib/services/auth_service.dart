@@ -34,6 +34,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:crypto/crypto.dart';
 import '../api_config.dart';
 import '../models/user.dart';
+import 'api_service.dart';
 
 /// Authentication service for handling all authentication operations
 /// Supports Google OAuth, Apple Sign In, and email/password authentication
@@ -60,13 +61,6 @@ class AuthService {
   /// Check if user is currently authenticated
   static Future<bool> isAuthenticated() async {
     try {
-      // For demo purposes, check if we have any stored user data
-      final userDataString = await _secureStorage.read(key: _userDataKey);
-      if (userDataString != null) {
-        return true;
-      }
-      return false;
-      
       final accessToken = await _secureStorage.read(key: _accessTokenKey);
       if (accessToken == null) return false;
 
@@ -80,6 +74,8 @@ class AuthService {
         }
       }
 
+      // Set the token in ApiService for API calls
+      ApiService.setAuthToken(accessToken);
       return true;
     } catch (e) {
       print('Error checking authentication: $e');
@@ -226,35 +222,35 @@ class AuthService {
     required String displayName,
   }) async {
     try {
-      // DEMO MODE: Create mock successful signup for testing
-      print('Demo mode: Creating mock user for $email');
-      
-      // Simulate network delay
-      await Future.delayed(Duration(milliseconds: 500));
-      
-      // Create mock user data
-      Map<String, dynamic> userData = {
-        'id': 'demo_user_${DateTime.now().millisecondsSinceEpoch}',
-        'email': email,
-        'display_name': displayName,
-        'role': 'user',
-        'is_active': true,
-        'email_verified': false,
-        'created_at': DateTime.now().toIso8601String()
-      };
-      
-      // Store mock tokens and user data
-      await _storeAuthData(
-        accessToken: 'demo_access_token',
-        refreshToken: 'demo_refresh_token',
-        expiresAt: null,
-        userData: userData,
-      );
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'username': displayName,
+          'password': password,
+        }),
+      ).timeout(_timeoutDuration);
 
-      return AuthResult.success(User.fromJson(userData));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Store tokens and user data
+        await _storeAuthData(
+          accessToken: data['tokens']['access_token'],
+          refreshToken: data['tokens']['refresh_token'],
+          expiresAt: data['tokens']['expires_in'],
+          userData: data['user'],
+        );
+
+        return AuthResult.success(User.fromJson(data['user']));
+      } else {
+        final error = jsonDecode(response.body);
+        return AuthResult.error(error['detail'] ?? 'Registration failed');
+      }
     } catch (e) {
-      print('Demo signup error: $e');
-      return AuthResult.error('Demo signup failed: $e');
+      print('Registration error: $e');
+      return AuthResult.error('Registration failed: $e');
     }
   }
 
@@ -264,32 +260,67 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // DEMO MODE: Create mock successful signin for testing
-      print('Demo mode: Signing in mock user for $email');
-      
-      // Create mock user data
-      Map<String, dynamic> userData = {
-        'id': 'demo_user_signin',
-        'email': email,
-        'display_name': email.split('@')[0],
-        'role': 'user',
-        'is_active': true,
-        'email_verified': true,
-        'created_at': DateTime.now().toIso8601String()
-      };
-      
-      // Store mock tokens and user data
-      await _storeAuthData(
-        accessToken: 'demo_access_token',
-        refreshToken: 'demo_refresh_token',
-        expiresAt: null,
-        userData: userData,
-      );
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      ).timeout(_timeoutDuration);
 
-      return AuthResult.success(User.fromJson(userData));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        // Store tokens and user data - need to get user data from /me endpoint
+        await _storeAuthData(
+          accessToken: data['access_token'],
+          refreshToken: data['refresh_token'],
+          expiresAt: data['expires_in'],
+          userData: {
+            'id': email, // Temporary until we get from /me
+            'email': email,
+            'username': email.split('@')[0],
+            'role': 'user',
+            'is_active': true,
+            'email_verified': true,
+            'created_at': DateTime.now().toIso8601String()
+          },
+        );
+
+        // Get full user data from /me endpoint
+        try {
+          final meResponse = await http.get(
+            Uri.parse('$apiBaseUrl/auth/me'),
+            headers: {'Authorization': 'Bearer ${data['access_token']}'},
+          ).timeout(_timeoutDuration);
+          
+          if (meResponse.statusCode == 200) {
+            final userData = jsonDecode(meResponse.body);
+            await _secureStorage.write(key: _userDataKey, value: jsonEncode(userData));
+            return AuthResult.success(User.fromJson(userData));
+          }
+        } catch (e) {
+          print('Failed to get user data: $e');
+        }
+
+        // Fallback to basic user data
+        return AuthResult.success(User.fromJson({
+          'id': email,
+          'email': email,
+          'username': email.split('@')[0],
+          'role': 'user',
+          'is_active': true,
+          'email_verified': true,
+          'created_at': DateTime.now().toIso8601String()
+        }));
+      } else {
+        final error = jsonDecode(response.body);
+        return AuthResult.error(error['detail'] ?? 'Login failed');
+      }
     } catch (e) {
-      print('Demo signin error: $e');
-      return AuthResult.error('Demo signin failed: $e');
+      print('Login error: $e');
+      return AuthResult.error('Login failed: $e');
     }
   }
 
@@ -331,12 +362,12 @@ class AuthService {
       // Get refresh token for backend logout
       final refreshToken = await _secureStorage.read(key: _refreshTokenKey);
       
-      if (refreshToken != null) {
+      final accessToken = await _secureStorage.read(key: _accessTokenKey);
+      if (accessToken != null) {
         // Notify backend of logout
         await http.post(
           Uri.parse('$apiBaseUrl/auth/logout'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh_token': refreshToken}),
+          headers: {'Authorization': 'Bearer $accessToken'},
         ).timeout(_timeoutDuration);
       }
 
@@ -360,8 +391,7 @@ class AuthService {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
+        headers: {'Authorization': 'Bearer $refreshToken'},
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -404,6 +434,9 @@ class AuthService {
       final expiryDate = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
       await _secureStorage.write(key: _tokenExpiryKey, value: expiryDate.toIso8601String());
     }
+    
+    // Update ApiService with the access token for API calls
+    ApiService.setAuthToken(accessToken);
   }
 
   /// Clear all authentication data
@@ -412,6 +445,9 @@ class AuthService {
     await _secureStorage.delete(key: _refreshTokenKey);
     await _secureStorage.delete(key: _userDataKey);
     await _secureStorage.delete(key: _tokenExpiryKey);
+    
+    // Clear the ApiService token as well
+    ApiService.clearAuthToken();
   }
 
   /// Generate nonce for Apple Sign In

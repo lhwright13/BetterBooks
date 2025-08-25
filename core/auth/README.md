@@ -108,10 +108,10 @@ async def expensive_operation(current_user: User = Depends(get_current_user)):
 
 | Method | Endpoint | Description | Rate Limit | Auth Required |
 |--------|----------|-------------|------------|---------------|
-| `POST` | `/auth/email/signup` | Register with email/password | 5/hour | No |
-| `POST` | `/auth/email/signin` | Login with email/password | 10/15min | No |
-| `POST` | `/auth/google/signin` | Google OAuth sign-in | 10/15min | No |
-| `POST` | `/auth/apple/signin` | Apple Sign-in | 10/15min | No |
+| `POST` | `/auth/register` | Register with email/password | 5/hour | No |
+| `POST` | `/auth/login` | Login with email/password | 10/15min | No |
+| `POST` | `/auth/google/signin` | Google OAuth sign-in (stub) | 10/15min | No |
+| `POST` | `/auth/apple/signin` | Apple Sign-in (stub) | 10/15min | No |
 | `POST` | `/auth/email/send-verification` | Send email verification | 3/hour | No |
 | `POST` | `/auth/email/verify` | Verify email token | No limit | No |
 | `POST` | `/auth/password/reset` | Request password reset | 3/hour | No |
@@ -119,24 +119,26 @@ async def expensive_operation(current_user: User = Depends(get_current_user)):
 | `POST` | `/auth/refresh` | Refresh access token | 20/hour | Refresh token |
 | `POST` | `/auth/logout` | Logout and invalidate tokens | No limit | Yes |
 | `GET` | `/auth/me` | Get current user info | No limit | Yes |
-| `GET` | `/auth/health` | Auth service health check | No limit | No |
+| `GET` | `/auth/health` | Auth service health check | No limit | Yes |
+| `GET` | `/auth/users` | List all users (admin only) | No limit | Yes (Admin) |
+| `PUT` | `/auth/users/{user_id}/role` | Change user role (admin only) | No limit | Yes (Admin) |
 
 ### Example Requests
 
-#### Email Signup
+#### Email Registration
 ```bash
-curl -X POST "http://localhost:8000/auth/email/signup" \
+curl -X POST "http://localhost:8000/auth/register" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
-    "password": "securepass123",
-    "display_name": "John Doe"
+    "username": "johndoe",
+    "password": "securepass123"
   }'
 ```
 
 #### Email Login
 ```bash
-curl -X POST "http://localhost:8000/auth/email/signin" \
+curl -X POST "http://localhost:8000/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -205,21 +207,36 @@ await check_rate_limit(user_id, endpoint, limit=60, window=60)
 
 2. **~~Import Error~~** ✅ FIXED
    - ~~Problem: Wrong import `from auth import get_user_by_id` in auth_routes.py:134~~
-   - **Status**: Fixed to `from .auth import get_user_by_id`
+   - **Status**: Fixed to `from core.auth.auth import get_user_by_id`
 
 3. **~~Hardcoded Admin Password~~** ✅ IMPROVED
    - ~~Problem: Default password "admin123"~~
    - **Status**: Now uses environment variable with stronger default
 
+4. **~~JSON Serialization Error~~** ✅ FIXED
+   - ~~Problem: datetime objects not JSON serializable in User model~~
+   - **Status**: Added Config class with json_encoders to User model
+
+5. **~~Mobile Integration~~** ✅ COMPLETED
+   - **Status**: Full JWT authentication integrated with Flutter mobile app
+   - **Features**: Registration, login, token refresh, secure storage
+   - **Testing**: Comprehensive integration test suite created
+
 ### ⚠️ Production Concerns (NEED ADDRESSING)
 
-4. **In-Memory User Storage** 🔄 REQUIRES MIGRATION
+6. **In-Memory User Storage** 🔄 REQUIRES MIGRATION
    - **Problem**: Users stored in `USERS_DB: Dict` (lost on restart)
    - **Impact**: Data loss, no scalability
    - **Solution**: Migrate to PostgreSQL or Azure Cosmos DB
    - **Priority**: HIGH
 
-5. **No Azure Integration** 🔄 ENHANCEMENT NEEDED
+7. **OAuth Implementation** 🔄 ENHANCEMENT NEEDED
+   - **Problem**: Google/Apple OAuth endpoints are stubs only
+   - **Impact**: No social login functionality
+   - **Solution**: Implement full OAuth 2.0 flows with token validation
+   - **Priority**: MEDIUM
+
+8. **No Azure Integration** 🔄 ENHANCEMENT NEEDED
    - **Problem**: Missing Azure AD B2C integration
    - **Impact**: No enterprise features (SSO, MFA)
    - **Solution**: Implement Azure AD B2C (see recommendations below)

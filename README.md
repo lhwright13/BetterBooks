@@ -12,7 +12,9 @@ EchoWright is an AI-powered audiobook companion platform that transforms the lis
 - **🤔 Personalized Questions** - Educational questions tailored to reading context and difficulty
 - **🎭 AI Personas** - Configurable AI companions (Teacher, Tutor, Character-based)
 - **🔍 Semantic Search** - Find content across books using natural language
-- **📱 Cross-Platform** - Web demo and Flutter mobile app
+- **🔐 JWT Authentication** - Secure user authentication with email/password and OAuth support
+- **👤 User Management** - Registration, login, profile management, and session handling
+- **📱 Cross-Platform** - Web demo and Flutter mobile app with full authentication integration
 - **🔧 Production-Ready** - Comprehensive monitoring, logging, and deployment tools
 
 ## 🚀 Quick Start
@@ -96,7 +98,8 @@ echowright/
 
 ### API & Integration
 - [API Documentation](docs/api/README.md) - Complete API reference
-- [Authentication Guide](docs/api/AUTHENTICATION_GUIDE.md) - API authentication
+- [Authentication Guide](docs/api/AUTHENTICATION_GUIDE.md) - JWT authentication and user management
+- [Authentication Testing](test_mobile_auth_integration.py) - Comprehensive auth integration tests
 - [Customization Guide](docs/architecture/CUSTOMIZATION_GUIDE.md) - Extending the platform
 
 ### Operations & Deployment
@@ -118,8 +121,9 @@ GEMINI_API_KEY=your_gemini_api_key_here
 DATABASE_URL=postgresql://user:pass@localhost:5432/echowright
 REDIS_URL=redis://localhost:6379
 
-# Security
+# Authentication & Security
 JWT_SECRET_KEY=your_secure_random_key
+DEFAULT_ADMIN_PASSWORD=secure_admin_password_here
 API_RATE_LIMIT=100
 
 # Monitoring

@@ -1,12 +1,17 @@
 """
 Infrastructure Utilities Module
 
-Contains infrastructure and operational utilities:
+Contains comprehensive infrastructure and operational utilities for EchoWright:
 - Health check implementations
 - Structured logging and middleware
 - Metrics collection and monitoring
 - Distributed tracing
 - Circuit breaker pattern for resilience
+- Advanced rate limiting with subscription tiers
+- Usage analytics with educational insights
+- Audio processing pipeline with streaming
+- Semantic caching for AI responses
+- Compression middleware for performance
 """
 
 from .health_checks import HealthCheck, create_health_endpoint
@@ -25,6 +30,34 @@ from .error_handling import (
     ExternalServiceError, DatabaseError, TimeoutError,
     CircuitBreakerError as CBError, handle_external_service_error
 )
+from .compression_middleware import CompressionMiddleware
+from .pagination import (
+    Paginator, PaginationParams, CursorPaginationParams,
+    get_pagination_params, get_cursor_pagination_params,
+    create_paginator, paginate_results
+)
+from .semantic_cache import (
+    SemanticCache, CacheType, CacheConfig, cache_response,
+    create_cache_instance, cache_llm_response, cache_embedding
+)
+# New high-priority infrastructure components
+from .rate_limiter import (
+    setup_rate_limiting, RateLimiter, RateLimitMiddleware,
+    OperationType, SubscriptionTier, rate_limit_decorator,
+    create_rate_limiter
+)
+from .usage_analytics import (
+    setup_usage_analytics, AnalyticsCollector, AnalyticsMiddleware,
+    EventType, UserType, ContentType, AnalyticsConfig,
+    create_analytics_collector
+)
+from .audio_pipeline import (
+    setup_audio_pipeline, AudioProcessor, AudioConfig,
+    AudioFormat, StreamingQuality, ProcessingMode,
+    ChapterMarker, AudioChunk, VoiceActivity,
+    create_audio_processor
+)
+
 try:
     from .tracing import setup_tracing, get_development_tracing_config
     TRACING_AVAILABLE = True
@@ -34,12 +67,15 @@ except ImportError:
     TRACING_AVAILABLE = False
 
 __all__ = [
+    # Core infrastructure
     'HealthCheck',
     'create_health_endpoint',
     'setup_logging',
     'LoggingMiddleware',
     'setup_metrics',
     'MetricsCollector',
+    
+    # Circuit breaker and resilience
     'CircuitBreaker',
     'CircuitBreakerError',
     'CircuitState',
@@ -47,6 +83,8 @@ __all__ = [
     'create_http_circuit_breaker',
     'create_database_circuit_breaker',
     'create_llm_circuit_breaker',
+    
+    # Error handling
     'setup_error_handling',
     'ErrorHandler',
     'ApplicationError',
@@ -61,6 +99,58 @@ __all__ = [
     'TimeoutError',
     'CBError',
     'handle_external_service_error',
+    
+    # Performance and optimization
+    'CompressionMiddleware',
+    'Paginator',
+    'PaginationParams',
+    'CursorPaginationParams',
+    'get_pagination_params',
+    'get_cursor_pagination_params',
+    'create_paginator',
+    'paginate_results',
+    
+    # Caching
+    'SemanticCache',
+    'CacheType',
+    'CacheConfig',
+    'cache_response',
+    'create_cache_instance',
+    'cache_llm_response',
+    'cache_embedding',
+    
+    # Rate limiting (High Priority)
+    'setup_rate_limiting',
+    'RateLimiter',
+    'RateLimitMiddleware',
+    'OperationType',
+    'SubscriptionTier',
+    'rate_limit_decorator',
+    'create_rate_limiter',
+    
+    # Usage analytics (High Priority)
+    'setup_usage_analytics',
+    'AnalyticsCollector',
+    'AnalyticsMiddleware',
+    'EventType',
+    'UserType',
+    'ContentType',
+    'AnalyticsConfig',
+    'create_analytics_collector',
+    
+    # Audio pipeline (High Priority)
+    'setup_audio_pipeline',
+    'AudioProcessor',
+    'AudioConfig',
+    'AudioFormat',
+    'StreamingQuality',
+    'ProcessingMode',
+    'ChapterMarker',
+    'AudioChunk',
+    'VoiceActivity',
+    'create_audio_processor',
+    
+    # Distributed tracing
     'setup_tracing',
     'get_development_tracing_config',
     'TRACING_AVAILABLE'

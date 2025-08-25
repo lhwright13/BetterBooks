@@ -28,6 +28,7 @@ import 'screens/library_screen.dart';
 import 'screens/enhanced_player_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
+import 'screens/email_verification_screen.dart';
 import 'theme/modern_theme.dart';
 
 /// Entry point for the EchoWright application
@@ -59,6 +60,7 @@ class EchoWrightApp extends StatelessWidget {
           '/player': (context) => EnhancedPlayerScreen(),
           '/chat': (context) => ChatScreen(),
           '/settings': (context) => UserSettingsScreen(),
+          '/verify-email': (context) => EmailVerificationScreen(email: ''),
         },
       ),
     );
@@ -84,8 +86,14 @@ class AuthWrapper extends StatelessWidget {
           return const SplashScreen();
         }
 
-        // Show main app if user is authenticated
+        // Show main app if user is authenticated and verified
         if (authProvider.isAuthenticated) {
+          // Check if email verification is needed
+          if (authProvider.needsEmailVerification) {
+            return EmailVerificationScreen(
+              email: authProvider.currentUser?.email ?? '',
+            );
+          }
           return MainHomeScreen();
         }
 
@@ -274,24 +282,24 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   SizedBox(height: 16),
 
-                  // OAuth buttons (temporarily disabled for configuration)
+                  // OAuth buttons
                   Row(
                     children: [
-                      // Google Sign In - Temporarily disabled
+                      // Google Sign In
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: null, // Disabled until GoogleService-Info.plist is configured
-                          icon: Icon(Icons.account_circle, color: Colors.grey),
-                          label: Text('Google (Setup Required)', style: TextStyle(color: Colors.grey)),
+                          onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
+                          icon: Icon(Icons.account_circle),
+                          label: Text('Google'),
                         ),
                       ),
                       SizedBox(width: 16),
-                      // Apple Sign In - Temporarily disabled  
+                      // Apple Sign In
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: null, // Disabled until backend OAuth is configured
-                          icon: Icon(Icons.apple, color: Colors.grey),
-                          label: Text('Apple (Setup Required)', style: TextStyle(color: Colors.grey)),
+                          onPressed: authProvider.isLoading ? null : _handleAppleSignIn,
+                          icon: Icon(Icons.apple),
+                          label: Text('Apple'),
                         ),
                       ),
                     ],
