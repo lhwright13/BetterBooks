@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_state.dart';
 import '../providers/auth_provider.dart';
-import '../api_config.dart';
-import '../theme/retro_theme.dart';
-import '../widgets/space_background.dart';
-import '../widgets/holographic_components.dart';
+import '../theme/echowright_theme.dart';
 
 class HomeTabScreen extends StatefulWidget {
+  const HomeTabScreen({super.key});
+
   @override
   _HomeTabScreenState createState() => _HomeTabScreenState();
 }
@@ -25,18 +23,18 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: EchoWrightTheme.backgroundDark,
       body: Consumer2<AppState, AuthProvider>(
         builder: (context, appState, authProvider, child) {
           return SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(SpaceSpacing.md),
+              padding: EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Space Mission Control Header
-                  _buildSpaceMissionHeader(authProvider),
-                  SizedBox(height: SpaceSpacing.lg),
+                  // Welcome Header
+                  _buildWelcomeHeader(authProvider),
+                  SizedBox(height: 24),
                   
                   // Main dashboard content
                   Expanded(
@@ -44,21 +42,23 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // PRIMARY: Current Reading (Active Book)
+                          // Current Reading
                           if (appState.currentBook != null) ...[
                             _buildCurrentBookCard(appState),
-                            SizedBox(height: SpaceSpacing.xl),
+                            SizedBox(height: 32),
                           ] else ...[
-                            _buildBookSelectCard(appState, authProvider),
-                            SizedBox(height: SpaceSpacing.xl),
+                            _buildGetStartedCard(appState),
+                            SizedBox(height: 32),
                           ],
                           
-                          // SECONDARY: Recent Books
-                          _buildRecentBooksSection(appState),
-                          SizedBox(height: SpaceSpacing.xl),
+                          // Recent Books
+                          if (appState.books.isNotEmpty) ...[
+                            _buildRecentBooksSection(appState),
+                            SizedBox(height: 32),
+                          ],
                           
-                          // TERTIARY: Reading Statistics
-                          _buildReadingStatsPanel(appState),
+                          // Quick Actions
+                          _buildQuickActionsSection(),
                         ],
                       ),
                     ),
@@ -72,155 +72,123 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  Widget _buildSpaceMissionHeader(AuthProvider authProvider) {
-    return SpaceCommandPanel(
-      accentColor: SpaceColors.tealBlue,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              EchoWrightLogo(size: 40, animate: true),
-              SizedBox(width: SpaceSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'ECHOWRIGHT',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: SpaceColors.dustyRed,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                    Text(
-                      'INTELLIGENT AUDIO BOOKS',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w500,
-                        color: SpaceColors.commandGray,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              MissionStatusIndicator(
-                status: 'ONLINE',
-                color: SpaceColors.successGreen,
-                isActive: true,
-              ),
-            ],
+  Widget _buildWelcomeHeader(AuthProvider authProvider) {
+    final greeting = _getGreeting();
+    final displayName = authProvider.userDisplayName;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          greeting,
+          style: TextStyle(
+            fontSize: 16,
+            color: EchoWrightTheme.textSecondary,
+            fontWeight: FontWeight.w500,
           ),
-          SizedBox(height: SpaceSpacing.md),
-          MissionProgressIndicator(
-            value: 1.0,
-            color: SpaceColors.tealBlue,
-            showEnergyFlow: true,
+        ),
+        SizedBox(height: 4),
+        Text(
+          displayName,
+          style: TextStyle(
+            fontSize: 28,
+            color: EchoWrightTheme.textPrimary,
+            fontWeight: FontWeight.w700,
           ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+  
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 
   Widget _buildCurrentBookCard(AppState appState) {
-    return SpaceCommandPanel(
-      accentColor: SpaceColors.dustyRed,
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: EchoWrightTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: EchoWrightTheme.subtleShadow,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Mission status header
+          // Header
           Row(
             children: [
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: SpaceColors.successGreen,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: SpaceColors.successGreen.withOpacity(0.3),
-                      blurRadius: 4,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: SpaceColors.starWhite,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'CURRENT READING',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: SpaceColors.starWhite,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  'Continue Reading',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: EchoWrightTheme.primaryTurquoise,
+                  ),
                 ),
               ),
               Spacer(),
-              Icon(
-                appState.isPlaying ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                color: appState.isPlaying ? SpaceColors.successGreen : SpaceColors.systemGray,
-                size: 18,
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: appState.isPlaying 
+                      ? EchoWrightTheme.successColor
+                      : EchoWrightTheme.textMuted,
+                  shape: BoxShape.circle,
+                ),
               ),
             ],
           ),
-          SizedBox(height: SpaceSpacing.lg),
+          SizedBox(height: 20),
           
-          // Mission details
+          // Book info
           Row(
             children: [
-              // Mission icon/cover
+              // Cover
               Container(
-                width: 64,
+                width: 60,
                 height: 80,
                 decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [
-                      SpaceColors.dustyRed.withOpacity(0.3),
-                      SpaceColors.dustyRed.withOpacity(0.1),
-                    ],
-                  ),
+                  color: EchoWrightTheme.backgroundLight,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: SpaceColors.dustyRed.withOpacity(0.4),
+                    color: EchoWrightTheme.dividerDark,
                     width: 1,
                   ),
                 ),
                 child: Icon(
                   Icons.auto_stories,
-                  color: SpaceColors.dustyRed,
-                  size: 32,
+                  color: EchoWrightTheme.primaryTurquoise,
+                  size: 24,
                 ),
               ),
-              SizedBox(width: SpaceSpacing.lg),
+              SizedBox(width: 16),
               
-              // Mission info
+              // Details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       appState.currentBook?.title ?? 'Unknown Book',
-                      style: GoogleFonts.orbitron(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: SpaceColors.missionBlack,
-                        height: 1.2,
+                        color: EchoWrightTheme.textPrimary,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -228,52 +196,48 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                     SizedBox(height: 4),
                     if (appState.currentChapter != null)
                       Text(
-                        'CHAPTER ${appState.currentChapter!.chapterNumber}: ${appState.currentChapter!.title.toUpperCase()}',
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 10,
-                          color: SpaceColors.commandGray,
-                          letterSpacing: 0.8,
+                        'Chapter ${appState.currentChapter!.chapterNumber}: ${appState.currentChapter!.title}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: EchoWrightTheme.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    SizedBox(height: SpaceSpacing.sm),
+                    SizedBox(height: 8),
                     
-                    // Mission progress
-                    Row(
-                      children: [
-                        Text(
-                          _formatDuration(appState.currentPosition),
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: SpaceColors.goldenYellow,
-                          ),
-                        ),
-                        Text(
-                          ' / ${_formatDuration(appState.totalDuration)}',
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 11,
-                            color: SpaceColors.systemGray,
-                          ),
-                        ),
-                      ],
+                    // Progress
+                    Text(
+                      '${_formatDuration(appState.currentPosition)} / ${_formatDuration(appState.totalDuration)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: EchoWrightTheme.textMuted,
+                      ),
                     ),
                   ],
                 ),
               ),
               
-              // Mission control button
-              OrbitButton(
-                isCircular: true,
-                width: 50,
-                height: 50,
-                color: SpaceColors.dustyRed,
-                onPressed: () => Navigator.pushNamed(context, '/player'),
-                child: Icon(
-                  appState.isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: SpaceColors.starWhite,
-                  size: 24,
+              // Play button
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: EchoWrightTheme.primaryGradient,
+                  shape: BoxShape.circle,
+                  boxShadow: EchoWrightTheme.subtleShadow,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => Navigator.pushNamed(context, '/player'),
+                    borderRadius: BorderRadius.circular(24),
+                    child: Icon(
+                      appState.isPlaying ? Icons.pause : Icons.play_arrow,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -283,61 +247,71 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  Widget _buildBookSelectCard(AppState appState, AuthProvider authProvider) {
-    return SpaceCommandPanel(
-      accentColor: SpaceColors.goldenYellow,
+  Widget _buildGetStartedCard(AppState appState) {
+    return Container(
+      padding: EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: EchoWrightTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EchoWrightTheme.brandGold.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: EchoWrightTheme.subtleShadow,
+      ),
       child: Column(
         children: [
-          EchoWrightLogo(size: 60, animate: true),
-          SizedBox(height: SpaceSpacing.lg),
+          Icon(
+            Icons.auto_stories,
+            size: 64,
+            color: EchoWrightTheme.brandGold,
+          ),
+          SizedBox(height: 16),
           Text(
-            authProvider.currentUser != null 
-                ? 'WELCOME BACK, ${authProvider.userDisplayName.toUpperCase()}'
-                : 'WELCOME TO ECHOWRIGHT',
-            style: GoogleFonts.orbitron(
-              fontSize: 18,
+            'Welcome to EchoWright',
+            style: TextStyle(
+              fontSize: 24,
               fontWeight: FontWeight.w700,
-              color: SpaceColors.missionBlack,
-              letterSpacing: 1.5,
+              color: EchoWrightTheme.textPrimary,
             ),
           ),
-          SizedBox(height: SpaceSpacing.sm),
+          SizedBox(height: 8),
           Text(
-            'SELECT AN AUDIOBOOK TO BEGIN YOUR\nAI-ENHANCED LISTENING EXPERIENCE',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 11,
-              color: SpaceColors.commandGray,
-              letterSpacing: 0.5,
+            'Your AI-powered audiobook companion\nStart by adding books to your library',
+            style: TextStyle(
+              fontSize: 14,
+              color: EchoWrightTheme.textSecondary,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: SpaceSpacing.lg),
-          OrbitButton(
-            onPressed: () => Navigator.pushNamed(context, '/library'),
-            color: SpaceColors.goldenYellow,
-            borderRadius: BorderRadius.circular(25),
+          SizedBox(height: 24),
+          SizedBox(
             width: double.infinity,
-            height: 50,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.library_books,
-                  color: SpaceColors.starWhite,
-                  size: 20,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pushNamed(context, '/library'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EchoWrightTheme.brandGold,
+                foregroundColor: EchoWrightTheme.textOnPrimary,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                SizedBox(width: SpaceSpacing.sm),
-                Text(
-                  'START READING',
-                  style: GoogleFonts.jetBrainsMono(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: SpaceColors.starWhite,
-                    letterSpacing: 1.2,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.library_books, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Explore Library',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -349,226 +323,207 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'RECENT BOOKS',
-          style: GoogleFonts.orbitron(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: SpaceColors.missionBlack,
-            letterSpacing: 1.5,
-          ),
-        ),
-        SizedBox(height: SpaceSpacing.md),
-        
-        if (appState.books.isEmpty) ...[
-          _buildEmptyArchiveCard(),
-        ] else ...[
-          // Show first 3 books as mission cards
-          ...appState.books.take(3).map((book) => Container(
-            margin: EdgeInsets.only(bottom: SpaceSpacing.md),
-            child: _buildBookCard(book, appState),
-          )).toList(),
-          
-          // View all books button
-          if (appState.books.length > 3)
-            Padding(
-              padding: EdgeInsets.only(top: SpaceSpacing.sm),
-              child: OrbitButton(
-                onPressed: () => Navigator.pushNamed(context, '/library'),
-                color: SpaceColors.tealBlue,
-                borderRadius: BorderRadius.circular(25),
-                width: double.infinity,
-                height: 42,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.library_books,
-                      color: SpaceColors.starWhite,
-                      size: 16,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'VIEW ALL ${appState.books.length} BOOKS',
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: SpaceColors.starWhite,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                  ],
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Your Library',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: EchoWrightTheme.textPrimary,
               ),
             ),
-        ],
+            if (appState.books.length > 3)
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/library'),
+                child: Text(
+                  'View All',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: EchoWrightTheme.primaryTurquoise,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 16),
+        
+        // Books grid/list
+        ...appState.books.take(3).map((book) => Container(
+          margin: EdgeInsets.only(bottom: 12),
+          child: _buildBookCard(book, appState),
+        )).toList(),
       ],
     );
   }
 
   Widget _buildBookCard(book, AppState appState) {
-    return GestureDetector(
-      onTap: () {
-        appState.playBook(book);
-        Navigator.pushNamed(context, '/player');
-      },
-      child: SpaceCommandPanel(
-        accentColor: SpaceColors.tealBlue,
-        padding: EdgeInsets.all(SpaceSpacing.md),
-        child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: EchoWrightTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: EchoWrightTheme.dividerDark,
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            appState.playBook(book);
+            Navigator.pushNamed(context, '/player');
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Cover/Icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: EchoWrightTheme.backgroundLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    book.hasChapters ? Icons.menu_book : Icons.headphones,
+                    color: EchoWrightTheme.primaryTurquoise,
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: 16),
+                
+                // Info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        book.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: EchoWrightTheme.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        book.hasChapters ? '${book.chapters!.length} chapters' : 'Audiobook',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: EchoWrightTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Play button
+                Icon(
+                  Icons.play_arrow,
+                  color: EchoWrightTheme.textSecondary,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Discover',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: EchoWrightTheme.textPrimary,
+          ),
+        ),
+        SizedBox(height: 16),
+        
+        Row(
           children: [
-            // Mission type icon
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    SpaceColors.tealBlue.withOpacity(0.3),
-                    SpaceColors.tealBlue.withOpacity(0.1),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: SpaceColors.tealBlue.withOpacity(0.4),
-                  width: 1,
-                ),
-              ),
-              child: Icon(
-                book.hasChapters ? Icons.view_module : Icons.headphones,
-                color: SpaceColors.tealBlue,
-                size: 20,
-              ),
-            ),
-            SizedBox(width: SpaceSpacing.md),
-            
-            // Mission info
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book.title.toUpperCase(),
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: SpaceColors.missionBlack,
-                      letterSpacing: 0.5,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    book.hasChapters ? '${book.chapters!.length} CHAPTERS' : 'SINGLE TRACK',
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 9,
-                      color: SpaceColors.commandGray,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ],
+              child: _buildQuickActionCard(
+                'Browse Store',
+                Icons.storefront,
+                EchoWrightTheme.accentCoral,
+                () => Navigator.pushNamed(context, '/store'),
               ),
             ),
-            
-            // Launch button
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: SpaceColors.tealBlue,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: SpaceColors.tealBlue.withOpacity(0.3),
-                    blurRadius: 4,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Icon(
-                Icons.play_arrow,
-                color: SpaceColors.starWhite,
-                size: 16,
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildQuickActionCard(
+                'My Library',
+                Icons.library_books,
+                EchoWrightTheme.primaryTurquoise,
+                () => Navigator.pushNamed(context, '/library'),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyArchiveCard() {
-    return SpaceCommandPanel(
-      accentColor: SpaceColors.systemGray,
-      child: Column(
-        children: [
-          Icon(
-            Icons.library_books_outlined,
-            color: SpaceColors.systemGray,
-            size: 40,
-          ),
-          SizedBox(height: SpaceSpacing.md),
-          Text(
-            'NO BOOKS IN LIBRARY',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: SpaceColors.commandGray,
-              letterSpacing: 1.0,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Add audiobooks to begin reading',
-            style: GoogleFonts.jetBrainsMono(
-              fontSize: 10,
-              color: SpaceColors.systemGray,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReadingStatsPanel(AppState appState) {
-    return MissionDataPanel(
-      title: 'READING STATISTICS',
-      accentColor: SpaceColors.goldenYellow,
-      isActive: true,
-      rows: [
-        MissionDataRow(
-          label: 'BOOKS_LOADED',
-          value: '${appState.books.length}',
-          valueColor: SpaceColors.successGreen,
-        ),
-        MissionDataRow(
-          label: 'LIBRARY_STATUS',
-          value: 'ACTIVE',
-          valueColor: SpaceColors.tealBlue,
-        ),
-        MissionDataRow(
-          label: 'AI_PERSONAS',
-          value: '4',
-          valueColor: SpaceColors.dustyRed,
-        ),
-        MissionDataRow(
-          label: 'SYSTEM_TIME',
-          value: _getCurrentTime(),
-          valueColor: SpaceColors.goldenYellow,
-        ),
       ],
     );
   }
-
-  /// Helper method for current time
-  String _getCurrentTime() {
-    final now = DateTime.now();
-    final hours = now.hour.toString().padLeft(2, '0');
-    final minutes = now.minute.toString().padLeft(2, '0');
-    return '$hours:$minutes';
+  
+  Widget _buildQuickActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: EchoWrightTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: EchoWrightTheme.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
+
 
   /// Helper method for time formatting
   String _formatDuration(Duration duration) {

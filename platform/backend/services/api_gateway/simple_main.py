@@ -20,8 +20,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Import our simple bookstore routes
+# Import our simple bookstore routes and authentication routes  
 from simple_bookstore_routes import router as bookstore_router
+from auth_routes import auth_router
 
 # Book files directory - will be mounted in Docker
 BOOK_FILES_DIR = Path("/app/book_files")
@@ -43,6 +44,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include authentication routes  
+app.include_router(auth_router)
 
 # Include bookstore routes
 app.include_router(bookstore_router)

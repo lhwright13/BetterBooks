@@ -29,7 +29,8 @@ import 'screens/enhanced_player_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
 import 'screens/email_verification_screen.dart';
-import 'theme/modern_theme.dart';
+import 'screens/bookstore_screen.dart';
+import 'theme/echowright_theme.dart';
 
 /// Entry point for the EchoWright application
 /// Initializes the app and sets up the root widget
@@ -53,7 +54,7 @@ class EchoWrightApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'EchoWright',
-        theme: ModernTheme.theme,
+        theme: EchoWrightTheme.theme,
         home: AuthWrapper(),
         routes: {
           '/library': (context) => LibraryScreen(),
@@ -61,6 +62,7 @@ class EchoWrightApp extends StatelessWidget {
           '/chat': (context) => ChatScreen(),
           '/settings': (context) => UserSettingsScreen(),
           '/verify-email': (context) => EmailVerificationScreen(email: ''),
+          '/store': (context) => BookstoreScreen(),
         },
       ),
     );

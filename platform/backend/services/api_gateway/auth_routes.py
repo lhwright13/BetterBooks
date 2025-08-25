@@ -56,7 +56,10 @@ async def register_user(user_data: UserRegistration):
                 "id": user.id,
                 "email": user.email,
                 "username": user.username,
-                "role": user.role.value
+                "role": user.role.value,
+                "email_verified": True,  # Auto-verify emails since email service is not configured
+                "is_active": user.is_active,
+                "created_at": user.created_at.isoformat()
             },
             "tokens": TokenResponse(
                 access_token=access_token,

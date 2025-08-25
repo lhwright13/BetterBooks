@@ -108,58 +108,125 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
-        title: Text('Bookstore'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          'Discover Books',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
         actions: [
           if (_creditBalance != null)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Center(
-                child: Chip(
-                  avatar: Icon(Icons.account_balance_wallet, size: 16),
-                  label: Text('${_creditBalance!.availableCredits} Credits'),
-                  backgroundColor: Theme.of(context).colorScheme.secondaryContainer,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    SizedBox(width: 6),
+                    Text(
+                      '${_creditBalance!.availableCredits}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(icon: Icon(Icons.star), text: 'Featured'),
-            Tab(icon: Icon(Icons.trending_up), text: 'Bestsellers'),
-            Tab(icon: Icon(Icons.new_releases), text: 'New'),
-            Tab(icon: Icon(Icons.category), text: 'Categories'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(48),
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelColor: Colors.white,
+              unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+              unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
+              tabs: [
+                Tab(text: 'Featured'),
+                Tab(text: 'Best'),
+                Tab(text: 'New'),
+                Tab(text: 'Browse'),
+              ],
+            ),
+          ),
         ),
       ),
       body: Column(
         children: [
           // Search Bar
           Padding(
-            padding: EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search for audiobooks...',
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchBooks('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              onChanged: _searchBooks,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search audiobooks...',
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w400,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _searchBooks('');
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+                onChanged: _searchBooks,
+              ),
             ),
           ),
           
@@ -246,7 +313,7 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, 20),
       itemCount: books.length,
       itemBuilder: (context, index) {
         final book = books[index];
@@ -256,8 +323,19 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
   }
 
   Widget _buildBookCard(BookCatalog book) {
-    return Card(
+    return Container(
       margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -267,31 +345,40 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
             ),
           );
         },
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: EdgeInsets.all(20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Cover Image
               Container(
-                width: 80,
-                height: 120,
+                width: 72,
+                height: 108,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
                 child: book.coverImageUrl != null
                     ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         child: Image.network(
                           book.coverImageUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            return Icon(Icons.book, size: 40, color: Colors.grey);
+                            return Icon(
+                              Icons.book,
+                              size: 32,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            );
                           },
                         ),
                       )
-                    : Icon(Icons.book, size: 40, color: Colors.grey),
+                    : Icon(
+                        Icons.book,
+                        size: 32,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
               ),
               
               SizedBox(width: 16),
@@ -353,51 +440,62 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                     
                     SizedBox(height: 8),
                     
-                    // Price and Purchase
+                    // Price and Badges
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              book.formattedPrice,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.primary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                book.formattedPrice,
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                               ),
-                            ),
-                            Text(
-                              '${book.creditPrice} credit${book.creditPrice != 1 ? 's' : ''}',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            ),
-                          ],
+                              SizedBox(height: 2),
+                              Text(
+                                '${book.creditPrice} credit${book.creditPrice != 1 ? 's' : ''}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         
-                        // Badges
-                        Wrap(
-                          spacing: 4,
-                          children: [
-                            if (book.isFeatured)
-                              Chip(
-                                label: Text('Featured', style: TextStyle(fontSize: 10)),
-                                backgroundColor: Colors.blue[100],
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        // Status badges
+                        if (book.isFeatured || book.isBestseller || book.isNewRelease)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: book.isFeatured
+                                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                                  : book.isBestseller
+                                      ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
+                                      : Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              book.isFeatured
+                                  ? 'Featured'
+                                  : book.isBestseller
+                                      ? 'Bestseller'
+                                      : 'New',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: book.isFeatured
+                                    ? Theme.of(context).colorScheme.primary
+                                    : book.isBestseller
+                                        ? Theme.of(context).colorScheme.secondary
+                                        : Theme.of(context).colorScheme.tertiary,
                               ),
-                            if (book.isBestseller)
-                              Chip(
-                                label: Text('Bestseller', style: TextStyle(fontSize: 10)),
-                                backgroundColor: Colors.orange[100],
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            if (book.isNewRelease)
-                              Chip(
-                                label: Text('New', style: TextStyle(fontSize: 10)),
-                                backgroundColor: Colors.green[100],
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                          ],
-                        ),
+                            ),
+                          ),
                       ],
                     ),
                   ],
@@ -501,29 +599,478 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
   }
 }
 
-// Placeholder screens that need to be implemented
-class BookDetailsScreen extends StatelessWidget {
+class BookDetailsScreen extends StatefulWidget {
   final BookCatalog book;
 
   const BookDetailsScreen({super.key, required this.book});
 
   @override
+  _BookDetailsScreenState createState() => _BookDetailsScreenState();
+}
+
+class _BookDetailsScreenState extends State<BookDetailsScreen> {
+  bool _isDescriptionExpanded = false;
+  
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Book Details'),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Book Details Screen'),
-            SizedBox(height: 16),
-            Text('Title: ${book.title}'),
-            SizedBox(height: 8),
-            Text('Coming Soon!'),
-          ],
-        ),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: CustomScrollView(
+        slivers: [
+          // Custom app bar with book cover
+          SliverAppBar(
+            expandedHeight: 300,
+            pinned: true,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            leading: IconButton(
+              icon: Icon(
+                Icons.arrow_back_ios,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(
+                  Icons.favorite_border,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                onPressed: () {
+                  // Add to wishlist
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.share,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                onPressed: () {
+                  // Share book
+                },
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                padding: EdgeInsets.fromLTRB(20, 100, 20, 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    // Book cover
+                    Container(
+                      width: 140,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 20,
+                            offset: Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: widget.book.coverImageUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.network(
+                                widget.book.coverImageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.book,
+                                    size: 60,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  );
+                                },
+                              ),
+                            )
+                          : Icon(
+                              Icons.book,
+                              size: 60,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                    ),
+                    
+                    SizedBox(width: 20),
+                    
+                    // Book info
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.book.title,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          
+                          if (widget.book.author != null) ...[
+                            SizedBox(height: 8),
+                            Text(
+                              'by ${widget.book.author}',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                          
+                          if (widget.book.narrator != null) ...[
+                            SizedBox(height: 4),
+                            Text(
+                              'Narrated by ${widget.book.narrator}',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                          
+                          SizedBox(height: 12),
+                          
+                          // Rating and duration
+                          Row(
+                            children: [
+                              if (widget.book.averageRating != null) ...[
+                                Icon(Icons.star, size: 20, color: Colors.amber),
+                                SizedBox(width: 4),
+                                Text(
+                                  widget.book.averageRating!.toStringAsFixed(1),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  '(${widget.book.reviewCount})',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                              ],
+                              if (widget.book.durationSeconds != null) ...[
+                                Icon(
+                                  Icons.access_time,
+                                  size: 20,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  widget.book.durationSeconds!.formattedDuration,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Book details content
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Purchase section
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.book.formattedPrice,
+                                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                Text(
+                                  '${widget.book.creditPrice} credit${widget.book.creditPrice != 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            
+                            // Status badge
+                            if (widget.book.isFeatured || widget.book.isBestseller || widget.book.isNewRelease)
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: widget.book.isFeatured
+                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                                      : widget.book.isBestseller
+                                          ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
+                                          : Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  widget.book.isFeatured
+                                      ? 'Featured'
+                                      : widget.book.isBestseller
+                                          ? 'Bestseller'
+                                          : 'New Release',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: widget.book.isFeatured
+                                        ? Theme.of(context).colorScheme.primary
+                                        : widget.book.isBestseller
+                                            ? Theme.of(context).colorScheme.secondary
+                                            : Theme.of(context).colorScheme.tertiary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        
+                        SizedBox(height: 20),
+                        
+                        // Action buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  // Purchase book
+                                },
+                                icon: Icon(Icons.shopping_cart),
+                                label: Text('Add to Cart'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Theme.of(context).colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            
+                            SizedBox(width: 12),
+                            
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  // Preview/sample
+                                },
+                                icon: Icon(Icons.play_circle_outline),
+                                label: Text('Preview'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  SizedBox(height: 24),
+                  
+                  // Description section
+                  Text(
+                    'About This Book',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  
+                  SizedBox(height: 12),
+                  
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.book.description ?? 'No description available for this audiobook.',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            height: 1.6,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                          maxLines: _isDescriptionExpanded ? null : 4,
+                          overflow: _isDescriptionExpanded ? null : TextOverflow.ellipsis,
+                        ),
+                        
+                        if (widget.book.description != null && widget.book.description!.length > 200) ...[
+                          SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isDescriptionExpanded = !_isDescriptionExpanded;
+                              });
+                            },
+                            child: Text(
+                              _isDescriptionExpanded ? 'Show Less' : 'Read More',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  
+                  SizedBox(height: 24),
+                  
+                  // Genre/Category section
+                  if (widget.book.genre != null) ...[
+                    Text(
+                      'Genre',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    
+                    SizedBox(height: 12),
+                    
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        widget.book.genre!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: 24),
+                  ],
+                  
+                  // Publication info section
+                  if (widget.book.publisher != null || widget.book.publicationDate != null) ...[
+                    Text(
+                      'Publication Info',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    
+                    SizedBox(height: 12),
+                    
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.book.publisher != null) ...[
+                            Row(
+                              children: [
+                                Text(
+                                  'Publisher: ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  widget.book.publisher!,
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (widget.book.publicationDate != null) ...[
+                            if (widget.book.publisher != null) SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  'Published: ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                Text(
+                                  '${widget.book.publicationDate!.year}',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          Row(
+                            children: [
+                              Text(
+                                'Language: ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                widget.book.language == 'en' ? 'English' : widget.book.language,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: 80), // Extra padding for bottom navigation
+                  ] else ...[
+                    SizedBox(height: 80), // Extra padding for bottom navigation
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 API Gateway for EchoWright Audiobook Companion Platform
 
@@ -8,36 +9,15 @@ a unified API interface.
 
 Key responsibilities:
 - Centralized API entry point for all client applications
+- Authentication and user management endpoints
 - Request routing and proxying to backend microservices
 - CORS handling for web client cross-origin requests
 - Audiobook file management and streaming
 - Error handling and status code propagation
-- Service endpoint abstraction and configuration
-
-Architecture:
-- Runs on port 8000 as the main API gateway
-- Proxies requests to Context Service (port 8001)
-- Proxies requests to LLM Gateway (port 8002) 
-- Proxies requests to TTS Service (port 8003)
-- Proxies requests to Transcription Service (port 8003)
-- Serves audiobook files and cover images directly
-- Handles file uploads for book management
-
-Endpoints:
-- /health: Service health check
-- /complete: AI text completion via LLM Gateway
-- /tts: Text-to-speech synthesis via TTS Service
-- /configs: List available AI persona configurations
-- /context: Retrieve contextual transcript information
-- /books/*: Audiobook file management and streaming
-- /books/cover/*: Book cover image serving
-
-Service URLs are configurable via environment variables for deployment flexibility.
-Book files are served from /app/book_files directory (mounted volume in Docker).
 """
 
 import os
-import sys
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -46,45 +26,9 @@ import httpx
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 
-# Import core infrastructure components
-from core.infrastructure.logging_config import setup_logging, get_request_id
-from core.infrastructure.logging_middleware import LoggingMiddleware
-from core.infrastructure.health_checks import HealthCheck, create_health_endpoint, check_service_endpoint
-from core.infrastructure.compression_middleware import CompressionMiddleware
-from core.infrastructure.metrics import (
-    setup_metrics, llm_requests_total, llm_request_duration_seconds,
-    tts_requests_total, active_users, books_processed_total,
-    cache_operations_total, cache_hit_ratio
-)
-from core.infrastructure.tracing import (
-    TracingConfig, setup_tracing, instrument_fastapi, instrument_external_libraries,
-    get_development_tracing_config, LLMTracingHelper, HTTPTracingHelper, 
-    create_span_with_context, add_span_attributes
-)
-from core.infrastructure.circuit_breaker import (
-    CircuitBreaker, CircuitBreakerError, ExponentialBackoff,
-    create_http_circuit_breaker, create_llm_circuit_breaker
-)
-from core.infrastructure.error_handling import (
-    setup_error_handling, ApplicationError, ValidationError,
-    ExternalServiceError, TimeoutError, handle_external_service_error
-)
-from core.infrastructure.rate_limiter import (
-    setup_rate_limiting, RateLimitMiddleware, OperationType
-)
-from core.infrastructure.usage_analytics import (
-    setup_usage_analytics, AnalyticsCollector, EventType, AnalyticsConfig
-)
-from core.infrastructure.audio_pipeline import (
-    setup_audio_pipeline, AudioProcessor, AudioConfig
-)
-from core.infrastructure.semantic_cache import create_cache_instance
-
-# Import authentication components  
-from core.auth.auth import User, get_current_user, get_optional_user, require_role, UserRole, check_rate_limit, redis_client
+# Import authentication routes
 from auth_routes import auth_router
 from simple_bookstore_routes import router as bookstore_router
 
@@ -98,1010 +42,196 @@ TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription
 # Book files directory - will be mounted in Docker
 BOOK_FILES_DIR = Path("/app/book_files")
 
-# Set up structured logging
-logger = setup_logging(
-    service_name="api_gateway",
-    log_level=os.getenv("LOG_LEVEL", "INFO")
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+logger = logging.getLogger(__name__)
 
-# Set up distributed tracing
-environment = os.getenv("ENVIRONMENT", "development")
-if environment == "development":
-    tracing_config = get_development_tracing_config("api_gateway")
-else:
-    from tracing import get_production_tracing_config
-    tracing_config = get_production_tracing_config("api_gateway")
-
-tracer = setup_tracing(tracing_config)
-
-# Instrument external libraries for automatic tracing
-instrument_external_libraries()
-
-# Initialize circuit breakers for external services
-llm_circuit_breaker = create_llm_circuit_breaker(
-    name="LLM_Gateway",
-    failure_threshold=3,
-    recovery_timeout=30
-)
-
-tts_circuit_breaker = CircuitBreaker(
-    name="TTS_Service",
-    failure_threshold=3,
-    recovery_timeout=20,
-    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
-)
-
-context_circuit_breaker = CircuitBreaker(
-    name="Context_Service",
-    failure_threshold=5,
-    recovery_timeout=15,
-    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
-)
-
-transcription_circuit_breaker = CircuitBreaker(
-    name="Transcription_Service",
-    failure_threshold=3,
-    recovery_timeout=30,
-    expected_exception=(httpx.HTTPStatusError, httpx.TimeoutException, ConnectionError)
-)
-
-# Exponential backoff for retries
-retry_backoff = ExponentialBackoff(
-    max_retries=3,
-    base_delay=1.0,
-    max_delay=10.0
-)
-
-# Main FastAPI application used by the unit tests and docker-compose setup
+# Create FastAPI app
 app = FastAPI(
     title="EchoWright API Gateway",
-    description="Secure API Gateway for EchoWright Audiobook Platform",
-    version="1.0.0"
+    description="API Gateway for EchoWright audiobook platform with authentication and bookstore",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-# Add logging middleware
-app.add_middleware(LoggingMiddleware, logger=logger)
-
-# Add user extraction middleware for rate limiting
-@app.middleware("http")
-async def extract_user_middleware(request: Request, call_next):
-    """Extract user information from auth headers for rate limiting."""
-    try:
-        # Try to extract user from Authorization header
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            from fastapi.security import HTTPAuthorizationCredentials
-            credentials = HTTPAuthorizationCredentials(
-                scheme="Bearer", 
-                credentials=auth_header[7:]  # Remove "Bearer " prefix
-            )
-            # Use get_optional_user that was imported
-            user = await get_optional_user(credentials)
-            if user:
-                request.state.user = user
-    except Exception as e:
-        # Don't fail the request if user extraction fails
-        logger.debug(f"User extraction failed: {e}")
-        pass
-    
-    response = await call_next(request)
-    return response
-
-# Add compression middleware  
-compression_middleware = CompressionMiddleware(
-    app,
-    minimum_size=500,  # Compress responses >= 500 bytes
-    compression_level=6,  # Balanced compression/speed
-    exclude_paths={"/health", "/metrics"}  # Skip compression for monitoring endpoints
-)
-app.add_middleware(CompressionMiddleware, 
-    minimum_size=500,
-    compression_level=6, 
-    exclude_paths={"/health", "/metrics"}
-)
-
-# Set up comprehensive error handling
-error_handler = setup_error_handling(
-    app,
-    service_name="api_gateway",
-    include_stack_trace=(os.getenv("ENVIRONMENT", "development") == "development")
-)
-
-# Security middleware - restrict hosts in production
-if os.getenv("ENVIRONMENT", "development") == "production":
-    app.add_middleware(
-        TrustedHostMiddleware, 
-        allowed_hosts=["api.echowright.com", "localhost"]
-    )
-
-# CORS configuration - restrict origins in production
-cors_origins = [
-    "http://localhost:8080",  # Web demo
-    "http://localhost:3000",  # Alternative frontend
-]
-
-if os.getenv("ENVIRONMENT", "development") == "development":
-    cors_origins.append("*")
-
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=["*"],  # In production, replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Set up rate limiting (after auth setup to access redis_client)
-if redis_client:
-    rate_limiter = setup_rate_limiting(
-        app, 
-        redis_client,
-        skip_paths=["/health", "/metrics", "/docs", "/openapi.json"]
-    )
-    logger.info("Rate limiting enabled with Redis backend")
-else:
-    logger.warning("Redis unavailable - rate limiting disabled")
-
-# Set up database connection for bookstore services
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://betterbooks:betterbooks@postgres_primary:5432/betterbooks")
-
-# Initialize database manager for bookstore services
-try:
-    from core.database.database_manager import DatabaseManager
-    db_manager = DatabaseManager(DATABASE_URL)
-    logger.info("Database manager initialized for bookstore services")
-except Exception as e:
-    logger.error(f"Failed to initialize database manager: {e}")
-    db_manager = None
-
-# Set up usage analytics
-if redis_client and DATABASE_URL:
-    analytics_config = AnalyticsConfig(
-        enabled=os.getenv("ANALYTICS_ENABLED", "true").lower() == "true",
-        batch_size=int(os.getenv("ANALYTICS_BATCH_SIZE", "100")),
-        flush_interval=int(os.getenv("ANALYTICS_FLUSH_INTERVAL", "60")),
-        retention_days=int(os.getenv("ANALYTICS_RETENTION_DAYS", "365"))
-    )
-    
-    analytics_collector = setup_usage_analytics(
-        app,
-        redis_client,
-        DATABASE_URL,
-        config=analytics_config,
-        track_all_requests=False  # Only track specific endpoints
-    )
-    logger.info("Usage analytics enabled with PostgreSQL and Redis backend")
-else:
-    logger.warning("Database or Redis unavailable - usage analytics disabled")
-    analytics_collector = None
-
-# Set up audio pipeline (requires Redis for caching and buffering)
-if redis_client:
-    # Create semantic cache for audio caching (use database 3 for audio cache)
-    try:
-        # Create a separate Redis client for audio caching
-        audio_redis_client = redis.Redis.from_url(
-            os.getenv("REDIS_URL", "redis://redis:6379/0").replace("/0", "/3")
-        )
-        semantic_cache = create_cache_instance("redis://redis:6379/3")
-    except Exception as e:
-        logger.warning(f"Failed to create semantic cache: {e}")
-        semantic_cache = None
-    
-    audio_config = AudioConfig(
-        sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "22050")),
-        chunk_size=int(os.getenv("AUDIO_CHUNK_SIZE", "1024")),
-        quality=os.getenv("AUDIO_QUALITY", "medium")
-    )
-    
-    audio_processor = setup_audio_pipeline(
-        app,
-        redis_client,
-        cache=semantic_cache,
-        config=audio_config
-    )
-    logger.info("Audio pipeline enabled with WebSocket and caching support")
-else:
-    logger.warning("Redis unavailable - audio pipeline disabled")
-    audio_processor = None
-
 # Include authentication routes
 app.include_router(auth_router)
 
-# Include bookstore routes  
+# Include bookstore routes
 app.include_router(bookstore_router)
 
-# Set up comprehensive health checks
-health_check = HealthCheck("api_gateway", "1.0.0")
+# Basic health check
+@app.get("/health")
+async def health_check():
+    """Basic health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "service": "api_gateway",
+        "version": "1.0.0"
+    }
 
-# Add dependency checks
-async def check_llm_gateway():
-    return await check_service_endpoint(LLM_URL)
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "EchoWright API Gateway", "status": "running"}
 
-async def check_context_service():
-    return await check_service_endpoint(CONTEXT_URL)
+# File serving endpoints
+@app.get("/books/{book_folder}/{filename}")
+async def serve_book_file(book_folder: str, filename: str):
+    """Serve audiobook files"""
+    try:
+        file_path = BOOK_FILES_DIR / book_folder / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Determine media type based on file extension
+        media_type = "audio/mpeg"
+        if filename.endswith(".mp3"):
+            media_type = "audio/mpeg"
+        elif filename.endswith(".wav"):
+            media_type = "audio/wav"
+        elif filename.endswith(".ogg"):
+            media_type = "audio/ogg"
+        elif filename.endswith(".m4a"):
+            media_type = "audio/mp4"
+        
+        return FileResponse(
+            path=file_path,
+            media_type=media_type,
+            filename=filename
+        )
+    except Exception as e:
+        logger.error(f"Error serving book file {book_folder}/{filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving file")
 
-async def check_tts_service():
-    return await check_service_endpoint(TTS_URL)
+@app.get("/books/cover/{book_folder}/{filename}")
+async def serve_cover_image(book_folder: str, filename: str):
+    """Serve book cover images"""
+    try:
+        file_path = BOOK_FILES_DIR / book_folder / filename
+        
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Cover image not found")
+        
+        # Determine media type based on file extension
+        media_type = "image/jpeg"
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
+            if filename.lower().endswith('.png'):
+                media_type = "image/png"
+            elif filename.lower().endswith('.gif'):
+                media_type = "image/gif"
+        
+        return FileResponse(
+            path=file_path,
+            media_type=media_type,
+            filename=filename
+        )
+    except Exception as e:
+        logger.error(f"Error serving cover image {book_folder}/{filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error serving cover image")
 
-health_check.add_check("llm_gateway", check_llm_gateway)
-health_check.add_check("context_service", check_context_service)
-health_check.add_check("tts_service", check_tts_service)
-
-# Create health endpoints
-create_health_endpoint(app, health_check)
-
-# Add compression statistics endpoint
-@app.get("/compression/stats")
-def get_compression_stats():
-    """Get compression middleware statistics."""
-    return compression_middleware.get_stats()
-
-@app.post("/compression/reset")
-def reset_compression_stats():
-    """Reset compression statistics."""
-    compression_middleware.reset_stats()
-    return {"message": "Compression statistics reset"}
-
-# Set up Prometheus metrics
-metrics_collector = setup_metrics(app, "api_gateway")
-
-# Instrument FastAPI with distributed tracing
-instrument_fastapi(app, "api_gateway")
-
-# Create custom metrics for API Gateway
-auth_attempts = metrics_collector.create_counter(
-    "auth_attempts_total",
-    "Total authentication attempts",
-    ["method", "status"]
-)
-
-rate_limit_hits = metrics_collector.create_counter(
-    "rate_limit_hits_total",
-    "Total rate limit hits",
-    ["endpoint", "user_type"]
-)
-
-class Prompt(BaseModel):
-    """Request body for the `/complete` endpoint."""
-
+# Proxy endpoints for other services
+class CompletionRequest(BaseModel):
     prompt: str
-    config: str | None = None
-
-
-class Text(BaseModel):
-    """Request body for the `/tts` endpoint."""
-
-    text: str
-    config: str | None = None
-
-
-class ContextRequest(BaseModel):
-    """Request body for the `/context` endpoint."""
-    
-    book_name: str
-    chapter_name: str | None = None
-    current_position: float
-
-
+    config_name: Optional[str] = None
+    max_tokens: Optional[int] = None
+    temperature: Optional[float] = None
+    use_cache: Optional[bool] = True
 
 @app.post("/complete")
-async def complete(
-    prompt: Prompt,
-    current_user: Optional[User] = Depends(get_optional_user),
-    request: Request = None
-) -> dict:
-    """Proxy text completion requests to the LLM Gateway with authentication."""
-    
-    # Track AI interaction start
-    if analytics_collector:
-        await analytics_collector.collect_event(
-            EventType.AI_CONVERSATION_START,
-            user=current_user,
-            request=request,
-            persona_id=prompt.config,
-            prompt_length=len(prompt.text),
-            content_type="llm_completion"
-        )
-    
-    # Create a custom span for the complete operation
-    with tracer.start_as_current_span("api_gateway.complete") as span:
-        # Add span attributes for tracing context
-        add_span_attributes(
-            span,
-            user_authenticated=str(current_user is not None),
-            prompt_length=len(prompt.prompt),
-            config=prompt.config or "default"
-        )
-        
-        # Track request start time for metrics
-        import time
-        start_time = time.time()
-        
-        # Rate limiting for authenticated users
-        if current_user:
-            await check_rate_limit(current_user.id, "complete", limit=100, window=3600)  # 100 per hour
-            logger.info("Authenticated user request", user_id=current_user.id, endpoint="complete")
-            user_type = "authenticated"
-            add_span_attributes(span, user_id=current_user.id, user_role=current_user.role.value)
-        else:
-            # More restrictive rate limiting for unauthenticated users
-            client_ip = "anonymous"  # In production, get real IP
-            await check_rate_limit(client_ip, "complete_anon", limit=10, window=3600)  # 10 per hour
-            logger.info("Anonymous user request", endpoint="complete")
-            user_type = "anonymous"
-        
-        # Add user context to request if authenticated
-        request_data = prompt.model_dump(exclude_none=True)
-        if current_user:
-            request_data["user_id"] = current_user.id
-            request_data["user_role"] = current_user.role.value
+async def complete_text(request: CompletionRequest):
+    """Proxy text completion requests to LLM Gateway"""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{LLM_URL}/complete",
+                json=request.dict()
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error completing text: {e}")
+        raise HTTPException(status_code=500, detail="Text completion failed")
 
-        # Create span for HTTP client request to LLM Gateway
-        with HTTPTracingHelper.trace_http_client_request(tracer, "POST", f"{LLM_URL}/complete") as http_span:
-            try:
-                # Use circuit breaker for LLM Gateway call
-                async def make_llm_request():
-                    resp = httpx.post(f"{LLM_URL}/complete", json=request_data, timeout=60.0)
-                    HTTPTracingHelper.add_http_response_attributes(http_span, resp.status_code)
-                    resp.raise_for_status()
-                    return resp
-                
-                # Execute with circuit breaker and retry logic
-                resp = await retry_backoff.retry(
-                    llm_circuit_breaker.call,
-                    make_llm_request
-                )
-                
-                # Track successful LLM request
-                duration = time.time() - start_time
-                llm_requests_total.labels(model="gemini", status="success").inc()
-                llm_request_duration_seconds.labels(model="gemini").observe(duration)
-                
-                # Add success attributes to span
-                add_span_attributes(span, status="success", duration_seconds=duration)
-                
-                response_data = resp.json()
-                
-                # Track AI interaction completion
-                if analytics_collector:
-                    await analytics_collector.collect_event(
-                        EventType.AI_RESPONSE_RECEIVED,
-                        user=current_user,
-                        request=request,
-                        persona_id=prompt.config,
-                        response_length=len(response_data.get("text", "")),
-                        duration_seconds=duration,
-                        content_type="llm_completion"
-                    )
-                
-                return response_data
-                
-            except CircuitBreakerError as e:
-                # Circuit breaker is open
-                llm_requests_total.labels(model="gemini", status="circuit_open").inc()
-                logger.warning(
-                    "LLM Gateway circuit breaker open",
-                    error=str(e),
-                    request_id=get_request_id()
-                )
-                
-                # If circuit breaker has fallback, it will be used
-                if hasattr(e, 'fallback_response'):
-                    return e.fallback_response
-                    
-                # Otherwise return service unavailable
-                raise HTTPException(
-                    status_code=503,
-                    detail="LLM service temporarily unavailable. Please try again later."
-                )
-                
-            except (httpx.HTTPStatusError, httpx.TimeoutException) as e:
-                # Track failed LLM request
-                llm_requests_total.labels(model="gemini", status="error").inc()
-                
-                if isinstance(e, httpx.HTTPStatusError):
-                    # Log the error with structured fields
-                    logger.error(
-                        "LLM Gateway error",
-                        status_code=e.response.status_code,
-                        error_detail=e.response.text,
-                        request_id=get_request_id()
-                    )
-                    
-                    # Record error in span
-                    span.record_exception(e)
-                    add_span_attributes(span, status="error", error_code=e.response.status_code)
-                    
-                    # Bubble up the error from the LLM Gateway
-                    detail = e.response.json().get("detail", e.response.text)
-                    raise HTTPException(status_code=e.response.status_code, detail=detail)
-                else:
-                    # Timeout error
-                    logger.error(
-                        "LLM Gateway timeout",
-                        error=str(e),
-                        request_id=get_request_id()
-                    )
-                    raise HTTPException(status_code=504, detail="LLM Gateway request timeout")
-
+class TTSRequest(BaseModel):
+    text: str
+    voice: Optional[str] = None
+    speed: Optional[float] = None
 
 @app.post("/tts")
-async def tts(
-    text: Text,
-    current_user: Optional[User] = Depends(get_optional_user),
-    request: Request = None
-) -> dict:
-    """Proxy text-to-speech synthesis requests to the TTS Service with authentication."""
-    
-    # Track TTS generation start
-    if analytics_collector:
-        await analytics_collector.collect_event(
-            EventType.AI_RESPONSE_RECEIVED,  # Using existing event type
-            user=current_user,
-            request=request,
-            text_length=len(text.text),
-            config_name=text.config,
-            content_type="tts_audio",
-            service_type="tts"
-        )
-    
-    # Track request start time
-    import time
-    start_time = time.time()
-    
-    # Rate limiting for TTS (more expensive operation)
-    if current_user:
-        await check_rate_limit(current_user.id, "tts", limit=50, window=3600)  # 50 per hour
-    else:
-        client_ip = "anonymous"
-        await check_rate_limit(client_ip, "tts_anon", limit=5, window=3600)  # 5 per hour
-    
-    # Add user context to request
-    request_data = text.model_dump()
-    if current_user:
-        request_data["user_id"] = current_user.id
-        request_data["user_role"] = current_user.role.value
-        
-    resp = httpx.post(
-        f"{TTS_URL}/synthesize",
-        json=request_data,
-        timeout=30.0,
-    )
+async def text_to_speech(request: TTSRequest):
+    """Proxy text-to-speech requests to TTS Service"""
     try:
-        resp.raise_for_status()
-        # Track successful TTS request
-        duration = time.time() - start_time
-        tts_requests_total.labels(voice="default", status="success").inc()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{TTS_URL}/tts",
+                json=request.dict()
+            )
+            response.raise_for_status()
+            
+            # Return audio content with appropriate headers
+            return Response(
+                content=response.content,
+                media_type="audio/wav",
+                headers={
+                    "Content-Disposition": "attachment; filename=tts_output.wav"
+                }
+            )
     except httpx.HTTPStatusError as e:
-        # Track failed TTS request
-        tts_requests_total.labels(voice="default", status="error").inc()
-        # Log the error with structured fields
-        logger.error(
-            "TTS Service error",
-            status_code=resp.status_code,
-            error_detail=resp.text,
-            request_id=get_request_id()
-        )
-        detail = resp.json().get("detail", resp.text)
-        raise HTTPException(status_code=resp.status_code, detail=detail)
-
-    return resp.json()
-
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating speech: {e}")
+        raise HTTPException(status_code=500, detail="Text-to-speech failed")
 
 @app.get("/configs")
-def list_configs() -> dict:
-    """Return available LLM configuration names."""
-
-    resp = httpx.get(f"{LLM_URL}/configs")
-    return resp.json()
-
-
-@app.get("/circuit-breakers/status")
-async def get_circuit_breaker_status(
-    current_user: User = Depends(require_role(UserRole.ADMIN))
-) -> dict:
-    """Get status of all circuit breakers (admin only)."""
-    return {
-        "circuit_breakers": {
-            "llm_gateway": llm_circuit_breaker.get_status(),
-            "tts_service": tts_circuit_breaker.get_status(),
-            "context_service": context_circuit_breaker.get_status(),
-            "transcription_service": transcription_circuit_breaker.get_status()
-        },
-        "timestamp": datetime.now().isoformat()
-    }
-
-
-@app.post("/circuit-breakers/{service}/reset")
-async def reset_circuit_breaker(
-    service: str,
-    current_user: User = Depends(require_role(UserRole.ADMIN))
-) -> dict:
-    """Manually reset a circuit breaker (admin only)."""
-    breakers = {
-        "llm_gateway": llm_circuit_breaker,
-        "tts_service": tts_circuit_breaker,
-        "context_service": context_circuit_breaker,
-        "transcription_service": transcription_circuit_breaker
-    }
-    
-    if service not in breakers:
-        raise HTTPException(status_code=404, detail=f"Circuit breaker for service '{service}' not found")
-    
-    breakers[service].reset()
-    logger.info(f"Circuit breaker for {service} manually reset by admin", user_id=current_user.id)
-    
-    return {
-        "message": f"Circuit breaker for {service} has been reset",
-        "new_status": breakers[service].get_status()
-    }
-
-
-@app.post("/context/search")
-async def search_context(
-    query: dict,
-    current_user: Optional[User] = Depends(get_optional_user)
-) -> dict:
-    """Forward vector similarity searches to the Context Service."""
-
-    resp = httpx.post(f"{CONTEXT_URL}/search", json=query)
-    return resp.json()
-
-
-@app.post("/context")
-async def get_context(
-    request: ContextRequest,
-    current_user: Optional[User] = Depends(get_optional_user)
-) -> dict:
-    """Get contextual transcript around current playback position."""
-    resp = httpx.post(
-        f"{TRANSCRIPTION_URL}/context", 
-        json=request.model_dump(),
-        timeout=60.0
-    )
+async def list_configs():
+    """Proxy request to list available AI persona configurations"""
     try:
-        resp.raise_for_status()
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{LLM_URL}/configs")
+            response.raise_for_status()
+            return response.json()
     except httpx.HTTPStatusError as e:
-        logger.error(
-            "Transcription Service error",
-            status_code=resp.status_code,
-            error_detail=resp.text,
-            request_id=get_request_id()
-        )
-        detail = resp.json().get("detail", resp.text)
-        raise HTTPException(status_code=resp.status_code, detail=detail)
-    
-    return resp.json()
-
-
-# ==============================================
-# TRANSCRIPTION ENDPOINTS
-# ==============================================
-
-class TranscriptionResponse(BaseModel):
-    """Response model for transcription results."""
-    text: str
-    language: str
-    service: str
-    duration_ms: Optional[int] = None
-    segments: Optional[List[str]] = None
-    word_timestamps: Optional[List[dict]] = None
-
-class AudioFormat(BaseModel):
-    """Audio format specification."""
-    sample_rate: int = 16000
-    channels: int = 1
-    bits_per_sample: int = 16
-
-@app.get("/transcription/health")
-async def transcription_health():
-    """Check transcription service health."""
-    try:
-        with transcription_circuit_breaker:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(f"{TRANSCRIPTION_URL}/health")
-                resp.raise_for_status()
-                return resp.json()
-    except CircuitBreakerError:
-        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        logger.error(f"Transcription health check failed: {e}")
-        raise HTTPException(status_code=503, detail="Transcription service unavailable")
+        logger.error(f"Error listing configs: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list configurations")
 
-@app.get("/transcription/config")
-async def transcription_config():
-    """Get transcription service configuration."""
+@app.get("/context")
+async def get_context(query: str, book_id: Optional[str] = None):
+    """Proxy context retrieval requests to Context Service"""
     try:
-        with transcription_circuit_breaker:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(f"{TRANSCRIPTION_URL}/config")
-                resp.raise_for_status()
-                return resp.json()
-    except CircuitBreakerError:
-        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
-    except Exception as e:
-        logger.error(f"Failed to get transcription config: {e}")
-        raise HTTPException(status_code=503, detail="Transcription service unavailable")
-
-@app.get("/transcription/supported-languages")
-async def get_supported_languages():
-    """Get list of supported languages for transcription."""
-    try:
-        with transcription_circuit_breaker:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(f"{TRANSCRIPTION_URL}/supported-languages")
-                resp.raise_for_status()
-                return resp.json()
-    except CircuitBreakerError:
-        raise HTTPException(status_code=503, detail="Transcription service unavailable - circuit breaker open")
-    except Exception as e:
-        logger.error(f"Failed to get supported languages: {e}")
-        raise HTTPException(status_code=503, detail="Transcription service unavailable")
-
-@app.post("/transcription/file", response_model=TranscriptionResponse)
-async def transcribe_file(
-    file: UploadFile = File(..., description="Audio file to transcribe"),
-    language: Optional[str] = None,
-    current_user: Optional[User] = Depends(get_optional_user)
-):
-    """Transcribe an uploaded audio file using Azure Speech Service."""
-    logger.info(
-        "File transcription requested",
-        filename=file.filename,
-        content_type=file.content_type,
-        language=language,
-        user_id=current_user.id if current_user else None,
-        request_id=get_request_id()
-    )
-    
-    # Validate file type
-    allowed_types = [
-        "audio/wav", "audio/mpeg", "audio/mp3", "audio/m4a", 
-        "audio/ogg", "audio/flac", "audio/aac"
-    ]
-    
-    if file.content_type not in allowed_types:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Unsupported file type: {file.content_type}. Supported types: {', '.join(allowed_types)}"
-        )
-    
-    try:
-        with transcription_circuit_breaker:
-            # Prepare files for multipart upload
-            files_data = {"file": (file.filename, await file.read(), file.content_type)}
-            params = {"language": language} if language else {}
+        params = {"query": query}
+        if book_id:
+            params["book_id"] = book_id
             
-            async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout for file processing
-                resp = await client.post(
-                    f"{TRANSCRIPTION_URL}/transcribe/file",
-                    files=files_data,
-                    params=params
-                )
-                resp.raise_for_status()
-                
-            result = resp.json()
-            logger.info(
-                "File transcription completed",
-                filename=file.filename,
-                text_length=len(result.get("text", "")),
-                duration_ms=result.get("duration_ms"),
-                service=result.get("service"),
-                request_id=get_request_id()
-            )
-            
-            return result
-            
-    except CircuitBreakerError:
-        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
-        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
-    except httpx.TimeoutException:
-        logger.error("Transcription service timeout", filename=file.filename, request_id=get_request_id())
-        raise HTTPException(status_code=504, detail="Transcription service timeout - file may be too large")
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.get(f"{CONTEXT_URL}/search", params=params)
+            response.raise_for_status()
+            return response.json()
     except httpx.HTTPStatusError as e:
-        logger.error(
-            "Transcription service error",
-            status_code=e.response.status_code,
-            error_detail=e.response.text,
-            filename=file.filename,
-            request_id=get_request_id()
-        )
-        detail = e.response.json().get("detail", e.response.text) if e.response.headers.get("content-type", "").startswith("application/json") else e.response.text
-        raise HTTPException(status_code=e.response.status_code, detail=detail)
+        raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
-        logger.error(f"Unexpected transcription error: {e}", filename=file.filename, request_id=get_request_id())
-        raise HTTPException(status_code=500, detail="Internal transcription service error")
+        logger.error(f"Error retrieving context: {e}")
+        raise HTTPException(status_code=500, detail="Context retrieval failed")
 
-@app.post("/transcription/stream", response_model=TranscriptionResponse)
-async def transcribe_stream(
-    audio_format: AudioFormat = AudioFormat(),
-    language: Optional[str] = None,
-    current_user: Optional[User] = Depends(get_optional_user)
-):
-    """Transcribe audio from a raw stream (for real-time transcription)."""
-    logger.info(
-        "Stream transcription requested",
-        audio_format=audio_format.dict(),
-        language=language,
-        user_id=current_user.id if current_user else None,
-        request_id=get_request_id()
-    )
-    
-    try:
-        with transcription_circuit_breaker:
-            # This endpoint expects raw audio data in the request body
-            # For now, return a placeholder response
-            return TranscriptionResponse(
-                text="Stream transcription endpoint - implementation pending",
-                language=language or "en-US",
-                service="azure",
-                duration_ms=0
-            )
-            
-    except CircuitBreakerError:
-        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
-        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
-    except Exception as e:
-        logger.error(f"Stream transcription error: {e}", request_id=get_request_id())
-        raise HTTPException(status_code=500, detail="Stream transcription service error")
-
-@app.post("/transcription/test", response_model=TranscriptionResponse)
-async def test_transcription(current_user: Optional[User] = Depends(get_optional_user)):
-    """Test transcription service connectivity."""
-    try:
-        with transcription_circuit_breaker:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                resp = await client.post(f"{TRANSCRIPTION_URL}/transcribe/test")
-                resp.raise_for_status()
-                
-            result = resp.json()
-            logger.info("Transcription test completed", result=result, request_id=get_request_id())
-            return result
-            
-    except CircuitBreakerError:
-        logger.error("Transcription service circuit breaker open", request_id=get_request_id())
-        raise HTTPException(status_code=503, detail="Transcription service temporarily unavailable")
-    except Exception as e:
-        logger.error(f"Transcription test error: {e}", request_id=get_request_id())
-        raise HTTPException(status_code=500, detail="Transcription test failed")
-
-
-# ==============================================
-# BOOK MANAGEMENT ENDPOINTS  
-# ==============================================
-
-@app.post("/books/upload")
-async def upload_book(
-    file: UploadFile = File(...),
-    current_user: User = Depends(require_role(UserRole.ADMIN))
-):
-    """Upload a single MP3 audiobook file."""
-    if not file.filename.endswith('.mp3'):
-        raise HTTPException(status_code=400, detail="Only MP3 files are supported")
-    
-    # Ensure book files directory exists
-    BOOK_FILES_DIR.mkdir(exist_ok=True)
-    
-    # Save the uploaded file
-    file_path = BOOK_FILES_DIR / file.filename
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
-    
-    return {"message": f"Book '{file.filename}' uploaded successfully", "path": str(file_path)}
-
-
-@app.post("/books/upload-chapters")
-async def upload_chapters(
-    book_name: str,
-    files: List[UploadFile] = File(...),
-    current_user: User = Depends(require_role(UserRole.ADMIN))
-):
-    """Upload multiple MP3 chapter files for a book."""
-    # Validate all files are MP3
-    for file in files:
-        if not file.filename.endswith('.mp3'):
-            raise HTTPException(status_code=400, detail=f"File '{file.filename}' is not an MP3")
-    
-    # Create book directory
-    book_dir = BOOK_FILES_DIR / book_name
-    book_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Save all chapter files
-    saved_files = []
-    for file in files:
-        file_path = book_dir / file.filename
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        saved_files.append(file.filename)
-    
-    return {
-        "message": f"Book '{book_name}' with {len(files)} chapters uploaded successfully",
-        "chapters": saved_files,
-        "path": str(book_dir)
-    }
-
-
-@app.get("/books/list")
-async def list_books(current_user: Optional[User] = Depends(get_optional_user)):
-    """List all available audiobooks (single files and chapter folders)."""
-    if not BOOK_FILES_DIR.exists():
-        return {"single_books": [], "chapter_books": []}
-    
-    single_books = []
-    chapter_books = []
-    
-    try:
-        for item in BOOK_FILES_DIR.iterdir():
-            if item.is_file() and item.suffix == '.mp3':
-                # Get file stats safely
-                stat_info = item.stat()
-                single_books.append({
-                    "name": item.stem,
-                    "filename": item.name,
-                    "type": "single",
-                    "size": int(stat_info.st_size),  # Ensure it's a plain int
-                    "modified": datetime.fromtimestamp(stat_info.st_mtime).isoformat()  # Convert datetime to ISO string
-                })
-            elif item.is_dir():
-                mp3_files = list(item.glob("*.mp3"))
-                if mp3_files:
-                    # Sort chapters naturally (Chapter 1, Chapter 2, etc.)
-                    sorted_files = sorted(mp3_files, key=lambda x: x.name)
-                    chapter_books.append({
-                        "name": item.name,
-                        "type": "chapters", 
-                        "chapter_count": len(mp3_files),
-                        "chapters": [f.name for f in sorted_files]
-                    })
-        
-        logger.info(
-            "Books list retrieved successfully",
-            single_books_count=len(single_books),
-            chapter_books_count=len(chapter_books),
-            request_id=get_request_id()
-        )
-        
-        return {"single_books": single_books, "chapter_books": chapter_books}
-        
-    except Exception as e:
-        logger.error(
-            "Error listing books",
-            error=str(e),
-            error_type=type(e).__name__,
-            request_id=get_request_id()
-        )
-        # Return empty result instead of failing
-        return {"single_books": [], "chapter_books": []}
-
-
-@app.delete("/books/{book_name}")
-def delete_book(
-    book_name: str,
-    current_user: User = Depends(require_role(UserRole.ADMIN))
-):
-    """Delete a book (single file or chapter folder)."""
-    # Try single file first
-    single_file = BOOK_FILES_DIR / f"{book_name}.mp3"
-    if single_file.exists():
-        single_file.unlink()
-        return {"message": f"Single book '{book_name}' deleted successfully"}
-    
-    # Try chapter folder
-    chapter_dir = BOOK_FILES_DIR / book_name
-    if chapter_dir.exists() and chapter_dir.is_dir():
-        import shutil
-        shutil.rmtree(chapter_dir)
-        return {"message": f"Chapter book '{book_name}' deleted successfully"}
-    
-    raise HTTPException(status_code=404, detail="Book not found")
-
-
-@app.get("/books/play/{filename}")
-async def play_single_book(
-    filename: str,
-    current_user: Optional[User] = Depends(get_optional_user),
-    request: Request = None
-):
-    """Serve a single MP3 book file."""
-    
-    # Track book start event
-    if analytics_collector:
-        await analytics_collector.collect_event(
-            EventType.BOOK_START,
-            user=current_user,
-            request=request,
-            book_id=filename,
-            content_type="audiobook"
-        )
-    
-    file_path = BOOK_FILES_DIR / filename
-    if not file_path.exists() or not file_path.suffix == '.mp3':
-        raise HTTPException(status_code=404, detail="Book file not found")
-    
-    response = FileResponse(
-        path=file_path,
-        media_type="audio/mpeg",
-        filename=filename
-    )
-    # Add CORS headers for mobile app compatibility
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-
-@app.get("/books/play/{book_name}/{chapter_filename}")
-async def play_chapter(
-    book_name: str,
-    chapter_filename: str,
-    current_user: Optional[User] = Depends(get_optional_user)
-):
-    """Serve a chapter MP3 file from a chapter book."""
-    file_path = BOOK_FILES_DIR / book_name / chapter_filename
-    if not file_path.exists() or not file_path.suffix == '.mp3':
-        raise HTTPException(status_code=404, detail="Chapter file not found")
-    
-    response = FileResponse(
-        path=file_path,
-        media_type="audio/mpeg",
-        filename=chapter_filename
-    )
-    # Add CORS headers for mobile app compatibility
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    return response
-
-
-@app.get("/books/cover/{book_name}")
-def get_book_cover(book_name: str):
-    """Serve a book cover image."""
-    # Direct path to the Gatsby cover
-    if book_name == "the Great Gatsby":
-        file_path = BOOK_FILES_DIR / "the Great Gatsby" / "GatsbyCover.jpg"
-        if file_path.exists():
-            response = FileResponse(
-                path=file_path,
-                media_type="image/jpeg",
-                filename="GatsbyCover.jpg"
-            )
-            # Add CORS headers for mobile app compatibility
-            response.headers["Access-Control-Allow-Origin"] = "*"
-            response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
-            return response
-    
-    # General logic for other books
-    book_dir = BOOK_FILES_DIR / book_name
-    if not book_dir.exists():
-        raise HTTPException(status_code=404, detail=f"Book directory not found: {book_name}")
-    
-    # Try common image extensions
-    for ext in ['.jpg', '.jpeg', '.png', '.webp']:
-        # Try different common cover file names
-        for cover_name in ['cover', 'Cover', f'{book_name}Cover', f'{book_name.replace(" ", "")}Cover']:
-            file_path = book_dir / f"{cover_name}{ext}"
-            if file_path.exists():
-                media_type = {
-                    '.jpg': 'image/jpeg',
-                    '.jpeg': 'image/jpeg', 
-                    '.png': 'image/png',
-                    '.webp': 'image/webp'
-                }.get(ext.lower(), 'image/jpeg')
-                
-                response = FileResponse(
-                    path=file_path,
-                    media_type=media_type,
-                    filename=f"{cover_name}{ext}"
-                )
-                # Add CORS headers for mobile app compatibility
-                response.headers["Access-Control-Allow-Origin"] = "*"
-                response.headers["Access-Control-Allow-Methods"] = "GET, HEAD, OPTIONS"
-                response.headers["Access-Control-Allow-Headers"] = "*"
-                return response
-    
-    raise HTTPException(status_code=404, detail="Book cover not found")
-
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

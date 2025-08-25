@@ -1,19 +1,29 @@
 #!/usr/bin/env python3
 """
-Script to add sample book data for testing the iOS app
+Script to test API endpoints for the EchoWright platform
 """
 
 import requests
 import json
+import os
+import sys
 
 # API Configuration
-API_BASE_URL = "http://localhost:8000"
-TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzIiLCJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJyb2xlIjoidXNlciIsImV4cCI6MTc1NTE1MDYzNiwidHlwZSI6ImFjY2VzcyJ9.gZjomBLq1_u9wKSjtJGJRG18DZZyoCeCEfV-zCTbGSU"
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+TOKEN = os.getenv("API_TEST_TOKEN")
+
+if not TOKEN:
+    print("❌ API_TEST_TOKEN environment variable not set")
+    print("💡 Set a test token: export API_TEST_TOKEN=your-token-here")
+    print("💡 Or run without authentication for public endpoints")
+    TOKEN = None
 
 headers = {
-    "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
+
+if TOKEN:
+    headers["Authorization"] = f"Bearer {TOKEN}"
 
 def test_books_list():
     """Test the books list endpoint"""
@@ -38,12 +48,21 @@ def test_health():
         return False
 
 if __name__ == "__main__":
-    print("Testing BetterBooks API...")
+    print("Testing EchoWright API...")
+    print(f"API Base URL: {API_BASE_URL}")
+    print(f"Using authentication: {'Yes' if TOKEN else 'No'}")
     
     print("\n1. Testing basic health:")
-    test_health()
+    health_ok = test_health()
     
     print("\n2. Testing books list:")
-    test_books_list()
+    books_ok = test_books_list()
+    
+    print("\n" + "="*50)
+    if health_ok and books_ok:
+        print("✅ All API tests passed!")
+    else:
+        print("❌ Some API tests failed")
+        sys.exit(1)
     
     print("\nAPI test complete!")

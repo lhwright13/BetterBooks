@@ -88,6 +88,7 @@ class User(BaseModel):
     username: str
     role: UserRole
     is_active: bool = True
+    email_verified: bool = True  # For now, auto-verify all emails since email service is not configured
     created_at: datetime
 
     class Config:
@@ -224,6 +225,7 @@ def create_user(user_data: UserRegistration) -> User:
         "hashed_password": hashed_password,
         "role": user_data.role.value,
         "is_active": True,
+        "email_verified": True,  # Auto-verify since email service is not configured
         "created_at": datetime.now(timezone.utc)
     }
     
@@ -236,6 +238,7 @@ def create_user(user_data: UserRegistration) -> User:
         username=user_data.username,
         role=user_data.role,
         is_active=True,
+        email_verified=True,
         created_at=user_record["created_at"]
     )
 
@@ -255,6 +258,7 @@ def authenticate_user(email: str, password: str) -> Optional[User]:
                     username=user_record["username"],
                     role=UserRole(user_record["role"]),
                     is_active=user_record["is_active"],
+                    email_verified=user_record.get("email_verified", True),
                     created_at=user_record["created_at"]
                 )
     return None
@@ -269,6 +273,7 @@ def get_user_by_id(user_id: str) -> Optional[User]:
             username=user_record["username"],
             role=UserRole(user_record["role"]),
             is_active=user_record["is_active"],
+            email_verified=user_record.get("email_verified", True),
             created_at=user_record["created_at"]
         )
     return None

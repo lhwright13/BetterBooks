@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/book.dart';
-import '../widgets/holographic_components.dart';
-import '../theme/retro_theme.dart';
+import '../theme/echowright_theme.dart';
 
 class LibraryScreen extends StatefulWidget {
+  const LibraryScreen({super.key});
+
   @override
   _LibraryScreenState createState() => _LibraryScreenState();
 }
@@ -14,16 +15,31 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: EchoWrightTheme.backgroundDark,
       appBar: AppBar(
-        title: Text('EchoWright Library'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text('Library'),
+        backgroundColor: EchoWrightTheme.backgroundDark,
+        foregroundColor: EchoWrightTheme.textPrimary,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search),
+            onPressed: () {}, // TODO: Implement search
+          ),
+          IconButton(
+            icon: Icon(Icons.filter_list),
+            onPressed: () {}, // TODO: Implement filters
+          ),
+        ],
       ),
-      body: LibraryBody(),
+      body: const LibraryBody(),
     );
   }
 }
 
 class LibraryBody extends StatefulWidget {
+  const LibraryBody({super.key});
+
   @override
   _LibraryBodyState createState() => _LibraryBodyState();
 }
@@ -42,60 +58,109 @@ class _LibraryBodyState extends State<LibraryBody> {
     return Consumer<AppState>(
       builder: (context, appState, child) {
         if (appState.isLoading) {
-          return Center(child: CircularProgressIndicator());
+          return Center(
+            child: CircularProgressIndicator(
+              color: EchoWrightTheme.primaryTurquoise,
+            ),
+          );
         }
 
         if (appState.error != null) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.red),
-                SizedBox(height: 16),
-                Text(
-                  'Error loading books',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  appState.error!,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => appState.loadBooks(),
-                  child: Text('Retry'),
-                ),
-              ],
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline, 
+                    size: 64, 
+                    color: EchoWrightTheme.errorColor,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Error loading books',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: EchoWrightTheme.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    appState.error!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: EchoWrightTheme.textSecondary,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => appState.loadBooks(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EchoWrightTheme.primaryTurquoise,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           );
         }
 
         if (appState.books.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.library_books, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No books available',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Upload some books to get started',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ],
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.library_books_outlined, 
+                    size: 80, 
+                    color: EchoWrightTheme.textMuted,
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Your library is empty',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: EchoWrightTheme.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Start building your audiobook collection',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: EchoWrightTheme.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/store'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: EchoWrightTheme.accentCoral,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    child: Text('Browse Store'),
+                  ),
+                ],
+              ),
             ),
           );
         }
 
         return RefreshIndicator(
           onRefresh: () => appState.loadBooks(),
+          color: EchoWrightTheme.primaryTurquoise,
           child: ListView.builder(
+            padding: EdgeInsets.all(16),
             itemCount: appState.books.length,
             itemBuilder: (context, index) {
               final book = appState.books[index];
@@ -111,133 +176,131 @@ class _LibraryBodyState extends State<LibraryBody> {
 class BookCard extends StatelessWidget {
   final Book book;
 
-  const BookCard({Key? key, required this.book}) : super(key: key);
+  const BookCard({super.key, required this.book});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: RetroSpacing.md, vertical: RetroSpacing.sm),
-      child: ArchitecturalCard(
-        onTap: () => _playBook(context, book),
-        padding: EdgeInsets.all(RetroSpacing.lg),
-        child: Row(
-          children: [
-            // Book cover placeholder with clean design
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    RetroColors.primaryTerracotta.withOpacity(0.15),
-                    RetroColors.sageGreen.withOpacity(0.08),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(RetroSizes.smallRadius),
-                border: Border.all(
-                  color: RetroColors.primaryTerracotta.withOpacity(0.2),
-                  width: RetroSizes.subtleBorder,
-                ),
-              ),
-              child: Icon(
-                book.hasChapters ? Icons.menu_book_rounded : Icons.headphones_rounded,
-                color: RetroColors.primaryTerracotta,
-                size: 28,
-              ),
-            ),
-            SizedBox(width: RetroSpacing.lg),
-            
-            // Book information
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: ArchitecturalColors.deepBlack,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (book.author != null) ...[
-                    SizedBox(height: RetroSpacing.xs),
-                    Text(
-                      book.author!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: ArchitecturalColors.darkGray,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                  SizedBox(height: RetroSpacing.xs),
-                  // Terminal-style metadata
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: RetroSpacing.sm,
-                      vertical: RetroSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: RetroColors.primaryTerracotta.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: RetroColors.primaryTerracotta.withOpacity(0.2),
-                        width: 0.5,
-                      ),
-                    ),
-                    child: Text(
-                      book.hasChapters 
-                          ? '${book.chapters!.length} CHAPTERS'
-                          : 'AUDIOBOOK',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: ArchitecturalColors.deepBlack,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
-                      ),
+      margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: EchoWrightTheme.surfaceDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: EchoWrightTheme.dividerDark,
+          width: 1,
+        ),
+        boxShadow: EchoWrightTheme.subtleShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _playBook(context, book),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Row(
+              children: [
+                // Book cover
+                Container(
+                  width: 64,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: EchoWrightTheme.backgroundLight,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.3),
+                      width: 1,
                     ),
                   ),
-                ],
-              ),
-            ),
-            
-            // Play button with clean styling
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    RetroColors.primaryTerracotta.withOpacity(0.8),
-                    SpaceColors.tealBlue.withOpacity(0.9),
-                  ],
-                ),
-                border: Border.all(
-                  color: RetroColors.primaryTerracotta.withOpacity(0.3),
-                  width: RetroSizes.subtleBorder,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: RetroColors.primaryTerracotta.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+                  child: Icon(
+                    book.hasChapters ? Icons.menu_book_rounded : Icons.headphones_rounded,
+                    color: EchoWrightTheme.primaryTurquoise,
+                    size: 28,
                   ),
-                ],
-              ),
-              child: Icon(
-                Icons.play_arrow_rounded,
-                color: ArchitecturalColors.pureWhite,
-                size: 24,
-              ),
+                ),
+                SizedBox(width: 20),
+                
+                // Book information
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        book.title,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: EchoWrightTheme.textPrimary,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (book.author != null) ...[
+                        SizedBox(height: 4),
+                        Text(
+                          book.author!,
+                          style: TextStyle(
+                            color: EchoWrightTheme.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 12),
+                      
+                      // Metadata chip
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          book.hasChapters 
+                              ? '${book.chapters!.length} chapters'
+                              : 'Audiobook',
+                          style: TextStyle(
+                            color: EchoWrightTheme.primaryTurquoise,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Play button
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: EchoWrightTheme.primaryGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: EchoWrightTheme.subtleShadow,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _playBook(context, book),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -257,14 +320,14 @@ class BookCard extends StatelessWidget {
   void _showChapterSelection(BuildContext context, Book book, AppState appState) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: ArchitecturalColors.charcoalBlack,
+      backgroundColor: EchoWrightTheme.surfaceDark,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(RetroSizes.borderRadius),
+          top: Radius.circular(20),
         ),
       ),
       builder: (context) => Container(
-        padding: EdgeInsets.all(RetroSpacing.lg),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -272,38 +335,21 @@ class BookCard extends StatelessWidget {
             // Header
             Text(
               book.title,
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              style: TextStyle(
                 fontSize: 20,
-                color: ArchitecturalColors.pureWhite,
+                fontWeight: FontWeight.w700,
+                color: EchoWrightTheme.textPrimary,
               ),
             ),
-            SizedBox(height: RetroSpacing.md),
-            
-            // Terminal-style section header
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: RetroSpacing.sm,
-                vertical: RetroSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: RetroColors.primaryTerracotta.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: RetroColors.primaryTerracotta.withOpacity(0.2),
-                  width: 0.5,
-                ),
-              ),
-              child: Text(
-                'SELECT CHAPTER',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: ArchitecturalColors.pureWhite,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 1.0,
-                ),
+            SizedBox(height: 8),
+            Text(
+              'Select a chapter',
+              style: TextStyle(
+                fontSize: 14,
+                color: EchoWrightTheme.textSecondary,
               ),
             ),
-            SizedBox(height: RetroSpacing.md),
+            SizedBox(height: 24),
             
             // Chapter list
             Flexible(
@@ -313,63 +359,69 @@ class BookCard extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final chapter = book.chapters![index];
                   return Container(
-                    margin: EdgeInsets.only(bottom: RetroSpacing.sm),
-                    child: ArchitecturalCard(
-                      padding: EdgeInsets.all(RetroSpacing.md),
-                      onTap: () {
-                        Navigator.pop(context);
-                        appState.playBook(book, chapter);
-                        Navigator.pushNamed(context, '/player');
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [
-                                  RetroColors.primaryTerracotta.withOpacity(0.8),
-                                  SpaceColors.tealBlue.withOpacity(0.9),
-                                ],
-                              ),
-                              border: Border.all(
-                                color: RetroColors.primaryTerracotta.withOpacity(0.3),
-                                width: RetroSizes.subtleBorder,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${chapter.chapterNumber}',
-                                style: TextStyle(
-                                  color: ArchitecturalColors.pureWhite,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                    margin: EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: EchoWrightTheme.backgroundDark,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: EchoWrightTheme.dividerDark,
+                        width: 1,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          appState.playBook(book, chapter);
+                          Navigator.pushNamed(context, '/player');
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2),
+                                  border: Border.all(
+                                    color: EchoWrightTheme.primaryTurquoise,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${chapter.chapterNumber}',
+                                    style: TextStyle(
+                                      color: EchoWrightTheme.primaryTurquoise,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          SizedBox(width: RetroSpacing.md),
-                          Expanded(
-                            child: Text(
-                              chapter.title,
-                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: ArchitecturalColors.pureWhite,
-                                fontSize: 14,
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  chapter.title,
+                                  style: TextStyle(
+                                    color: EchoWrightTheme.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               ),
-                            ),
+                              Icon(
+                                Icons.play_arrow_rounded,
+                                color: EchoWrightTheme.textSecondary,
+                                size: 20,
+                              ),
+                            ],
                           ),
-                          Container(
-                            width: 44,
-                            height: 44,
-                            child: Icon(
-                              Icons.play_arrow_rounded,
-                              color: RetroColors.primaryTerracotta,
-                              size: 24,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   );
