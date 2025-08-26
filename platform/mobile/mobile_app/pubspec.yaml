@@ -1,7 +1,7 @@
 name: echowright
 description: EchoWright - AI-powered audiobook companion with interactive personas
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -23,6 +23,17 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   url_launcher: ^6.2.1
   crypto: ^3.0.3
+  # Payment and subscription packages
+  in_app_purchase: ^3.1.0
+  in_app_purchase_storekit: ^0.3.0
+  in_app_purchase_android: ^0.3.0
+  share_plus: ^7.2.0
+  permission_handler: ^11.0.0
+  connectivity_plus: ^5.0.0
+  # Audio and speech packages
+  # speech_to_text: ^6.6.0  # Temporarily disabled for build issue
+  # Database for offline support
+  sqflite: ^2.3.0
 
 dev_dependencies:
   flutter_test:

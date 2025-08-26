@@ -140,14 +140,15 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                 child: CSSRippleWidget(
                                   isActive: _isVoiceModeActive,
                                   audioLevel: _audioLevel,
-                                  child: Image.network(
-                                    '$apiBaseUrl/books/cover/${Uri.encodeComponent(book.title)}',
-                                    width: 240,
-                                    height: 240,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 240,
+                                  child: book.coverUrl != null
+                                      ? Image.network(
+                                          book.coverUrl!,
+                                          width: 240,
+                                          height: 240,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              width: 240,
                                         height: 240,
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
@@ -170,11 +171,11 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                     loadingBuilder: (context, child, loadingProgress) {
                                       if (loadingProgress == null) return child;
                                       return Container(
-                                        width: 200,
-                                        height: 200,
+                                        width: 240,
+                                        height: 240,
                                         decoration: BoxDecoration(
                                           color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(16),
+                                          borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
                                         ),
                                         child: Center(
                                           child: CircularProgressIndicator(
@@ -186,7 +187,27 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                         ),
                                       );
                                     },
-                                  ),
+                                  )
+                                      : Container(
+                                          width: 240,
+                                          height: 240,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                RetroColors.primaryTerracotta.withValues(alpha: 0.12),
+                                                RetroColors.sageGreen.withValues(alpha: 0.06),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
+                                          ),
+                                          child: Icon(
+                                            Icons.library_music,
+                                            size: 80,
+                                            color: RetroColors.primaryTerracotta,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),

@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../providers/app_state.dart';
 import '../widgets/ripple_animation.dart';
 import '../widgets/audio_visualizer.dart';
 import '../api_config.dart';
+import '../services/voice_service.dart';
 
 class VoiceModeScreen extends StatefulWidget {
+  const VoiceModeScreen({super.key});
+  
   @override
-  _VoiceModeScreenState createState() => _VoiceModeScreenState();
+  State<VoiceModeScreen> createState() => _VoiceModeScreenState();
 }
 
 class _VoiceModeScreenState extends State<VoiceModeScreen>
@@ -17,6 +21,12 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
   bool _isAISpeaking = false;
   double _audioLevel = 0.0;
   String _currentText = '';
+  String _recognizedText = '';
+  
+  final VoiceService _voiceService = VoiceService();
+  StreamSubscription<String>? _speechSubscription;
+  StreamSubscription<double>? _soundLevelSubscription;
+  StreamSubscription<bool>? _statusSubscription;
   
   late AnimationController _scaleController;
   late AnimationController _glowController;
@@ -52,10 +62,23 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
       parent: _glowController,
       curve: Curves.easeInOut,
     ));
+    
+    _initializeVoiceService();
+  }
+  
+  Future<void> _initializeVoiceService() async {
+    final initialized = await _voiceService.initialize();
+    if (!initialized && mounted) {
+      _showError('Failed to initialize voice recognition: ${_voiceService.lastError}');
+    }
   }
 
   @override
   void dispose() {
+    _speechSubscription?.cancel();
+    _soundLevelSubscription?.cancel();
+    _statusSubscription?.cancel();
+    _voiceService.dispose();
     _scaleController.dispose();
     _glowController.dispose();
     super.dispose();
@@ -69,40 +92,75 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
       return;
     }
 
+    if (!_voiceService.isAvailable) {
+      _showError('Voice recognition not available');
+      return;
+    }
+
+    // Set up speech listeners
+    _speechSubscription?.cancel();
+    _soundLevelSubscription?.cancel();
+    _statusSubscription?.cancel();
+    
+    String finalRecognizedText = '';
+    
+    _speechSubscription = _voiceService.speechStream.listen((recognizedWords) {
+      setState(() {
+        _recognizedText = recognizedWords;
+        _currentText = 'Listening: "$recognizedWords"';
+      });
+      finalRecognizedText = recognizedWords;
+    });
+    
+    _soundLevelSubscription = _voiceService.soundLevelStream.listen((level) {
+      setState(() {
+        _audioLevel = level;
+      });
+    });
+    
+    _statusSubscription = _voiceService.statusStream.listen((isListening) {
+      if (mounted && _isListening && !isListening) {
+        // Speech recognition ended, process the result
+        _processRecognizedText(finalRecognizedText, appState);
+      }
+    });
+
     // Start listening phase
     setState(() {
       _isListening = true;
       _currentText = 'Listening... Speak your question about the book';
+      _recognizedText = '';
     });
     _scaleController.forward();
 
-    // Simulate voice input collection (3 seconds)
-    await Future.delayed(const Duration(seconds: 3));
+    // Start real speech recognition
+    final started = await _voiceService.startListening(
+      listenFor: const Duration(seconds: 10),
+    );
     
-    if (!mounted) return;
+    if (!started) {
+      _showError('Failed to start voice recognition: ${_voiceService.lastError}');
+      _cancelVoiceInteraction();
+    }
+  }
+  
+  Future<void> _processRecognizedText(String recognizedText, AppState appState) async {
+    if (recognizedText.isEmpty) {
+      _showError('No speech detected. Please try again.');
+      _cancelVoiceInteraction();
+      return;
+    }
 
     // Processing phase
     setState(() {
       _isListening = false;
       _isProcessing = true;
-      _currentText = 'Processing your question...';
+      _currentText = 'Processing: "$recognizedText"';
     });
 
     try {
-      // Simulate getting voice text (in real app, this would be speech-to-text)
-      final voiceQuestions = [
-        "What are the main themes in this chapter?",
-        "Tell me about the symbolism of the green light",
-        "What is Gatsby's relationship with Daisy?",
-        "Explain the significance of the Valley of Ashes",
-        "What does the eyes of Doctor T.J. Eckleburg represent?",
-      ];
-      
-      final questionIndex = DateTime.now().millisecondsSinceEpoch % voiceQuestions.length;
-      final voiceText = voiceQuestions[questionIndex];
-      
-      // Process the voice query
-      final response = await appState.processVoiceQuery(voiceText);
+      // Process the voice query with real recognized text
+      final response = await appState.processVoiceQuery(recognizedText);
       
       if (!mounted) return;
 
@@ -160,6 +218,10 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
   }
 
   void _cancelVoiceInteraction() {
+    _voiceService.cancelListening();
+    _speechSubscription?.cancel();
+    _soundLevelSubscription?.cancel();
+    _statusSubscription?.cancel();
     setState(() {
       _isListening = false;
       _isProcessing = false;
@@ -487,7 +549,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                 appState.selectPersona(persona);
                 Navigator.pop(context);
               },
-            )).toList(),
+            )),
           ],
         ),
       ),

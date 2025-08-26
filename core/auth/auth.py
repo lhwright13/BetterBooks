@@ -28,14 +28,17 @@ Usage:
 import os
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 import jwt
 import bcrypt
 import redis
+import requests
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from enum import Enum
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
 
 try:
     from core.shared.utils.config_manager import get_config
@@ -193,90 +196,212 @@ def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
         logger.error(f"Token verification failed: {e}")
         raise AuthError("Token verification failed")
 
-# In-memory user store (replace with database in production)
-USERS_DB: Dict[str, Dict[str, Any]] = {}
+# Database-backed user management
+from ..database.database_manager import DatabaseManager
+from .user_manager import UserManager
+
+# Initialize database connection
+try:
+    db_manager = DatabaseManager()
+    user_manager = UserManager(db_manager)
+    logger.info("Database user management initialized")
+except Exception as e:
+    logger.warning(f"Failed to initialize database user management: {e}")
+    # Fallback to in-memory for development
+    USERS_DB: Dict[str, Dict[str, Any]] = {}
+    db_manager = None
+    user_manager = None
 
 def create_user(user_data: UserRegistration) -> User:
     """Create new user account"""
-    # Check if user already exists
-    for existing_user in USERS_DB.values():
-        if existing_user["email"] == user_data.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
+    if user_manager:
+        # Use database-backed user management
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            # Hash password
+            hashed_password = hash_password(user_data.password)
+            
+            user_dict = loop.run_until_complete(
+                user_manager.create_user_from_email(
+                    email=user_data.email,
+                    username=user_data.username,
+                    hashed_password=hashed_password,
+                    role=user_data.role
+                )
             )
-        if existing_user["username"] == user_data.username:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already taken"
+            
+            return User(
+                id=user_dict['id'],
+                email=user_dict['email'],
+                username=user_dict['username'],
+                role=user_data.role,
+                is_active=user_dict['is_active'],
+                email_verified=user_dict['email_verified'],
+                created_at=datetime.fromisoformat(user_dict['created_at'].replace('Z', '+00:00'))
             )
-    
-    # Create user ID
-    user_id = f"user_{len(USERS_DB) + 1}"
-    
-    # Hash password
-    hashed_password = hash_password(user_data.password)
-    
-    # Store user
-    user_record = {
-        "id": user_id,
-        "email": user_data.email,
-        "username": user_data.username,
-        "hashed_password": hashed_password,
-        "role": user_data.role.value,
-        "is_active": True,
-        "email_verified": True,  # Auto-verify since email service is not configured
-        "created_at": datetime.now(timezone.utc)
-    }
-    
-    USERS_DB[user_id] = user_record
-    
-    # Return user (without password)
-    return User(
-        id=user_id,
-        email=user_data.email,
-        username=user_data.username,
-        role=user_data.role,
-        is_active=True,
-        email_verified=True,
-        created_at=user_record["created_at"]
-    )
+            
+        except Exception as e:
+            if "already exists" in str(e):
+                if "email" in str(e):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Email already registered"
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Username already taken"
+                    )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user"
+            )
+        finally:
+            loop.close()
+    else:
+        # Fallback to in-memory storage
+        # Check if user already exists
+        for existing_user in USERS_DB.values():
+            if existing_user["email"] == user_data.email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
+            if existing_user["username"] == user_data.username:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken"
+                )
+        
+        # Create user ID
+        user_id = f"user_{len(USERS_DB) + 1}"
+        
+        # Hash password
+        hashed_password = hash_password(user_data.password)
+        
+        # Store user
+        user_record = {
+            "id": user_id,
+            "email": user_data.email,
+            "username": user_data.username,
+            "hashed_password": hashed_password,
+            "role": user_data.role.value,
+            "is_active": True,
+            "email_verified": True,  # Auto-verify since email service is not configured
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        USERS_DB[user_id] = user_record
+        
+        # Return user (without password)
+        return User(
+            id=user_id,
+            email=user_data.email,
+            username=user_data.username,
+            role=user_data.role,
+            is_active=True,
+            email_verified=True,
+            created_at=user_record["created_at"]
+        )
 
 def authenticate_user(email: str, password: str) -> Optional[User]:
     """Authenticate user with email and password"""
-    for user_record in USERS_DB.values():
-        if user_record["email"] == email:
-            if verify_password(password, user_record["hashed_password"]):
-                if not user_record["is_active"]:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Account is deactivated"
-                    )
+    if user_manager:
+        # Use database-backed authentication
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            user_dict = loop.run_until_complete(
+                user_manager.authenticate_user(email, password)
+            )
+            
+            if user_dict:
                 return User(
-                    id=user_record["id"],
-                    email=user_record["email"],
-                    username=user_record["username"],
-                    role=UserRole(user_record["role"]),
-                    is_active=user_record["is_active"],
-                    email_verified=user_record.get("email_verified", True),
-                    created_at=user_record["created_at"]
+                    id=user_dict['id'],
+                    email=user_dict['email'],
+                    username=user_dict['username'],
+                    role=UserRole(user_dict['role']),
+                    is_active=user_dict['is_active'],
+                    email_verified=user_dict['email_verified'],
+                    created_at=datetime.fromisoformat(user_dict['created_at'].replace('Z', '+00:00'))
                 )
-    return None
+            return None
+            
+        except Exception as e:
+            logger.error(f"Database authentication failed: {e}")
+            return None
+        finally:
+            loop.close()
+    else:
+        # Fallback to in-memory authentication
+        for user_record in USERS_DB.values():
+            if user_record["email"] == email:
+                if verify_password(password, user_record["hashed_password"]):
+                    if not user_record["is_active"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Account is deactivated"
+                        )
+                    return User(
+                        id=user_record["id"],
+                        email=user_record["email"],
+                        username=user_record["username"],
+                        role=UserRole(user_record["role"]),
+                        is_active=user_record["is_active"],
+                        email_verified=user_record.get("email_verified", True),
+                        created_at=user_record["created_at"]
+                    )
+        return None
 
 def get_user_by_id(user_id: str) -> Optional[User]:
     """Get user by ID"""
-    user_record = USERS_DB.get(user_id)
-    if user_record:
-        return User(
-            id=user_record["id"],
-            email=user_record["email"],
-            username=user_record["username"],
-            role=UserRole(user_record["role"]),
-            is_active=user_record["is_active"],
-            email_verified=user_record.get("email_verified", True),
-            created_at=user_record["created_at"]
-        )
-    return None
+    if user_manager:
+        # Use database-backed user lookup
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            user_dict = loop.run_until_complete(
+                user_manager.get_user_by_id(user_id)
+            )
+            
+            if user_dict:
+                return User(
+                    id=user_dict['id'],
+                    email=user_dict['email'],
+                    username=user_dict['username'],
+                    role=UserRole(user_dict['role']),
+                    is_active=user_dict['is_active'],
+                    email_verified=user_dict['email_verified'],
+                    created_at=datetime.fromisoformat(user_dict['created_at'].replace('Z', '+00:00'))
+                )
+            return None
+            
+        except Exception as e:
+            logger.error(f"Database user lookup failed: {e}")
+            return None
+        finally:
+            loop.close()
+    else:
+        # Fallback to in-memory lookup
+        user_record = USERS_DB.get(user_id)
+        if user_record:
+            return User(
+                id=user_record["id"],
+                email=user_record["email"],
+                username=user_record["username"],
+                role=UserRole(user_record["role"]),
+                is_active=user_record["is_active"],
+                email_verified=user_record.get("email_verified", True),
+                created_at=user_record["created_at"]
+            )
+        return None
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
     """Get current authenticated user from JWT token"""
@@ -389,6 +514,241 @@ def ensure_admin_user():
         admin_user = create_user(admin_data)
         logger.info(f"Created default admin user: {admin_user.email}")
         logger.warning("⚠️ Change the default admin password in production!")
+
+# OAuth Support Functions
+
+def create_or_update_oauth_user(email: str, display_name: str, provider: str, provider_id: str, avatar_url: str = None) -> User:
+    """Create or update OAuth user account"""
+    if user_manager:
+        # Use database-backed OAuth user creation
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            user_dict = loop.run_until_complete(
+                user_manager.create_user_from_oauth(
+                    email=email,
+                    display_name=display_name,
+                    provider=provider,
+                    provider_id=provider_id,
+                    avatar_url=avatar_url
+                )
+            )
+            
+            return User(
+                id=user_dict['id'],
+                email=user_dict['email'],
+                username=user_dict['username'],
+                role=UserRole(user_dict['role']),
+                is_active=user_dict['is_active'],
+                email_verified=user_dict['email_verified'],
+                created_at=datetime.fromisoformat(user_dict['created_at'].replace('Z', '+00:00'))
+            )
+            
+        except Exception as e:
+            logger.error(f"Database OAuth user creation failed: {e}")
+            # Fallback to creating a basic user
+            return User(
+                id=f"oauth_{provider}_{int(datetime.now().timestamp())}",
+                email=email,
+                username=email.split('@')[0] if email else f"{provider}user",
+                role=UserRole.USER,
+                is_active=True,
+                email_verified=True,
+                created_at=datetime.now(timezone.utc)
+            )
+        finally:
+            loop.close()
+    else:
+        # Fallback to in-memory OAuth user creation
+        # Check if user already exists by email
+        existing_user_id = None
+        for user_id, user_record in USERS_DB.items():
+            if user_record["email"] == email:
+                existing_user_id = user_id
+                break
+        
+        if existing_user_id:
+            # Update existing user
+            user_record = USERS_DB[existing_user_id]
+            user_record["display_name"] = display_name
+            user_record["avatar_url"] = avatar_url
+            user_record["oauth_provider"] = provider
+            user_record["oauth_provider_id"] = provider_id
+            
+            return User(
+                id=user_record["id"],
+                email=user_record["email"],
+                username=user_record["username"],
+                role=UserRole(user_record["role"]),
+                is_active=user_record["is_active"],
+                email_verified=user_record.get("email_verified", True),
+                created_at=user_record["created_at"]
+            )
+        else:
+            # Create new OAuth user
+            user_id = f"oauth_{provider}_{len(USERS_DB) + 1}"
+            username = email.split('@')[0] if email else f"{provider}user{len(USERS_DB) + 1}"
+            
+            user_record = {
+                "id": user_id,
+                "email": email,
+                "username": username,
+                "display_name": display_name,
+                "avatar_url": avatar_url,
+                "hashed_password": None,  # OAuth users don't have passwords
+                "role": UserRole.USER.value,
+                "is_active": True,
+                "email_verified": True,  # OAuth providers verify emails
+                "oauth_provider": provider,
+                "oauth_provider_id": provider_id,
+                "created_at": datetime.now(timezone.utc)
+            }
+            
+            USERS_DB[user_id] = user_record
+            
+            return User(
+                id=user_id,
+                email=email,
+                username=username,
+                role=UserRole.USER,
+                is_active=True,
+                email_verified=True,
+                created_at=user_record["created_at"]
+            )
+
+def verify_google_token(id_token_str: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """Verify Google ID token and return user info"""
+    try:
+        # Verify the token with Google
+        # For production, you should specify your Google OAuth client ID
+        google_client_id = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+        if not google_client_id:
+            logger.warning("GOOGLE_OAUTH_CLIENT_ID not set, skipping audience verification")
+            idinfo = id_token.verify_oauth2_token(id_token_str, google_requests.Request())
+        else:
+            idinfo = id_token.verify_oauth2_token(id_token_str, google_requests.Request(), google_client_id)
+        
+        # Verify the issuer
+        if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+            return False, None
+            
+        return True, {
+            'email': idinfo.get('email'),
+            'name': idinfo.get('name'),
+            'picture': idinfo.get('picture'),
+            'google_id': idinfo.get('sub'),
+            'email_verified': idinfo.get('email_verified', False)
+        }
+        
+    except ValueError as e:
+        logger.error(f"Google token verification failed: {e}")
+        return False, None
+    except Exception as e:
+        logger.error(f"Unexpected error verifying Google token: {e}")
+        return False, None
+
+# Cache for Apple's public keys
+_apple_keys_cache = {"keys": None, "expires": 0}
+
+def fetch_apple_public_keys() -> Dict[str, Any]:
+    """Fetch Apple's public keys for JWT verification with caching"""
+    current_time = datetime.now().timestamp()
+    
+    # Use cached keys if they're still valid (cache for 1 hour)
+    if _apple_keys_cache["keys"] and current_time < _apple_keys_cache["expires"]:
+        return _apple_keys_cache["keys"]
+    
+    try:
+        response = requests.get("https://appleid.apple.com/auth/keys", timeout=10)
+        response.raise_for_status()
+        keys_data = response.json()
+        
+        # Cache the keys
+        _apple_keys_cache["keys"] = keys_data
+        _apple_keys_cache["expires"] = current_time + 3600  # 1 hour
+        
+        return keys_data
+    except Exception as e:
+        logger.error(f"Failed to fetch Apple public keys: {e}")
+        # Return cached keys even if expired, as fallback
+        if _apple_keys_cache["keys"]:
+            return _apple_keys_cache["keys"]
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify Apple token: key service unavailable"
+        )
+
+def verify_apple_token(id_token_str: str, nonce: str = None) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    """Verify Apple ID token and return user info"""
+    try:
+        # Get Apple's public keys
+        keys_data = fetch_apple_public_keys()
+        
+        # Decode token header to get key ID
+        unverified_header = jwt.get_unverified_header(id_token_str)
+        key_id = unverified_header.get('kid')
+        
+        if not key_id:
+            logger.error("Apple token missing key ID")
+            return False, None
+        
+        # Find the matching public key
+        public_key = None
+        for key in keys_data['keys']:
+            if key['kid'] == key_id:
+                public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+                break
+        
+        if not public_key:
+            logger.error(f"Apple public key not found for key ID: {key_id}")
+            return False, None
+        
+        # Verify and decode the token
+        apple_client_id = os.getenv('APPLE_CLIENT_ID')
+        if not apple_client_id:
+            logger.warning("APPLE_CLIENT_ID not set, skipping audience verification")
+            decoded_token = jwt.decode(
+                id_token_str, 
+                public_key, 
+                algorithms=['RS256'],
+                options={"verify_aud": False}
+            )
+        else:
+            decoded_token = jwt.decode(
+                id_token_str, 
+                public_key, 
+                algorithms=['RS256'],
+                audience=apple_client_id
+            )
+        
+        # Verify nonce if provided
+        if nonce and decoded_token.get('nonce') != nonce:
+            logger.error("Apple token nonce mismatch")
+            return False, None
+        
+        # Verify issuer
+        if decoded_token.get('iss') != 'https://appleid.apple.com':
+            logger.error("Invalid Apple token issuer")
+            return False, None
+            
+        return True, {
+            'email': decoded_token.get('email'),
+            'apple_id': decoded_token.get('sub'),
+            'email_verified': decoded_token.get('email_verified', 'true') == 'true',
+            'is_private_email': decoded_token.get('is_private_email', False)
+        }
+        
+    except jwt.ExpiredSignatureError:
+        logger.error("Apple token has expired")
+        return False, None
+    except jwt.InvalidTokenError as e:
+        logger.error(f"Invalid Apple token: {e}")
+        return False, None
+    except Exception as e:
+        logger.error(f"Unexpected error verifying Apple token: {e}")
+        return False, None
 
 # Initialize default admin
 ensure_admin_user()

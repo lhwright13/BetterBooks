@@ -74,27 +74,27 @@ class ApiService {
     return headers;
   }
 
-  /// Register or login user and store auth token
+  /// Check authentication status by validating token with backend
   static Future<bool> authenticate() async {
     try {
-      // Try to register a test user (will fail if already exists, but that's ok)
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': 'iostest',
-          'email': 'ios@test.com', 
-          'password': 'test123'
-        }),
+      // Check if we have a stored token first
+      if (_authToken == null) {
+        LogService.auth('No auth token available');
+        return false;
+      }
+
+      // Validate token with backend
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/auth/me'),
+        headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _authToken = data['tokens']['access_token'];
-        LogService.auth('Authentication successful, token stored');
+        LogService.auth('Authentication token validated');
         return true;
       } else {
-        LogService.auth('Auth failed: ${response.statusCode} - ${response.body}', isError: true);
+        LogService.auth('Auth token invalid: ${response.statusCode}', isError: true);
+        _authToken = null; // Clear invalid token
         return false;
       }
     } catch (e) {

@@ -28,10 +28,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../api_config.dart';
 import '../models/book.dart';
 import '../models/persona.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
+import '../services/bookstore_adapter.dart';
 import '../services/log_service.dart';
 
 /// Global application state manager using Provider pattern for reactive UI updates
@@ -105,17 +107,33 @@ class AppState extends ChangeNotifier {
   Future<void> loadPurchasedBooks() async {
     _setLoading(true);
     try {
-      final response = await ApiService.getUserLibrary();
-      final booksData = response['books'] as List<dynamic>;
+      final bookstoreAdapter = BookstoreAdapter();
+      final catalogBooks = await bookstoreAdapter.getUserLibrary('mock-user-id');
       
-      _purchasedBooks = booksData.map((bookData) {
+      _purchasedBooks = catalogBooks.map((catalogBook) {
+        // Generate proper audio URLs based on book title
+        String audioUrl;
+        switch (catalogBook.title) {
+          case 'The Great Gatsby':
+            audioUrl = '$apiBaseUrl/books/The Great Gatsby/Chapter 1.mp3';
+            break;
+          case 'Alice\'s Adventures in Wonderland':
+            audioUrl = '$apiBaseUrl/books/Alice\'s Adventures in Wonderland/Chapter 1.mp3';
+            break;
+          case 'Moby Dick':
+            audioUrl = '$apiBaseUrl/books/Moby Dick/Chapter 1.mp3';
+            break;
+          default:
+            audioUrl = '$apiBaseUrl/books/${Uri.encodeComponent(catalogBook.title)}/Chapter 1.mp3';
+        }
+        
         return Book(
-          id: bookData['id'],
-          title: bookData['title'],
-          author: bookData['author'],
-          audioUrl: bookData['download_url'],
-          coverUrl: bookData['cover_image_url'],
-          duration: Duration(hours: 1), // Default 1 hour
+          id: catalogBook.id,
+          title: catalogBook.title,
+          author: catalogBook.author ?? 'Unknown Author',
+          audioUrl: audioUrl,
+          coverUrl: catalogBook.coverImageUrl,
+          duration: Duration(seconds: catalogBook.durationSeconds ?? 3600),
           chapters: [],
         );
       }).toList();

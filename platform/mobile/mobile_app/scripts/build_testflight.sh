@@ -10,9 +10,9 @@ echo "🚀 Building EchoWright for TestFlight..."
 # Navigate to the mobile app directory
 cd "$(dirname "$0")/.."
 
-# Set production API endpoint
-PRODUCTION_API="http://34.111.209.241:8000"
-echo "🌐 Using production API: $PRODUCTION_API"
+# Set production API endpoint - DIRECT AZURE CLOUD ACCESS
+PRODUCTION_API="http://52.255.222.174:8000"
+echo "🌐 Using production API: $PRODUCTION_API (Direct Azure Cloud)"
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -27,7 +27,7 @@ cd ios && pod install --repo-update && cd ..
 echo "📱 Building iOS release version for TestFlight..."
 flutter build ios --release \
   --build-name=1.0.0 \
-  --build-number=2 \
+  --build-number=3 \
   --dart-define=API_BASE_URL="$PRODUCTION_API" \
   --no-codesign
 

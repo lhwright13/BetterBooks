@@ -333,9 +333,17 @@ class AuthProvider extends ChangeNotifier {
       _totalCredits = response['total_credits'] ?? 0;
       _usedCredits = response['used_credits'] ?? 0;
       _availableCredits = response['available_credits'] ?? 0;
+      
+      // Note: All credits should be 0 since all books are free
+      LogService.debug('Credit balance loaded: Total=$_totalCredits, Used=$_usedCredits, Available=$_availableCredits');
       notifyListeners();
     } catch (e) {
       LogService.debug('Error loading credit balance: $e');
+      // Set defaults (all 0 since books are free)
+      _totalCredits = 0;
+      _usedCredits = 0;
+      _availableCredits = 0;
+      notifyListeners();
     }
   }
 
@@ -351,9 +359,56 @@ class AuthProvider extends ChangeNotifier {
   Future<void> initializeCredits() async {
     try {
       await AuthService.initializeCredits();
-      await loadCreditBalance(); // Refresh balance
+      await loadCreditBalance(); // Refresh balance (should show 0 credits)
+      LogService.debug('Credits initialized for new user (all books are free in EchoWright)');
     } catch (e) {
       LogService.debug('Error initializing credits: $e');
+      // Set default 0 credits since all books are free
+      _totalCredits = 0;
+      _usedCredits = 0;
+      _availableCredits = 0;
+      notifyListeners();
+    }
+  }
+
+  /// Get user's library of owned books
+  Future<Map<String, dynamic>> getUserLibrary({int limit = 50, int offset = 0}) async {
+    try {
+      return await AuthService.getUserLibrary(limit: limit, offset: offset);
+    } catch (e) {
+      LogService.debug('Error getting user library: $e');
+      return {'books': [], 'total_count': 0};
+    }
+  }
+
+  /// Purchase a book (free with EchoWright)
+  Future<Map<String, dynamic>> purchaseBook(String bookId) async {
+    try {
+      final result = await AuthService.purchaseBook(bookId);
+      
+      if (result['success'] == true) {
+        // Refresh credit balance (though it should remain 0)
+        await loadCreditBalance();
+        LogService.debug('Book purchased successfully: $bookId (Free with EchoWright)');
+      }
+      
+      return result;
+    } catch (e) {
+      LogService.debug('Error purchasing book: $e');
+      return {
+        'success': false,
+        'message': 'Purchase failed: $e',
+      };
+    }
+  }
+
+  /// Check if user owns a specific book
+  Future<bool> checkBookOwnership(String bookId) async {
+    try {
+      return await AuthService.checkBookOwnership(bookId);
+    } catch (e) {
+      LogService.debug('Error checking book ownership: $e');
+      return false;
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/bookstore_models.dart';
 import '../services/bookstore_adapter.dart';
 import '../providers/auth_provider.dart';
+import 'book_details_screen.dart';
 
 class BookstoreScreen extends StatefulWidget {
   const BookstoreScreen({Key? key}) : super(key: key);

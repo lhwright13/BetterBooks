@@ -32,8 +32,8 @@
 /// - Android Emulator: Would use 10.0.2.2 to reach host machine
 /// - Physical devices: Must use actual IP address or domain name
 // Dynamic API base URL configuration supporting multiple environments
-// Defaults to localhost for development, but can be overridden via build args
+// NOW POINTING DIRECTLY TO AZURE CLOUD BACKEND - NO LOCALHOST REQUIRED!
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'http://localhost:8000' // API Gateway port
+  defaultValue: 'http://52.255.222.174:8000' // Azure backend DIRECT cloud access
 );

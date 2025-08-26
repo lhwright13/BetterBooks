@@ -160,6 +160,71 @@ class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  
+  // Validation state
+  String? _emailError;
+  String? _passwordError;
+  String? _nameError;
+
+  // Email validation
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+  
+  // Password validation
+  bool _isValidPassword(String password) {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number
+    return password.length >= 8 &&
+           RegExp(r'[A-Z]').hasMatch(password) &&
+           RegExp(r'[a-z]').hasMatch(password) &&
+           RegExp(r'[0-9]').hasMatch(password);
+  }
+  
+  String _getPasswordStrengthText(String password) {
+    if (password.isEmpty) return '';
+    if (password.length < 8) return 'Password must be at least 8 characters';
+    if (!RegExp(r'[A-Z]').hasMatch(password)) return 'Password must contain uppercase letter';
+    if (!RegExp(r'[a-z]').hasMatch(password)) return 'Password must contain lowercase letter';  
+    if (!RegExp(r'[0-9]').hasMatch(password)) return 'Password must contain number';
+    return 'Strong password ✓';
+  }
+  
+  void _validateEmail(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _emailError = 'Email is required';
+      } else if (!_isValidEmail(value)) {
+        _emailError = 'Please enter a valid email address';
+      } else {
+        _emailError = null;
+      }
+    });
+  }
+  
+  void _validatePassword(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _passwordError = 'Password is required';
+      } else if (!_isValidPassword(value)) {
+        _passwordError = _getPasswordStrengthText(value);
+      } else {
+        _passwordError = null;
+      }
+    });
+  }
+  
+  void _validateName(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        _nameError = 'Full name is required';
+      } else if (value.trim().split(' ').length < 2) {
+        _nameError = 'Please enter your first and last name';
+      } else {
+        _nameError = null;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +298,10 @@ class _AuthScreenState extends State<AuthScreen> {
                         labelText: 'Full Name',
                         border: OutlineInputBorder(),
                         prefixIcon: Icon(Icons.person),
+                        errorText: _nameError,
+                        hintText: 'Enter your first and last name',
                       ),
+                      onChanged: _validateName,
                     ),
                     SizedBox(height: 16),
                   ],
@@ -245,20 +313,43 @@ class _AuthScreenState extends State<AuthScreen> {
                       labelText: 'Email',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.email),
+                      errorText: _emailError,
+                      hintText: 'Enter your email address',
                     ),
                     keyboardType: TextInputType.emailAddress,
+                    onChanged: _validateEmail,
                   ),
                   SizedBox(height: 16),
 
                   // Password field
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock),
-                    ),
-                    obscureText: true,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: _passwordController,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.lock),
+                          errorText: _passwordError?.contains('✓') == true ? null : _passwordError,
+                          hintText: 'Enter a strong password',
+                        ),
+                        obscureText: true,
+                        onChanged: _validatePassword,
+                      ),
+                      if (_passwordController.text.isNotEmpty) ...[
+                        SizedBox(height: 4),
+                        Text(
+                          _getPasswordStrengthText(_passwordController.text),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _isValidPassword(_passwordController.text)
+                                ? Colors.green
+                                : Theme.of(context).hintColor,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   SizedBox(height: 24),
 
@@ -281,6 +372,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       setState(() {
                         _isSignUp = !_isSignUp;
                         authProvider.clearError();
+                        // Clear validation errors
+                        _emailError = null;
+                        _passwordError = null;
+                        _nameError = null;
+                        // Clear text fields
+                        _emailController.clear();
+                        _passwordController.clear();
+                        _nameController.clear();
                       });
                     },
                     child: Text(
@@ -337,28 +436,79 @@ class _AuthScreenState extends State<AuthScreen> {
   void _handleEmailAuth() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
+    // Validate all fields
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final name = _nameController.text.trim();
+    
+    _validateEmail(email);
+    _validatePassword(password);
+    
+    if (_isSignUp) {
+      _validateName(name);
+    }
+    
+    // Check for validation errors
+    bool hasErrors = _emailError != null || _passwordError != null;
+    if (_isSignUp && _nameError != null) hasErrors = true;
+    
+    if (hasErrors) {
+      // Show validation errors
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please fix the errors above'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     if (_isSignUp) {
       await authProvider.signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        displayName: _nameController.text.trim(),
+        email: email,
+        password: password,
+        displayName: name,
       );
     } else {
       await authProvider.signInWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+        email: email,
+        password: password,
       );
     }
   }
 
   void _handleGoogleSignIn() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.signInWithGoogle();
+    authProvider.clearError();
+    
+    final success = await authProvider.signInWithGoogle();
+    
+    if (!success && authProvider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   void _handleAppleSignIn() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.signInWithApple();
+    authProvider.clearError();
+    
+    final success = await authProvider.signInWithApple();
+    
+    if (!success && authProvider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage!),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   @override

@@ -51,34 +51,34 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         String? description;
         double price = 12.95;
         
-        // Map specific books to their cover images and metadata
+        // Map specific books to their cover images and metadata using OpenLibrary
         switch (book.title) {
           case 'Alice\'s Adventures in Wonderland':
-            coverImageUrl = '$apiBaseUrl/books/cover/Alice\'s Adventures in Wonderland/aliceinWonder.jpg';
+            coverImageUrl = 'https://covers.openlibrary.org/b/id/8164365-L.jpg';
             author = 'Lewis Carroll';
             description = 'A young girl falls down a rabbit hole into a fantasy world.';
             price = 9.95;
             break;
           case 'Moby Dick':
-            coverImageUrl = '$apiBaseUrl/books/cover/Moby Dick/Moby_Dick_1002.jpg';
+            coverImageUrl = 'https://covers.openlibrary.org/b/id/8893680-L.jpg';
             author = 'Herman Melville';
             description = 'The tale of Captain Ahab\'s quest for revenge against the white whale.';
             price = 19.95;
             break;
           case 'War and Peace':
-            coverImageUrl = '$apiBaseUrl/books/cover/War and Peace/warandpeacecover.jpg';
+            coverImageUrl = 'https://covers.openlibrary.org/b/id/8231674-L.jpg';
             author = 'Leo Tolstoy';
             description = 'Epic novel chronicling Russian society during the Napoleonic era.';
             price = 24.95;
             break;
           case 'The Great Gatsby':
-            coverImageUrl = '$apiBaseUrl/books/cover/The Great Gatsby/GatsbyCover.jpg';
+            coverImageUrl = 'https://covers.openlibrary.org/b/id/8225261-L.jpg';
             author = 'F. Scott Fitzgerald';
             description = 'The story of Jay Gatsby and the American Dream in the Jazz Age.';
             price = 12.95;
             break;
           case 'The Odyssey':
-            coverImageUrl = '$apiBaseUrl/books/cover/Odyssey/odessey.jpeg';
+            coverImageUrl = 'https://covers.openlibrary.org/b/id/8231237-L.jpg';
             author = 'Homer';
             description = 'Ancient Greek epic about Odysseus\'s journey home from Troy.';
             price = 15.95;
@@ -86,6 +86,7 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
           default:
             author = 'Unknown Author';
             description = 'A great audiobook.';
+            coverImageUrl = null;
         }
 
         return BookCatalog(
@@ -159,16 +160,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                   _buildCreditBalanceCard(),
                   SizedBox(height: 16),
 
-                  // Currently Listening Mini Player
+                  // Now Playing Mini Player (only show when playing)
                   if (appState.currentBook != null && appState.isPlaying) ...[
                     _buildCurrentlyListeningCard(appState),
-                    SizedBox(height: 5),
-                  ],
-
-                  // Current Reading (if active)
-                  if (appState.currentBook != null) ...[
-                    _buildCurrentBookCard(appState),
-                    SizedBox(height: 10),
+                    SizedBox(height: 16),
                   ],
 
                   // Recommended for You
@@ -208,146 +203,6 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  Widget _buildCurrentBookCard(AppState appState) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: EchoWrightTheme.surfaceDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.3),
-          width: 1,
-        ),
-        boxShadow: EchoWrightTheme.subtleShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color:
-                      EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  'Continue Reading',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: EchoWrightTheme.primaryTurquoise,
-                  ),
-                ),
-              ),
-              Spacer(),
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: appState.isPlaying
-                      ? EchoWrightTheme.successColor
-                      : EchoWrightTheme.textMuted,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 20),
-
-          // Book info
-          Row(
-            children: [
-              // Cover
-              Container(
-                width: 60,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: EchoWrightTheme.backgroundLight,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: EchoWrightTheme.dividerDark,
-                    width: 1,
-                  ),
-                ),
-                child: Icon(
-                  Icons.auto_stories,
-                  color: EchoWrightTheme.primaryTurquoise,
-                  size: 24,
-                ),
-              ),
-              SizedBox(width: 16),
-
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      appState.currentBook?.title ?? 'Unknown Book',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: EchoWrightTheme.textPrimary,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4),
-                    if (appState.currentChapter != null)
-                      Text(
-                        'Chapter ${appState.currentChapter!.chapterNumber}: ${appState.currentChapter!.title}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: EchoWrightTheme.textSecondary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    SizedBox(height: 8),
-
-                    // Progress
-                    Text(
-                      '${_formatDuration(appState.currentPosition)} / ${_formatDuration(appState.totalDuration)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: EchoWrightTheme.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Play button
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: EchoWrightTheme.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: EchoWrightTheme.subtleShadow,
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => Navigator.pushNamed(context, '/player'),
-                    borderRadius: BorderRadius.circular(24),
-                    child: Icon(
-                      appState.isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCurrentlyListeningCard(AppState appState) {
     return Container(
@@ -465,7 +320,11 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => Navigator.pushNamed(context, '/player'),
+                onTap: () async {
+                  if (appState.currentBook != null) {
+                    await appState.playPause();
+                  }
+                },
                 borderRadius: BorderRadius.circular(18),
                 child: Icon(
                   appState.isPlaying ? Icons.pause : Icons.play_arrow,

@@ -297,21 +297,172 @@ async def change_user_status(
 
 @auth_router.post("/google/signin")
 async def google_signin(request: Dict[str, Any]):
-    """Google OAuth sign-in endpoint (stub for mobile testing)"""
-    logger.info("Google sign-in attempt (stub)")
-    raise HTTPException(
-        status_code=501,
-        detail="Google OAuth integration not yet implemented. Please use email/password authentication."
-    )
+    """Google OAuth sign-in endpoint"""
+    try:
+        # Extract ID token from request
+        id_token_str = request.get('id_token')
+        if not id_token_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="id_token is required"
+            )
+        
+        # Rate limiting for OAuth attempts
+        temp_identifier = f"google_oauth_{request.get('temp_id', 'unknown')}"
+        await check_rate_limit(temp_identifier, "oauth", limit=10, window=900)  # 10 per 15 min
+        
+        # Verify Google ID token
+        from core.auth.auth import verify_google_token, create_or_update_oauth_user
+        is_valid, user_info = verify_google_token(id_token_str)
+        
+        if not is_valid or not user_info:
+            logger.warning(f"Invalid Google token for OAuth attempt")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Google ID token"
+            )
+        
+        # Ensure we have required user info
+        if not user_info.get('email'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email not provided by Google"
+            )
+        
+        # Create or update user account
+        user = create_or_update_oauth_user(
+            email=user_info['email'],
+            display_name=user_info.get('name', user_info['email'].split('@')[0]),
+            provider='google',
+            provider_id=user_info['google_id'],
+            avatar_url=user_info.get('picture')
+        )
+        
+        # Generate JWT tokens
+        token_data = {"sub": user.id, "email": user.email, "role": user.role.value}
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
+        
+        logger.info(f"Google OAuth successful for user: {user.email}")
+        
+        return {
+            "message": "Google sign-in successful",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user_info.get('name'),
+                "avatar_url": user_info.get('picture'),
+                "username": user.username,
+                "role": user.role.value,
+                "email_verified": True,
+                "is_active": user.is_active,
+                "created_at": user.created_at.isoformat()
+            },
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Google OAuth failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Google OAuth failed"
+        )
 
 @auth_router.post("/apple/signin") 
 async def apple_signin(request: Dict[str, Any]):
-    """Apple Sign In endpoint (stub for mobile testing)"""
-    logger.info("Apple sign-in attempt (stub)")
-    raise HTTPException(
-        status_code=501,
-        detail="Apple Sign In integration not yet implemented. Please use email/password authentication."
-    )
+    """Apple Sign In endpoint"""
+    try:
+        # Extract required data from request
+        id_token_str = request.get('id_token')
+        nonce = request.get('nonce')  # Optional but recommended
+        user_info_data = request.get('user_info', {})  # Only provided on first sign in
+        
+        if not id_token_str:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="id_token is required"
+            )
+        
+        # Rate limiting for OAuth attempts
+        temp_identifier = f"apple_oauth_{request.get('temp_id', 'unknown')}"
+        await check_rate_limit(temp_identifier, "oauth", limit=10, window=900)  # 10 per 15 min
+        
+        # Verify Apple ID token
+        from core.auth.auth import verify_apple_token, create_or_update_oauth_user
+        is_valid, token_user_info = verify_apple_token(id_token_str, nonce)
+        
+        if not is_valid or not token_user_info:
+            logger.warning(f"Invalid Apple token for OAuth attempt")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid Apple ID token"
+            )
+        
+        # Get email - prefer from token, fallback to user_info
+        email = token_user_info.get('email') or user_info_data.get('email')
+        if not email:
+            # For Apple private relay, we might not get email
+            # Use apple ID as fallback identifier
+            email = f"apple.user.{token_user_info['apple_id'][-8:]}@privaterelay.appleid.com"
+        
+        # Get display name - prefer from user_info (first sign in), fallback to email
+        display_name = None
+        if user_info_data.get('first_name') or user_info_data.get('last_name'):
+            first_name = user_info_data.get('first_name', '').strip()
+            last_name = user_info_data.get('last_name', '').strip()
+            display_name = f"{first_name} {last_name}".strip() or email.split('@')[0]
+        else:
+            display_name = email.split('@')[0]
+        
+        # Create or update user account
+        user = create_or_update_oauth_user(
+            email=email,
+            display_name=display_name,
+            provider='apple',
+            provider_id=token_user_info['apple_id'],
+            avatar_url=None  # Apple doesn't provide profile pictures
+        )
+        
+        # Generate JWT tokens
+        token_data = {"sub": user.id, "email": user.email, "role": user.role.value}
+        access_token = create_access_token(token_data)
+        refresh_token = create_refresh_token(token_data)
+        
+        logger.info(f"Apple Sign In successful for user: {user.email}")
+        
+        return {
+            "message": "Apple sign-in successful",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "display_name": display_name,
+                "avatar_url": None,
+                "username": user.username,
+                "role": user.role.value,
+                "email_verified": token_user_info.get('email_verified', True),
+                "is_active": user.is_active,
+                "created_at": user.created_at.isoformat(),
+                "is_private_email": token_user_info.get('is_private_email', False)
+            },
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Apple Sign In failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Apple Sign In failed"
+        )
 
 @auth_router.get("/health")
 async def auth_health():
