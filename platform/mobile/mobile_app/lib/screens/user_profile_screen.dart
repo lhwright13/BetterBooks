@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:io' show Platform;
 import '../providers/app_state.dart';
 import '../providers/auth_provider.dart';
+import '../models/user.dart';
 import 'user_settings_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 40,
-                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           child: user?.avatarUrl != null 
                             ? ClipOval(
                                 child: Image.network(
@@ -45,10 +46,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   height: 80,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => 
-                                    _buildInitialsAvatar(context, user.initials),
+                                    _buildInitialsAvatar(context, _safeGetInitials(user)),
                                 ),
                               )
-                            : _buildInitialsAvatar(context, user?.initials ?? 'U'),
+                            : _buildInitialsAvatar(context, _safeGetInitials(user)),
                         ),
                         SizedBox(width: 16),
                         Expanded(
@@ -63,14 +64,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               Text(
                                 user?.email ?? 'No email',
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                                 ),
                               ),
                               SizedBox(height: 8),
                               Container(
                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -88,7 +89,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
+                                    color: Colors.orange.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Row(
@@ -199,7 +200,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Card(
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       child: Icon(
                         Icons.smart_toy,
                         color: Theme.of(context).colorScheme.primary,
@@ -671,6 +672,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  /// Safely get user initials with error handling
+  String _safeGetInitials(User? user) {
+    if (user == null) return 'U';
+    
+    try {
+      return user.initials;
+    } catch (e) {
+      // Fallback to first letter of email or 'U'
+      if (user.email != null && user.email!.isNotEmpty) {
+        return user.email!.substring(0, 1).toUpperCase();
+      }
+      return 'U';
     }
   }
 }

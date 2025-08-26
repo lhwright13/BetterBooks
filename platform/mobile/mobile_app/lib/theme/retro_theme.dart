@@ -311,7 +311,7 @@ class SpaceTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: SpaceColors.dustyRed.withOpacity(0.2),
+            color: SpaceColors.dustyRed.withValues(alpha: 0.2),
             width: 1,
           ),
         ),

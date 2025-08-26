@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/bookstore_models.dart';
-import '../services/bookstore_service.dart';
+import '../services/bookstore_adapter.dart';
 import '../providers/auth_provider.dart';
 
 class BookstoreScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class BookstoreScreen extends StatefulWidget {
 
 class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final BookstoreService _bookstoreService = BookstoreService();
+  final BookstoreAdapter _bookstoreService = BookstoreAdapter();
   final TextEditingController _searchController = TextEditingController();
   
   List<BookCatalog> _featuredBooks = [];
@@ -431,7 +431,7 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                           Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
                           SizedBox(width: 4),
                           Text(
-                            book.durationSeconds!.formattedDuration,
+                            book.formattedDuration,
                             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                           ),
                         ],
@@ -762,7 +762,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                 ),
                                 SizedBox(width: 4),
                                 Text(
-                                  widget.book.durationSeconds!.formattedDuration,
+                                  widget.book.formattedDuration,
                                   style: TextStyle(
                                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                                   ),

@@ -162,7 +162,7 @@ class CSSRipplePainter extends CustomPainter {
       
       if (opacity > 0) {
         final paint = Paint()
-          ..color = _getRippleColor(rippleIndex).withOpacity(opacity)
+          ..color = _getRippleColor(rippleIndex).withValues(alpha: opacity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0 + (audioLevel * 3.0);
 
@@ -175,7 +175,7 @@ class CSSRipplePainter extends CustomPainter {
         // Add inner highlight
         if (rippleProgress > 0.1) {
           final innerPaint = Paint()
-            ..color = Colors.white.withOpacity(opacity * 0.5)
+            ..color = Colors.white.withValues(alpha: opacity * 0.5)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0;
           

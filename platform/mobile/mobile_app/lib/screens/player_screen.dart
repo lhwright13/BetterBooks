@@ -56,7 +56,7 @@ class PlayerScreen extends StatelessWidget {
                         width: 200,
                         height: 200,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
@@ -81,7 +81,7 @@ class PlayerScreen extends StatelessWidget {
                         Text(
                           chapter.title,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -92,7 +92,7 @@ class PlayerScreen extends StatelessWidget {
                         Text(
                           book.author!,
                           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -120,7 +120,7 @@ class PlayerScreen extends StatelessWidget {
                               activeTrackColor: ArchitecturalColors.primaryOrange,
                               inactiveTrackColor: ArchitecturalColors.lightGray,
                               thumbColor: ArchitecturalColors.primaryOrange,
-                              overlayColor: ArchitecturalColors.primaryOrange.withOpacity(0.2),
+                              overlayColor: ArchitecturalColors.primaryOrange.withValues(alpha: 0.2),
                               thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
                               trackHeight: 6,
                             ),

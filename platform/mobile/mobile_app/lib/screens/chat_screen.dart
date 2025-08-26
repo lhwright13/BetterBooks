@@ -39,7 +39,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
-import '../services/api_service.dart';
 import '../models/persona.dart';
 import '../models/chat_message.dart';
 
@@ -122,7 +121,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               Text(
                                 persona.description,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -150,10 +149,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                   border: Border(
                     bottom: BorderSide(
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                     ),
                   ),
                 ),
@@ -211,7 +210,7 @@ class _ChatScreenState extends State<ChatScreen> {
             decoration: BoxDecoration(
               border: Border(
                 top: BorderSide(
-                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
             ),
@@ -329,7 +328,7 @@ class ChatBubble extends StatelessWidget {
           if (!message.isUser) ...[
             CircleAvatar(
               radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               child: Icon(
                 Icons.smart_toy,
                 size: 16,
@@ -353,7 +352,7 @@ class ChatBubble extends StatelessWidget {
                         : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: message.isUser ? null : Border.all(
-                      color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Text(
@@ -392,7 +391,7 @@ class ChatBubble extends StatelessWidget {
             SizedBox(width: 8),
             CircleAvatar(
               radius: 16,
-              backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               child: Icon(
                 message.isVoiceMessage ? Icons.mic : Icons.person,
                 size: 16,

@@ -159,7 +159,7 @@ class AudioVisualizerPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final fillPaint = Paint()
-      ..color = color.withOpacity(0.3)
+      ..color = color.withValues(alpha: 0.3)
       ..style = PaintingStyle.fill;
 
     switch (mode) {
@@ -209,7 +209,7 @@ class AudioVisualizerPainter extends CustomPainter {
       final radius = maxRadius * progress;
       final opacity = (1.0 - progress) * currentLevel;
       
-      paint.color = color.withOpacity(opacity);
+      paint.color = color.withValues(alpha: opacity);
       canvas.drawCircle(center, radius, paint);
     }
   }

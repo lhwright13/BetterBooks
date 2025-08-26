@@ -220,7 +220,7 @@ class ModernTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -253,7 +253,7 @@ class ModernTheme {
           backgroundColor: Colors.transparent,
           disabledForegroundColor: textMuted,
           side: BorderSide(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             width: 1.5,
           ),
           shape: RoundedRectangleBorder(
@@ -283,7 +283,7 @@ class ModernTheme {
           foregroundColor: textPrimary,
           backgroundColor: Colors.transparent,
           disabledForegroundColor: textMuted,
-          highlightColor: primaryOrange.withOpacity(0.1),
+          highlightColor: primaryOrange.withValues(alpha: 0.1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -310,14 +310,14 @@ class ModernTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             width: 1.5,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             width: 1.5,
           ),
         ),
@@ -341,7 +341,7 @@ class ModernTheme {
       // List Tile Theme
       listTileTheme: ListTileThemeData(
         tileColor: Colors.transparent,
-        selectedTileColor: primaryOrange.withOpacity(0.1),
+        selectedTileColor: primaryOrange.withValues(alpha: 0.1),
         iconColor: textSecondary,
         textColor: textPrimary,
         titleTextStyle: textTheme.titleMedium,
@@ -367,17 +367,17 @@ class ModernTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: backgroundSecondary,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: primaryOrange.withOpacity(0.2),
+        indicatorColor: primaryOrange.withValues(alpha: 0.2),
         elevation: 8,
         height: 80,
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return textTheme.labelSmall?.copyWith(color: primaryOrange);
           }
           return textTheme.labelSmall?.copyWith(color: textMuted);
         }),
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: primaryOrange, size: 24);
           }
           return const IconThemeData(color: textMuted, size: 24);
@@ -389,22 +389,22 @@ class ModernTheme {
         activeTrackColor: primaryOrange,
         inactiveTrackColor: backgroundTertiary,
         thumbColor: primaryOrange,
-        overlayColor: primaryOrange.withOpacity(0.2),
+        overlayColor: primaryOrange.withValues(alpha: 0.2),
         valueIndicatorColor: primaryOrange,
         valueIndicatorTextStyle: textTheme.bodySmall?.copyWith(color: Colors.white),
       ),
       
       // Switch Theme
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryOrange;
           }
           return textMuted;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return primaryOrange.withOpacity(0.5);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return primaryOrange.withValues(alpha: 0.5);
           }
           return backgroundTertiary;
         }),
@@ -419,7 +419,7 @@ class ModernTheme {
       
       // Divider Theme
       dividerTheme: DividerThemeData(
-        color: Colors.white.withOpacity(0.1),
+        color: Colors.white.withValues(alpha: 0.1),
         thickness: 1,
         space: 1,
       ),

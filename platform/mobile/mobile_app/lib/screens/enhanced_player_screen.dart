@@ -113,23 +113,23 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    RetroColors.primaryTerracotta.withOpacity(0.08),
-                                    RetroColors.sageGreen.withOpacity(0.04),
+                                    RetroColors.primaryTerracotta.withValues(alpha: 0.08),
+                                    RetroColors.sageGreen.withValues(alpha: 0.04),
                                   ],
                                 ),
                                 border: Border.all(
-                                  color: RetroColors.primaryTerracotta.withOpacity(0.15),
+                                  color: RetroColors.primaryTerracotta.withValues(alpha: 0.15),
                                   width: RetroSizes.subtleBorder,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: RetroColors.primaryTerracotta.withOpacity(0.08),
+                                    color: RetroColors.primaryTerracotta.withValues(alpha: 0.08),
                                     blurRadius: 20,
                                     offset: Offset(0, 6),
                                     spreadRadius: 1,
                                   ),
                                   BoxShadow(
-                                    color: RetroColors.stoneBeige.withOpacity(0.12),
+                                    color: RetroColors.stoneBeige.withValues(alpha: 0.12),
                                     blurRadius: 12,
                                     offset: Offset(0, 3),
                                   ),
@@ -154,8 +154,8 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
                                             colors: [
-                                              RetroColors.primaryTerracotta.withOpacity(0.12),
-                                              RetroColors.sageGreen.withOpacity(0.06),
+                                              RetroColors.primaryTerracotta.withValues(alpha: 0.12),
+                                              RetroColors.sageGreen.withValues(alpha: 0.06),
                                             ],
                                           ),
                                           borderRadius: BorderRadius.circular(RetroSizes.borderRadius),
@@ -173,7 +173,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                         width: 200,
                                         height: 200,
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(16),
                                         ),
                                         child: Center(
@@ -231,12 +231,12 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                             colors: RetroColors.cardGradient,
                           ),
                           border: Border.all(
-                            color: RetroColors.primaryTerracotta.withOpacity(0.2),
+                            color: RetroColors.primaryTerracotta.withValues(alpha: 0.2),
                             width: RetroSizes.subtleBorder,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: RetroColors.primaryTerracotta.withOpacity(0.08),
+                              color: RetroColors.primaryTerracotta.withValues(alpha: 0.08),
                               blurRadius: 20,
                               spreadRadius: 1,
                               offset: Offset(0, 4),
@@ -350,12 +350,12 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                             colors: RetroColors.terracottaGradient,
                           ),
                           border: Border.all(
-                            color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                            color: RetroColors.primaryTerracotta.withValues(alpha: 0.3),
                             width: RetroSizes.subtleBorder,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: RetroColors.primaryTerracotta.withOpacity(0.2),
+                              color: RetroColors.primaryTerracotta.withValues(alpha: 0.2),
                               blurRadius: 16,
                               offset: Offset(0, 4),
                               spreadRadius: 1,
@@ -408,7 +408,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                 activeTrackColor: ArchitecturalColors.primaryOrange,
                                 inactiveTrackColor: ArchitecturalColors.lightGray,
                                 thumbColor: ArchitecturalColors.primaryOrange,
-                                overlayColor: ArchitecturalColors.primaryOrange.withOpacity(0.2),
+                                overlayColor: ArchitecturalColors.primaryOrange.withValues(alpha: 0.2),
                                 thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8),
                                 trackHeight: 6,
                               ),
@@ -463,7 +463,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                           child: TactileButton(
                             width: 56,
                             height: 56,
-                            color: RetroColors.warmTaupe.withOpacity(0.8),
+                            color: RetroColors.warmTaupe.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(28),
                             onPressed: () {
                               final newPosition = appState.currentPosition - Duration(seconds: 30);
@@ -492,18 +492,18 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                   colors: RetroColors.terracottaGradient,
                                 ),
                                 border: Border.all(
-                                  color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                                  color: RetroColors.primaryTerracotta.withValues(alpha: 0.3),
                                   width: RetroSizes.subtleBorder,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: RetroColors.primaryTerracotta.withOpacity(0.25),
+                                    color: RetroColors.primaryTerracotta.withValues(alpha: 0.25),
                                     blurRadius: 20,
                                     offset: Offset(0, 6),
                                     spreadRadius: 1,
                                   ),
                                   BoxShadow(
-                                    color: RetroColors.stoneBeige.withOpacity(0.2),
+                                    color: RetroColors.stoneBeige.withValues(alpha: 0.2),
                                     blurRadius: 12,
                                     offset: Offset(0, 3),
                                   ),
@@ -539,7 +539,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                           child: TactileButton(
                             width: 56,
                             height: 56,
-                            color: RetroColors.warmTaupe.withOpacity(0.8),
+                            color: RetroColors.warmTaupe.withValues(alpha: 0.8),
                             borderRadius: BorderRadius.circular(28),
                             onPressed: () {
                               final newPosition = appState.currentPosition + Duration(seconds: 30);
@@ -563,7 +563,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
           // Voice mode overlay - dims everything except the book cover
           if (_isVoiceModeActive)
             Container(
-              color: Colors.black.withOpacity(0.8),
+              color: Colors.black.withValues(alpha: 0.8),
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -576,7 +576,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withOpacity(0.3),
+                            color: Colors.blue.withValues(alpha: 0.3),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -600,7 +600,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                                     width: 280,
                                     height: 280,
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Icon(
@@ -636,7 +636,7 @@ class _EnhancedPlayerScreenState extends State<EnhancedPlayerScreen> {
                       width: 200,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                       child: Align(

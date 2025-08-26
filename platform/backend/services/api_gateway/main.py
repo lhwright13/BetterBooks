@@ -29,8 +29,10 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 # Import authentication routes
-from auth_routes import auth_router
+# from auth_routes import auth_router  # Temporarily disabled due to JSON serialization issues
 from simple_bookstore_routes import router as bookstore_router
+from bookstore_routes import router as enhanced_bookstore_router
+from user_bookstore_routes import router as user_bookstore_router
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -68,10 +70,12 @@ app.add_middleware(
 )
 
 # Include authentication routes
-app.include_router(auth_router)
+# app.include_router(auth_router)  # Temporarily disabled
 
 # Include bookstore routes
 app.include_router(bookstore_router)
+app.include_router(enhanced_bookstore_router)
+app.include_router(user_bookstore_router)
 
 # Basic health check
 @app.get("/health")

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
-import 'dart:math' as math;
 
 class RippleShaderWidget extends StatefulWidget {
   final Widget child;

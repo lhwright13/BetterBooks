@@ -24,7 +24,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import '../api_config.dart';
 
 /// Speech recognition service integrated with BetterBooks backend
 /// Provides voice-to-text functionality via Azure Speech Service
@@ -33,8 +33,8 @@ class SpeechService {
   static bool _isRecording = false;
   
   // Backend API configuration
-  // Using direct transcription service for now (port 8003) until API Gateway is fixed
-  static const String _baseUrl = 'http://localhost:8003'; // Direct transcription service
+  // Using API Gateway for transcription service routing
+  static String get _baseUrl => apiBaseUrl; // Use configured API Gateway URL
   static const String _transcriptionEndpoint = '/transcribe/file';
   static const String _testEndpoint = '/transcribe/test';
   static const String _healthEndpoint = '/health';

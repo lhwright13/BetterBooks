@@ -1,12 +1,12 @@
 /// EchoWright Theme Configuration
 ///
-/// Modern, minimalist theme inspired by Audible's clean design
-/// with EchoWright's unique turquoise and coral brand identity.
+/// Modern, minimalist theme based on the actual EchoWright brand logo
+/// with precise color matching from the brand identity.
 ///
 /// Features:
-/// - Turquoise primary color from brand logo
-/// - Coral gradient accents for CTAs and highlights
-/// - Gold text for brand personality
+/// - Vibrant turquoise primary color from logo background
+/// - Orange-to-coral gradient accents matching the wing design
+/// - Golden yellow text matching brand typography
 /// - Clean dark mode optimized for reading
 /// - Material Design 3 components
 /// - Subtle shadows and minimal decorations
@@ -17,61 +17,88 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EchoWrightTheme {
-  // Brand Colors from Logo
+  // Brand Colors from Actual Logo
   static const Color primaryTurquoise =
-      Color(0xFF4ECDC4); // Main brand turquoise
-  static const Color lightTurquoise = Color(0xFF7DD3D8); // Lighter variant
-  static const Color darkTurquoise = Color(0xFF2FB3AA); // Darker variant
+      Color(0xFF44C0C1); // New brand turquoise background
+  static const Color lightTurquoise = Color(0xFF6ED4D0); // Lighter variant
+  static const Color darkTurquoise = Color(0xFF2BB5B0); // Darker variant
 
-  // Coral Accent Colors
-  static const Color accentCoral = Color(0xFFFF6B6B); // Primary coral
-  static const Color lightCoral = Color(0xFFFF8E8E); // Light coral
-  static const Color darkCoral = Color(0xFFE85555); // Dark coral
-  static const Color warmCoral = Color(0xFFFFA07A); // Warm coral
+  // Brand Accent Colors
+  static const Color primaryOrange = Color(0xFFFD5E4C); // Brand orange accent
+  static const Color lightOrange = Color(0xFFFFA666); // Lighter orange
+  static const Color darkOrange = Color(0xFFE6792A); // Darker orange
 
-  // Brand Text Colors
-  static const Color brandGold = Color(0xFFFFD93D); // Logo gold yellow
-  static const Color warmGold = Color(0xFFFFE066); // Warmer gold
-  static const Color deepGold = Color(0xFFE6C136); // Deeper gold
+  static const Color primaryCoral = Color(0xFFE43427); // Brand red accent
+  static const Color lightCoral = Color(0xFFEC6B5E); // Lighter coral
+  static const Color darkCoral = Color(0xFFD63021); // Darker coral
+
+  // Brand Gold Yellow from Logo Text
+  static const Color brandGold = Color(0xFFF1C40F); // Logo text gold
+  static const Color lightGold = Color(0xFFF7DC6F); // Lighter gold
+  static const Color deepGold = Color(0xFFD4AC0D); // Deeper gold
+  static const Color warmGold = Color(0xFFF39C12); // Warm gold accent
+
+  // Professional Design System Colors
+  static const Color softTan = Color(0xFFCEB590); // Primary interactive elements
+  static const Color darkGreen = Color(0xFF3F594F); // Premium text and headers
+  static const Color warmCream = Color(0xFFF5F2ED); // Light backgrounds
+  static const Color deepForest = Color(0xFF2A3F35); // Dark text variant
+  static const Color softWhite = Color(0xFFFAFAFA); // Card backgrounds
 
   // Dark Mode Base Colors
   static const Color backgroundDark =
-      Color(0xFF1A1A1A); // Primary dark background
-  static const Color surfaceDark = Color(0xFF2D2D2D); // Elevated surfaces/cards
+      Color(0xFF44C0C1); // Brand turquoise background
+  static const Color surfaceDark = Color(0xFFFFFFFF); // Elevated surfaces/cards - white for contrast
   static const Color backgroundLight =
-      Color(0xFF242424); // Lighter background variant
-  static const Color dividerDark = Color(0xFF404040); // Subtle dividers
+      Color(0xFF5DCBCC); // Lighter background variant - lighter turquoise
+  static const Color dividerDark = Color(0xFF2C3E50); // Subtle dividers - dark for contrast
 
-  // Text Colors
-  static const Color textPrimary = Color(0xFFFFFFFF); // Main text
-  static const Color textSecondary = Color(0xFFE0E0E0); // Secondary text
-  static const Color textMuted = Color(0xFFA0A0A0); // Muted/hint text
+  // Text Colors - Updated for turquoise background
+  static const Color textPrimary = Color(0xFF1A1A1A); // Main text - dark for contrast
+  static const Color textSecondary = Color(0xFF2C3E50); // Secondary text - dark blue-gray
+  static const Color textMuted = Color(0xFF555555); // Muted/hint text - medium gray
   static const Color textOnPrimary =
-      Color(0xFF000000); // Text on colored backgrounds
+      Color(0xFFFFFFFF); // Text on colored backgrounds - white on colors
+  static const Color textOnGold = Color(0xFF2C3E50); // Text on gold backgrounds
+  static const Color textOnBackground = Color(0xFF1A1A1A); // Text on turquoise background
 
   // Status Colors
-  static const Color successColor = Color(0xFF4CAF50); // Success states
-  static const Color warningColor = Color(0xFFFFC107); // Warning states
-  static const Color errorColor = Color(0xFFFF5722); // Error states
-  static const Color infoColor = Color(0xFF2196F3); // Information states
+  static const Color successColor = Color(0xFF27AE60); // Success states
+  static const Color warningColor =
+      Color(0xFFF39C12); // Warning states (warm gold)
+  static const Color errorColor = Color(0xFFE74C3C); // Error states (coral)
+  static const Color infoColor = Color(0xFF3498DB); // Information states
 
-  // Gradients
+  // Brand Gradients from Logo
+  static const LinearGradient wingGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryOrange, primaryCoral],
+    stops: [0.0, 1.0],
+  );
+
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [primaryTurquoise, lightTurquoise],
   );
 
-  static const LinearGradient accentGradient = LinearGradient(
+  static const LinearGradient orangeGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [accentCoral, warmCoral],
+    colors: [primaryOrange, lightOrange],
+  );
+
+  static const LinearGradient coralGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primaryCoral, lightCoral],
   );
 
   static const LinearGradient goldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [brandGold, warmGold],
+    colors: [brandGold, lightGold],
   );
 
   // Shadows
@@ -91,6 +118,14 @@ class EchoWrightTheme {
     ),
   ];
 
+  static const List<BoxShadow> brandGlowShadow = [
+    BoxShadow(
+      color: Color(0x40F1C40F), // Gold glow
+      blurRadius: 20,
+      offset: Offset(0, 0),
+    ),
+  ];
+
   // Typography System
   static TextTheme get textTheme {
     final baseTextTheme = GoogleFonts.interTextTheme();
@@ -101,13 +136,13 @@ class EchoWrightTheme {
       displayLarge: headingFont.copyWith(
         fontSize: 57,
         fontWeight: FontWeight.w700,
-        color: textPrimary,
+        color: brandGold,
         height: 1.12,
       ),
       displayMedium: headingFont.copyWith(
         fontSize: 45,
         fontWeight: FontWeight.w600,
-        color: textPrimary,
+        color: brandGold,
         height: 1.16,
       ),
       displaySmall: headingFont.copyWith(
@@ -215,16 +250,18 @@ class EchoWrightTheme {
         onPrimary: textOnPrimary,
         primaryContainer: darkTurquoise,
         onPrimaryContainer: textPrimary,
-        secondary: accentCoral,
-        onSecondary: textPrimary,
-        secondaryContainer: darkCoral,
+        secondary: primaryOrange,
+        onSecondary: textOnPrimary,
+        secondaryContainer: darkOrange,
         onSecondaryContainer: textPrimary,
         tertiary: brandGold,
-        onTertiary: textOnPrimary,
-        error: errorColor,
+        onTertiary: textOnGold,
+        tertiaryContainer: deepGold,
+        onTertiaryContainer: textOnGold,
+        error: primaryCoral,
         onError: textPrimary,
         surface: surfaceDark,
-        onSurface: textPrimary,
+        onSurface: textOnBackground,
         onSurfaceVariant: textSecondary,
         outline: dividerDark,
         shadow: Colors.black,
@@ -248,7 +285,10 @@ class EchoWrightTheme {
         scrolledUnderElevation: 0,
         shadowColor: Colors.transparent,
         foregroundColor: textPrimary,
-        titleTextStyle: textTheme.titleLarge,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
+          color: brandGold,
+          fontWeight: FontWeight.w600,
+        ),
         centerTitle: false,
         titleSpacing: 16,
         iconTheme: const IconThemeData(
@@ -256,7 +296,7 @@ class EchoWrightTheme {
           size: 24,
         ),
         actionsIconTheme: const IconThemeData(
-          color: textPrimary,
+          color: brandGold,
           size: 24,
         ),
       ),
@@ -276,14 +316,14 @@ class EchoWrightTheme {
       // Button Themes
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          foregroundColor: textPrimary,
-          backgroundColor: accentCoral,
+          foregroundColor: primaryCoral, // Red text for sophistication
+          backgroundColor: softTan, // Professional tan background
           disabledForegroundColor: textMuted,
           disabledBackgroundColor: dividerDark,
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16), // Softer corners
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           textStyle: textTheme.labelLarge?.copyWith(
@@ -294,15 +334,15 @@ class EchoWrightTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
+          foregroundColor: darkGreen, // Dark green for secondary actions
           backgroundColor: Colors.transparent,
           disabledForegroundColor: textMuted,
           side: BorderSide(
-            color: primaryTurquoise,
-            width: 1.5,
+            color: softTan, // Tan border
+            width: 2,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           textStyle: textTheme.labelLarge,
@@ -311,17 +351,28 @@ class EchoWrightTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: primaryTurquoise,
+          foregroundColor: primaryCoral, // Red for text buttons
           disabledForegroundColor: textMuted,
           backgroundColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           textStyle: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600, // Slightly bolder
           ),
         ),
+      ),
+
+      // Floating Action Button Theme
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: primaryOrange,
+        foregroundColor: textPrimary,
+        elevation: 6,
+        focusElevation: 8,
+        hoverElevation: 8,
+        highlightElevation: 12,
+        shape: CircleBorder(),
       ),
 
       // Icon Button Theme
@@ -369,7 +420,7 @@ class EchoWrightTheme {
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(
-            color: errorColor,
+            color: primaryCoral,
             width: 1,
           ),
         ),
@@ -395,7 +446,7 @@ class EchoWrightTheme {
       // Navigation Bar Theme
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: surfaceDark,
-        selectedItemColor: primaryTurquoise,
+        selectedItemColor: brandGold,
         unselectedItemColor: textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 8,
@@ -403,21 +454,42 @@ class EchoWrightTheme {
         showUnselectedLabels: true,
         selectedLabelStyle: textTheme.labelSmall?.copyWith(
           fontWeight: FontWeight.w600,
+          color: brandGold,
         ),
         unselectedLabelStyle: textTheme.labelSmall,
       ),
 
+      // Navigation Rail Theme
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: surfaceDark,
+        selectedIconTheme: const IconThemeData(
+          color: brandGold,
+          size: 24,
+        ),
+        unselectedIconTheme: const IconThemeData(
+          color: textMuted,
+          size: 24,
+        ),
+        selectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: brandGold,
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelTextStyle: textTheme.labelMedium?.copyWith(
+          color: textMuted,
+        ),
+      ),
+
       // Tab Bar Theme
       tabBarTheme: TabBarThemeData(
-        labelColor: primaryTurquoise,
+        labelColor: brandGold,
         unselectedLabelColor: textMuted,
-        indicatorColor: primaryTurquoise,
+        indicatorColor: brandGold,
         labelStyle: textTheme.labelMedium?.copyWith(
           fontWeight: FontWeight.w600,
         ),
         unselectedLabelStyle: textTheme.labelMedium,
         overlayColor: WidgetStateProperty.all(
-          primaryTurquoise.withValues(alpha: 0.1),
+          brandGold.withValues(alpha: 0.1),
         ),
       ),
 
@@ -432,14 +504,14 @@ class EchoWrightTheme {
       dividerTheme: const DividerThemeData(
         color: dividerDark,
         thickness: 1,
-        space: 1,
+        space: 0,
       ),
 
       // Chip Theme
       chipTheme: ChipThemeData(
         backgroundColor: backgroundLight,
-        selectedColor: primaryTurquoise.withValues(alpha: 0.2),
-        secondarySelectedColor: accentCoral.withValues(alpha: 0.2),
+        selectedColor: brandGold.withValues(alpha: 0.2),
+        secondarySelectedColor: primaryTurquoise.withValues(alpha: 0.2),
         labelStyle: textTheme.labelMedium,
         secondaryLabelStyle: textTheme.labelMedium?.copyWith(
           color: textPrimary,
@@ -454,13 +526,13 @@ class EchoWrightTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return primaryTurquoise;
+            return brandGold;
           }
           return textMuted;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return primaryTurquoise.withValues(alpha: 0.5);
+            return brandGold.withValues(alpha: 0.5);
           }
           return dividerDark;
         }),
@@ -470,11 +542,11 @@ class EchoWrightTheme {
       sliderTheme: SliderThemeData(
         activeTrackColor: primaryTurquoise,
         inactiveTrackColor: dividerDark,
-        thumbColor: primaryTurquoise,
-        overlayColor: primaryTurquoise.withValues(alpha: 0.2),
-        valueIndicatorColor: primaryTurquoise,
+        thumbColor: brandGold,
+        overlayColor: brandGold.withValues(alpha: 0.2),
+        valueIndicatorColor: brandGold,
         valueIndicatorTextStyle: textTheme.bodySmall?.copyWith(
-          color: textOnPrimary,
+          color: textOnGold,
         ),
       ),
 
@@ -487,16 +559,27 @@ class EchoWrightTheme {
 // Extension for easy access to brand colors
 extension EchoWrightThemeExtension on ThemeData {
   Color get primaryTurquoise => EchoWrightTheme.primaryTurquoise;
-  Color get accentCoral => EchoWrightTheme.accentCoral;
+  Color get primaryOrange => EchoWrightTheme.primaryOrange;
+  Color get primaryCoral => EchoWrightTheme.primaryCoral;
   Color get brandGold => EchoWrightTheme.brandGold;
   Color get surfaceDark => EchoWrightTheme.surfaceDark;
   Color get textSecondary => EchoWrightTheme.textSecondary;
   Color get textMuted => EchoWrightTheme.textMuted;
+  
+  // Professional Design System Colors
+  Color get softTan => EchoWrightTheme.softTan;
+  Color get darkGreen => EchoWrightTheme.darkGreen;
+  Color get warmCream => EchoWrightTheme.warmCream;
+  Color get deepForest => EchoWrightTheme.deepForest;
+  Color get softWhite => EchoWrightTheme.softWhite;
 
   LinearGradient get primaryGradient => EchoWrightTheme.primaryGradient;
-  LinearGradient get accentGradient => EchoWrightTheme.accentGradient;
+  LinearGradient get wingGradient => EchoWrightTheme.wingGradient;
+  LinearGradient get orangeGradient => EchoWrightTheme.orangeGradient;
+  LinearGradient get coralGradient => EchoWrightTheme.coralGradient;
   LinearGradient get goldGradient => EchoWrightTheme.goldGradient;
 
   List<BoxShadow> get subtleShadow => EchoWrightTheme.subtleShadow;
   List<BoxShadow> get elevatedShadow => EchoWrightTheme.elevatedShadow;
+  List<BoxShadow> get brandGlowShadow => EchoWrightTheme.brandGlowShadow;
 }

@@ -197,6 +197,7 @@ services:
       - "8000:8000"
     volumes:
       - ./core:/app/core:ro
+      - ./book_files:/app/book_files:ro
     networks:
       - betterbooks_network
 

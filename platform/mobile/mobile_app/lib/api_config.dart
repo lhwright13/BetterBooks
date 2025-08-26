@@ -19,8 +19,9 @@
  * 
  * Environment configurations:
  * - Development: http://localhost:8000 (default)
- * - Staging: https://staging.echowright.app
- * - Production: https://api.echowright.app
+ * - Production: http://34.111.209.241:8000 (Google Cloud instance)
+ * - Staging: https://staging.echowright.app (future)
+ * - Production Domain: https://api.echowright.app (future)
  */
 
 /// Base URL of the API Gateway that routes requests to backend microservices

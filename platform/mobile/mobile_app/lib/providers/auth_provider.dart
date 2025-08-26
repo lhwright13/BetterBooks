@@ -22,6 +22,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/log_service.dart';
 
 /// Global authentication state provider
 /// Manages user authentication state and provides auth methods to the UI
@@ -32,6 +33,11 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _errorMessage;
+  
+  // Credit system
+  int _totalCredits = 0;
+  int _usedCredits = 0;
+  int _availableCredits = 0;
 
   // Getters for current state
   User? get currentUser => _currentUser;
@@ -39,6 +45,11 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get errorMessage => _errorMessage;
+  
+  // Credit system getters
+  int get totalCredits => _totalCredits;
+  int get usedCredits => _usedCredits;
+  int get availableCredits => _availableCredits;
 
   /// Initialize authentication state on app startup
   /// Checks for existing valid session and restores user state
@@ -63,7 +74,7 @@ class AuthProvider extends ChangeNotifier {
         _setUnauthenticated();
       }
     } catch (e) {
-      print('Auth initialization error: $e');
+      LogService.debug('Auth initialization error: $e');
       _setUnauthenticated();
     } finally {
       _isInitialized = true;
@@ -227,7 +238,7 @@ class AuthProvider extends ChangeNotifier {
       await AuthService.signOut();
       _setUnauthenticated();
     } catch (e) {
-      print('Sign out error: $e');
+      LogService.debug('Sign out error: $e');
       // Force local logout even if backend request fails
       _setUnauthenticated();
     } finally {
@@ -252,7 +263,7 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error refreshing user: $e');
+      LogService.debug('Error refreshing user: $e');
     }
   }
 
@@ -313,6 +324,37 @@ class AuthProvider extends ChangeNotifier {
   /// Clear error (public method for UI)
   void clearError() {
     _clearError();
+  }
+
+  /// Load user's credit balance
+  Future<void> loadCreditBalance() async {
+    try {
+      final response = await AuthService.getCreditBalance();
+      _totalCredits = response['total_credits'] ?? 0;
+      _usedCredits = response['used_credits'] ?? 0;
+      _availableCredits = response['available_credits'] ?? 0;
+      notifyListeners();
+    } catch (e) {
+      LogService.debug('Error loading credit balance: $e');
+    }
+  }
+
+  /// Update credit balance after a purchase
+  void updateCredits(int totalCredits, int usedCredits, int availableCredits) {
+    _totalCredits = totalCredits;
+    _usedCredits = usedCredits;
+    _availableCredits = availableCredits;
+    notifyListeners();
+  }
+
+  /// Initialize credits for a new user
+  Future<void> initializeCredits() async {
+    try {
+      await AuthService.initializeCredits();
+      await loadCreditBalance(); // Refresh balance
+    } catch (e) {
+      LogService.debug('Error initializing credits: $e');
+    }
   }
 
   @override

@@ -76,7 +76,7 @@ class TexturePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = RetroColors.stoneBeige.withOpacity(opacity * 0.3)
+      ..color = RetroColors.stoneBeige.withValues(alpha: opacity * 0.3)
       ..strokeWidth = 0.5;
 
     final offset = animationValue * lineSpacing * 3;
@@ -174,7 +174,7 @@ class _ShiftTextState extends State<ShiftText>
                 child: Text(
                   widget.text,
                   style: widget.style?.copyWith(
-                    color: RetroColors.primaryTerracotta.withOpacity(0.3),
+                    color: RetroColors.primaryTerracotta.withValues(alpha: 0.3),
                   ),
                 ),
               ),
@@ -186,7 +186,7 @@ class _ShiftTextState extends State<ShiftText>
                 child: Text(
                   widget.text,
                   style: widget.style?.copyWith(
-                    color: RetroColors.sageGreen.withOpacity(0.4),
+                    color: RetroColors.sageGreen.withValues(alpha: 0.4),
                   ),
                 ),
               ),
@@ -379,12 +379,12 @@ class WarmGlow extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: glowColor.withOpacity(0.15),
+            color: glowColor.withValues(alpha: 0.15),
             blurRadius: glowRadius,
             spreadRadius: glowRadius / 3,
           ),
           BoxShadow(
-            color: glowColor.withOpacity(0.06),
+            color: glowColor.withValues(alpha: 0.06),
             blurRadius: glowRadius * 1.5,
             spreadRadius: glowRadius / 2,
           ),
@@ -538,7 +538,7 @@ class ArchitecturalPainter extends CustomPainter {
           text: TextSpan(
             text: element.symbol,
             style: TextStyle(
-              color: RetroColors.primaryTerracotta.withOpacity(element.opacity * opacity * 0.3),
+              color: RetroColors.primaryTerracotta.withValues(alpha: element.opacity * opacity * 0.3),
               fontSize: 16,
               fontFamily: 'serif',
             ),

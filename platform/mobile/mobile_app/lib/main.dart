@@ -21,8 +21,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'providers/app_state.dart';
 import 'providers/auth_provider.dart';
+import 'services/log_service.dart';
 import 'screens/main_home_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/enhanced_player_screen.dart';
@@ -35,6 +37,7 @@ import 'theme/echowright_theme.dart';
 /// Entry point for the EchoWright application
 /// Initializes the app and sets up the root widget
 void main() {
+  LogService.init(isDebugMode: true);
   runApp(const EchoWrightApp());
 }
 
@@ -55,7 +58,14 @@ class EchoWrightApp extends StatelessWidget {
       child: MaterialApp(
         title: 'EchoWright',
         theme: EchoWrightTheme.theme,
-        home: AuthWrapper(),
+        home: const AuthWrapper(),
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(1.0)),
+            child: child!,
+          );
+        },
         routes: {
           '/library': (context) => LibraryScreen(),
           '/player': (context) => EnhancedPlayerScreen(),
@@ -71,6 +81,8 @@ class EchoWrightApp extends StatelessWidget {
 
 /// Wrapper widget that manages authentication flow
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
@@ -100,7 +112,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         // Show authentication screen if not authenticated
-        return AuthScreen();
+        return const AuthScreen();
       },
     );
   }
@@ -113,22 +125,21 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: EchoWrightTheme.backgroundDark,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.auto_stories,
-              size: 64,
-              color: Theme.of(context).primaryColor,
+            SvgPicture.asset(
+              'assets/images/login_logo.svg',
+              width: 350,
+              height: 200,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'EchoWright',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            const SizedBox(height: 24),
             const SizedBox(height: 32),
-            CircularProgressIndicator(),
+            CircularProgressIndicator(
+              color: EchoWrightTheme.brandGold,
+            ),
           ],
         ),
       ),
@@ -138,6 +149,8 @@ class SplashScreen extends StatelessWidget {
 
 /// Authentication screen for login/signup
 class AuthScreen extends StatefulWidget {
+  const AuthScreen({super.key});
+
   @override
   _AuthScreenState createState() => _AuthScreenState();
 }
@@ -151,33 +164,34 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: EchoWrightTheme.backgroundDark,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   // App logo and title
-                  Icon(
-                    Icons.auto_stories,
-                    size: 80,
-                    color: Theme.of(context).primaryColor,
+                  Container(
+                    width: 350,
+                    height: 220,
+                    child: SvgPicture.asset(
+                      'assets/images/login_logo.svg',
+                      width: 350,
+                      height: 220,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'EchoWright',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
                     'AI-Powered Audiobook Companion',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                          color: EchoWrightTheme.primaryCoral,
+                          fontWeight: FontWeight.w600,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -290,7 +304,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       // Google Sign In
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _handleGoogleSignIn,
                           icon: Icon(Icons.account_circle),
                           label: Text('Google'),
                         ),
@@ -299,7 +315,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       // Apple Sign In
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: authProvider.isLoading ? null : _handleAppleSignIn,
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _handleAppleSignIn,
                           icon: Icon(Icons.apple),
                           label: Text('Apple'),
                         ),
@@ -307,6 +325,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                   ),
                 ],
+                ),
               );
             },
           ),

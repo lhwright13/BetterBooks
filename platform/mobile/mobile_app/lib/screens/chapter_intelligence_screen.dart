@@ -82,7 +82,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SpaceColors.deepSpace,
+      backgroundColor: SpaceColors.darkSpace,
       body: SpaceBackground(
         child: Column(
           children: [
@@ -112,8 +112,8 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            SpaceColors.deepSpace,
-            SpaceColors.deepSpace.withOpacity(0.9),
+            SpaceColors.darkSpace,
+            SpaceColors.darkSpace.withValues(alpha: 0.9),
           ],
         ),
       ),
@@ -123,7 +123,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             children: [
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.arrow_back, color: SpaceColors.stellarWhite),
+                icon: Icon(Icons.arrow_back, color: SpaceColors.starWhite),
               ),
               Expanded(
                 child: Column(
@@ -134,7 +134,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: SpaceColors.stellarWhite,
+                        color: SpaceColors.starWhite,
                       ),
                     ),
                     Text(
@@ -158,17 +158,17 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
-        color: SpaceColors.commandPanel,
-        borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
-        border: Border.all(color: SpaceColors.tealBlue.withOpacity(0.3)),
+        color: SpaceColors.warmBeige,
+        borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
+        border: Border.all(color: SpaceColors.tealBlue.withValues(alpha: 0.3)),
       ),
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: SpaceColors.tealBlue.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+          color: SpaceColors.tealBlue.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
         ),
-        labelColor: SpaceColors.stellarWhite,
+        labelColor: SpaceColors.starWhite,
         unselectedLabelColor: SpaceColors.systemGray,
         tabs: [
           Tab(text: 'CHAPTERS'),
@@ -205,7 +205,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
           backgroundColor: SpaceColors.tealBlue,
           padding: EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+            borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
           ),
         ),
         child: _isDetectingChapters
@@ -218,14 +218,14 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                          SpaceColors.stellarWhite),
+                          SpaceColors.starWhite),
                     ),
                   ),
                   SizedBox(width: 12),
                   Text(
                     'Detecting Chapters...',
                     style: GoogleFonts.inter(
-                      color: SpaceColors.stellarWhite,
+                      color: SpaceColors.starWhite,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -234,7 +234,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             : Text(
                 'Detect Chapters with AI',
                 style: GoogleFonts.inter(
-                  color: SpaceColors.stellarWhite,
+                  color: SpaceColors.starWhite,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -258,7 +258,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: SpaceColors.stellarWhite,
+              color: SpaceColors.starWhite,
             ),
           ),
           SizedBox(height: 8),
@@ -286,13 +286,13 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
           margin: EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: isSelected
-                ? SpaceColors.tealBlue.withOpacity(0.1)
-                : SpaceColors.commandPanel,
-            borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+                ? SpaceColors.tealBlue.withValues(alpha: 0.1)
+                : SpaceColors.warmBeige,
+            borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
             border: Border.all(
               color: isSelected
                   ? SpaceColors.tealBlue
-                  : SpaceColors.tealBlue.withOpacity(0.3),
+                  : SpaceColors.tealBlue.withValues(alpha: 0.3),
             ),
           ),
           child: ListTile(
@@ -301,7 +301,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: SpaceColors.tealBlue.withOpacity(0.2),
+                color: SpaceColors.tealBlue.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(SpaceSizes.smallRadius),
               ),
               child: Center(
@@ -318,7 +318,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
               chapter.title,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
-                color: SpaceColors.stellarWhite,
+                color: SpaceColors.starWhite,
               ),
             ),
             subtitle: Column(
@@ -348,7 +348,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             trailing: Container(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: _getConfidenceColor(chapter.confidence).withOpacity(0.2),
+                color: _getConfidenceColor(chapter.confidence).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(SpaceSizes.smallRadius),
               ),
               child: Text(
@@ -392,7 +392,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             decoration: InputDecoration(
               labelText: 'Summary Style',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+                borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
               ),
             ),
             items: [
@@ -417,7 +417,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             backgroundColor: SpaceColors.tealBlue,
             padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+              borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
             ),
           ),
           child: _isGeneratingSummary
@@ -427,13 +427,13 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     valueColor:
-                        AlwaysStoppedAnimation<Color>(SpaceColors.stellarWhite),
+                        AlwaysStoppedAnimation<Color>(SpaceColors.starWhite),
                   ),
                 )
               : Text(
                   'Generate',
                   style: GoogleFonts.inter(
-                    color: SpaceColors.stellarWhite,
+                    color: SpaceColors.starWhite,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -460,7 +460,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: SpaceColors.stellarWhite,
+              color: SpaceColors.starWhite,
             ),
           ),
           SizedBox(height: 8),
@@ -486,9 +486,9 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
       child: Container(
         padding: EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: SpaceColors.commandPanel,
-          borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
-          border: Border.all(color: SpaceColors.tealBlue.withOpacity(0.3)),
+          color: SpaceColors.warmBeige,
+          borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
+          border: Border.all(color: SpaceColors.tealBlue.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,7 +498,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
               style: GoogleFonts.inter(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: SpaceColors.stellarWhite,
+                color: SpaceColors.starWhite,
               ),
             ),
             SizedBox(height: 12),
@@ -507,7 +507,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
               style: GoogleFonts.inter(
                 fontSize: 14,
                 height: 1.6,
-                color: SpaceColors.stellarWhite,
+                color: SpaceColors.starWhite,
               ),
             ),
             if (summary.themes.isNotEmpty) ...[
@@ -529,7 +529,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                           padding:
                               EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: SpaceColors.tealBlue.withOpacity(0.2),
+                            color: SpaceColors.tealBlue.withValues(alpha: 0.2),
                             borderRadius:
                                 BorderRadius.circular(SpaceSizes.smallRadius),
                           ),
@@ -579,7 +579,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                   labelText: 'Difficulty',
                   border: OutlineInputBorder(
                     borderRadius:
-                        BorderRadius.circular(SpaceSizes.mediumRadius),
+                        BorderRadius.circular(SpaceSizes.borderRadius),
                   ),
                 ),
                 items: [
@@ -603,7 +603,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                   labelText: 'Mode',
                   border: OutlineInputBorder(
                     borderRadius:
-                        BorderRadius.circular(SpaceSizes.mediumRadius),
+                        BorderRadius.circular(SpaceSizes.borderRadius),
                   ),
                 ),
                 items: [
@@ -633,7 +633,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
               backgroundColor: SpaceColors.tealBlue,
               padding: EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
+                borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
               ),
             ),
             child: _isGeneratingQuestions
@@ -646,14 +646,14 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                              SpaceColors.stellarWhite),
+                              SpaceColors.starWhite),
                         ),
                       ),
                       SizedBox(width: 12),
                       Text(
                         'Generating Questions...',
                         style: GoogleFonts.inter(
-                          color: SpaceColors.stellarWhite,
+                          color: SpaceColors.starWhite,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -662,7 +662,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                 : Text(
                     'Generate Discussion Questions',
                     style: GoogleFonts.inter(
-                      color: SpaceColors.stellarWhite,
+                      color: SpaceColors.starWhite,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -690,7 +690,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
             style: GoogleFonts.inter(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: SpaceColors.stellarWhite,
+              color: SpaceColors.starWhite,
             ),
           ),
           SizedBox(height: 8),
@@ -719,9 +719,9 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
           margin: EdgeInsets.only(bottom: 16),
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: SpaceColors.commandPanel,
-            borderRadius: BorderRadius.circular(SpaceSizes.mediumRadius),
-            border: Border.all(color: SpaceColors.tealBlue.withOpacity(0.3)),
+            color: SpaceColors.warmBeige,
+            borderRadius: BorderRadius.circular(SpaceSizes.borderRadius),
+            border: Border.all(color: SpaceColors.tealBlue.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -731,7 +731,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: SpaceColors.tealBlue.withOpacity(0.2),
+                      color: SpaceColors.tealBlue.withValues(alpha: 0.2),
                       borderRadius:
                           BorderRadius.circular(SpaceSizes.smallRadius),
                     ),
@@ -747,7 +747,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: SpaceColors.dustyRed.withOpacity(0.2),
+                      color: SpaceColors.dustyRed.withValues(alpha: 0.2),
                       borderRadius:
                           BorderRadius.circular(SpaceSizes.smallRadius),
                     ),
@@ -768,7 +768,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: SpaceColors.stellarWhite,
+                  color: SpaceColors.starWhite,
                 ),
               ),
               if (question.suggestedAnswer.isNotEmpty) ...[
@@ -789,7 +789,7 @@ class _ChapterIntelligenceScreenState extends State<ChapterIntelligenceScreen>
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           height: 1.5,
-                          color: SpaceColors.stellarWhite,
+                          color: SpaceColors.starWhite,
                         ),
                       ),
                     ),

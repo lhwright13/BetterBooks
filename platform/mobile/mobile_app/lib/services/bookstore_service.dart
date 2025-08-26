@@ -1,511 +1,523 @@
+/**
+ * bookstore_service.dart - Enhanced bookstore API client for EchoWright
+ * 
+ * This service handles all bookstore-related operations including:
+ * - Book catalog browsing and search
+ * - User library management
+ * - Purchase flow and credit system
+ * - Download URL generation
+ * - Wishlist management
+ * 
+ * Integration:
+ * - Connects to enhanced bookstore API (v2/bookstore)
+ * - Handles authentication and user sessions
+ * - Provides model conversion for UI components
+ * - Manages offline caching for purchased books
+ */
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart';
-import '../models/bookstore_models.dart';
 import '../api_config.dart';
-import 'auth_service.dart';
+import '../models/book.dart';
 
-/// Service for interacting with the bookstore API
-/// Provides methods for browsing, purchasing, and managing audiobooks
-class BookstoreService extends ChangeNotifier {
-  static final BookstoreService _instance = BookstoreService._internal();
-  factory BookstoreService() => _instance;
-  BookstoreService._internal();
+/// Response model for paginated book catalog
+class BookCatalogResponse {
+  final List<Book> books;
+  final int totalCount;
+  final int limit;
+  final int offset;
+  final bool hasNext;
+  final bool hasPrevious;
 
-  final http.Client _client = http.Client();
+  BookCatalogResponse({
+    required this.books,
+    required this.totalCount,
+    required this.limit,
+    required this.offset,
+    required this.hasNext,
+    required this.hasPrevious,
+  });
 
-  // Cache for frequently accessed data
-  List<BookCategory>? _cachedCategories;
-  List<BookCatalog>? _cachedFeaturedBooks;
-  List<UserPurchase>? _cachedPurchases;
-  UserCredit? _cachedCredits;
-  DateTime? _lastCacheUpdate;
+  factory BookCatalogResponse.fromJson(Map<String, dynamic> json) {
+    return BookCatalogResponse(
+      books: (json['books'] as List).map((book) => Book.fromJson(book)).toList(),
+      totalCount: json['total_count'],
+      limit: json['limit'],
+      offset: json['offset'],
+      hasNext: json['has_next'] ?? false,
+      hasPrevious: json['has_previous'] ?? false,
+    );
+  }
+}
 
-  static const Duration _cacheExpiry = Duration(minutes: 5);
+/// Book category model
+class BookCategory {
+  final String id;
+  final String name;
+  final String? description;
+  final String? imageUrl;
+  final int displayOrder;
+  final bool isActive;
+  final int? bookCount;
 
-  /// Check if cache is valid
-  bool get _isCacheValid =>
-      _lastCacheUpdate != null &&
-      DateTime.now().difference(_lastCacheUpdate!) < _cacheExpiry;
+  BookCategory({
+    required this.id,
+    required this.name,
+    this.description,
+    this.imageUrl,
+    this.displayOrder = 0,
+    this.isActive = true,
+    this.bookCount,
+  });
 
-  /// Get authorization headers for API requests
-  Future<Map<String, String>> get _authHeaders async {
-    final token = await AuthService.getAccessToken();
+  factory BookCategory.fromJson(Map<String, dynamic> json) {
+    return BookCategory(
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      imageUrl: json['image_url'],
+      displayOrder: json['display_order'] ?? 0,
+      isActive: json['is_active'] ?? true,
+      bookCount: json['book_count'],
+    );
+  }
+}
+
+/// Purchase request model
+class PurchaseRequest {
+  final String userId;
+  final String bookId;
+  final String purchaseType;
+  final int? creditsToUse;
+
+  PurchaseRequest({
+    required this.userId,
+    required this.bookId,
+    this.purchaseType = 'credit',
+    this.creditsToUse,
+  });
+
+  Map<String, dynamic> toJson() {
     return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
+      'user_id': userId,
+      'book_id': bookId,
+      'purchase_type': purchaseType,
+      if (creditsToUse != null) 'credits_to_use': creditsToUse,
     };
   }
-
-  /// Browse books with optional filtering and pagination
-  Future<BrowseResponse> browseBooks({
-    String? categoryId,
-    bool featuredOnly = false,
-    bool bestsellersOnly = false,
-    bool newReleasesOnly = false,
-    int page = 1,
-    int pageSize = 20,
-  }) async {
-    try {
-      final headers = await _authHeaders;
-      final queryParams = <String, String>{
-        'page': page.toString(),
-        'page_size': pageSize.toString(),
-        if (categoryId != null) 'category_id': categoryId,
-        if (featuredOnly) 'featured_only': 'true',
-        if (bestsellersOnly) 'bestsellers_only': 'true',
-        if (newReleasesOnly) 'new_releases_only': 'true',
-      };
-
-      final uri = Uri.parse('$apiBaseUrl/bookstore/browse')
-          .replace(queryParameters: queryParams);
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return BrowseResponse.fromJson(jsonData);
-      } else {
-        throw BookstoreException(
-          'Failed to browse books: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error browsing books: $e');
-      throw BookstoreException('Failed to browse books: $e');
-    }
-  }
-
-  /// Search books by query with optional filters
-  Future<BrowseResponse> searchBooks({
-    required String query,
-    String? categoryId,
-    String? author,
-    String? narrator,
-    double? minRating,
-    int? maxDurationHours,
-    int page = 1,
-    int pageSize = 20,
-  }) async {
-    try {
-      final headers = await _authHeaders;
-      final queryParams = <String, String>{
-        'q': query,
-        'page': page.toString(),
-        'page_size': pageSize.toString(),
-        if (categoryId != null) 'category_id': categoryId,
-        if (author != null) 'author': author,
-        if (narrator != null) 'narrator': narrator,
-        if (minRating != null) 'min_rating': minRating.toString(),
-        if (maxDurationHours != null) 'max_duration_hours': maxDurationHours.toString(),
-      };
-
-      final uri = Uri.parse('$apiBaseUrl/bookstore/search')
-          .replace(queryParameters: queryParams);
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return BrowseResponse.fromJson(jsonData);
-      } else {
-        throw BookstoreException(
-          'Failed to search books: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error searching books: $e');
-      throw BookstoreException('Failed to search books: $e');
-    }
-  }
-
-  /// Get detailed information about a specific book
-  Future<BookCatalog> getBookDetails(String bookId) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/books/$bookId');
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return BookCatalog.fromJson(jsonData);
-      } else if (response.statusCode == 404) {
-        throw BookstoreException('Book not found', 404);
-      } else {
-        throw BookstoreException(
-          'Failed to get book details: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting book details: $e');
-      throw BookstoreException('Failed to get book details: $e');
-    }
-  }
-
-  /// Get all available book categories
-  Future<List<BookCategory>> getCategories({bool forceRefresh = false}) async {
-    if (!forceRefresh && _cachedCategories != null && _isCacheValid) {
-      return _cachedCategories!;
-    }
-
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/categories');
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        final categories = (jsonData['categories'] as List<dynamic>)
-            .map((category) => BookCategory.fromJson(category))
-            .toList();
-
-        _cachedCategories = categories;
-        _lastCacheUpdate = DateTime.now();
-        return categories;
-      } else {
-        throw BookstoreException(
-          'Failed to get categories: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting categories: $e');
-      throw BookstoreException('Failed to get categories: $e');
-    }
-  }
-
-  /// Purchase a book using credits or direct payment
-  Future<PurchaseResponse> purchaseBook(PurchaseRequest request) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/purchase');
-
-      final response = await _client.post(
-        uri,
-        headers: headers,
-        body: json.encode(request.toJson()),
-      );
-
-      final jsonData = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        final purchaseResponse = PurchaseResponse.fromJson(jsonData);
-        
-        // Clear cache to force refresh of purchases and credits
-        _cachedPurchases = null;
-        _cachedCredits = null;
-        
-        notifyListeners();
-        return purchaseResponse;
-      } else {
-        throw BookstoreException(
-          jsonData['error_message'] ?? 'Failed to purchase book',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error purchasing book: $e');
-      throw BookstoreException('Failed to purchase book: $e');
-    }
-  }
-
-  /// Get user's credit balance
-  Future<CreditBalanceResponse> getCreditBalance({bool forceRefresh = false}) async {
-    if (!forceRefresh && _cachedCredits != null && _isCacheValid) {
-      return CreditBalanceResponse(
-        availableCredits: _cachedCredits!.availableCredits,
-        totalCredits: _cachedCredits!.totalCredits,
-        usedCredits: _cachedCredits!.usedCredits,
-        lastUpdated: _cachedCredits!.lastUpdated,
-      );
-    }
-
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/credits/balance');
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        final creditBalance = CreditBalanceResponse.fromJson(jsonData);
-        
-        _cachedCredits = UserCredit(
-          id: 'current',
-          userId: 'current',
-          totalCredits: creditBalance.totalCredits,
-          usedCredits: creditBalance.usedCredits,
-          lastUpdated: creditBalance.lastUpdated,
-        );
-        _lastCacheUpdate = DateTime.now();
-        
-        return creditBalance;
-      } else {
-        throw BookstoreException(
-          'Failed to get credit balance: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting credit balance: $e');
-      throw BookstoreException('Failed to get credit balance: $e');
-    }
-  }
-
-  /// Get user's purchase history
-  Future<List<UserPurchase>> getPurchaseHistory({bool forceRefresh = false}) async {
-    if (!forceRefresh && _cachedPurchases != null && _isCacheValid) {
-      return _cachedPurchases!;
-    }
-
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/purchases');
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        final purchases = (jsonData['purchases'] as List<dynamic>)
-            .map((purchase) => UserPurchase.fromJson(purchase))
-            .toList();
-
-        _cachedPurchases = purchases;
-        _lastCacheUpdate = DateTime.now();
-        return purchases;
-      } else {
-        throw BookstoreException(
-          'Failed to get purchase history: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting purchase history: $e');
-      throw BookstoreException('Failed to get purchase history: $e');
-    }
-  }
-
-  /// Check if user owns a specific book
-  Future<bool> ownsBook(String bookId) async {
-    try {
-      final purchases = await getPurchaseHistory();
-      return purchases.any((purchase) => purchase.bookId == bookId);
-    } catch (e) {
-      debugPrint('Error checking book ownership: $e');
-      return false;
-    }
-  }
-
-  /// Add book to wishlist
-  Future<bool> addToWishlist(String bookId) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/wishlist');
-
-      final response = await _client.post(
-        uri,
-        headers: headers,
-        body: json.encode({'book_id': bookId}),
-      );
-
-      if (response.statusCode == 200) {
-        notifyListeners();
-        return true;
-      } else {
-        final jsonData = json.decode(response.body);
-        throw BookstoreException(
-          jsonData['error_message'] ?? 'Failed to add to wishlist',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error adding to wishlist: $e');
-      throw BookstoreException('Failed to add to wishlist: $e');
-    }
-  }
-
-  /// Remove book from wishlist
-  Future<bool> removeFromWishlist(String bookId) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/wishlist/$bookId');
-
-      final response = await _client.delete(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        notifyListeners();
-        return true;
-      } else {
-        final jsonData = json.decode(response.body);
-        throw BookstoreException(
-          jsonData['error_message'] ?? 'Failed to remove from wishlist',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error removing from wishlist: $e');
-      throw BookstoreException('Failed to remove from wishlist: $e');
-    }
-  }
-
-  /// Get user's wishlist
-  Future<List<WishlistItem>> getWishlist({bool forceRefresh = false}) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/wishlist');
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return (jsonData['wishlist'] as List<dynamic>)
-            .map((item) => WishlistItem.fromJson(item))
-            .toList();
-      } else {
-        throw BookstoreException(
-          'Failed to get wishlist: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting wishlist: $e');
-      throw BookstoreException('Failed to get wishlist: $e');
-    }
-  }
-
-  /// Submit a book review
-  Future<BookReview> submitReview(ReviewSubmission review) async {
-    try {
-      final headers = await _authHeaders;
-      final uri = Uri.parse('$apiBaseUrl/bookstore/reviews');
-
-      final response = await _client.post(
-        uri,
-        headers: headers,
-        body: json.encode(review.toJson()),
-      );
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return BookReview.fromJson(jsonData['review']);
-      } else {
-        final jsonData = json.decode(response.body);
-        throw BookstoreException(
-          jsonData['error_message'] ?? 'Failed to submit review',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error submitting review: $e');
-      throw BookstoreException('Failed to submit review: $e');
-    }
-  }
-
-  /// Get reviews for a specific book
-  Future<List<BookReview>> getBookReviews(String bookId, {int page = 1, int pageSize = 20}) async {
-    try {
-      final headers = await _authHeaders;
-      final queryParams = {
-        'page': page.toString(),
-        'page_size': pageSize.toString(),
-      };
-
-      final uri = Uri.parse('$apiBaseUrl/bookstore/books/$bookId/reviews')
-          .replace(queryParameters: queryParams);
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return (jsonData['reviews'] as List<dynamic>)
-            .map((review) => BookReview.fromJson(review))
-            .toList();
-      } else {
-        throw BookstoreException(
-          'Failed to get book reviews: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting book reviews: $e');
-      throw BookstoreException('Failed to get book reviews: $e');
-    }
-  }
-
-  /// Get personalized book recommendations
-  Future<List<BookCatalog>> getRecommendations({int limit = 10}) async {
-    try {
-      final headers = await _authHeaders;
-      final queryParams = {'limit': limit.toString()};
-
-      final uri = Uri.parse('$apiBaseUrl/bookstore/recommendations')
-          .replace(queryParameters: queryParams);
-
-      final response = await _client.get(uri, headers: headers);
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        return (jsonData['recommendations'] as List<dynamic>)
-            .map((book) => BookCatalog.fromJson(book))
-            .toList();
-      } else {
-        throw BookstoreException(
-          'Failed to get recommendations: ${response.statusCode}',
-          response.statusCode,
-        );
-      }
-    } catch (e) {
-      debugPrint('Error getting recommendations: $e');
-      throw BookstoreException('Failed to get recommendations: $e');
-    }
-  }
-
-  /// Clear all cached data
-  void clearCache() {
-    _cachedCategories = null;
-    _cachedFeaturedBooks = null;
-    _cachedPurchases = null;
-    _cachedCredits = null;
-    _lastCacheUpdate = null;
-    notifyListeners();
-  }
-
-  /// Dispose resources
-  @override
-  void dispose() {
-    _client.close();
-    super.dispose();
-  }
 }
 
-/// Custom exception for bookstore-related errors
-class BookstoreException implements Exception {
+/// Purchase response model
+class PurchaseResponse {
+  final bool success;
   final String message;
-  final int? statusCode;
+  final String purchaseId;
+  final Book book;
+  final int creditsUsed;
+  final double pricePaid;
+  final int remainingCredits;
+  final String? downloadUrl;
 
-  const BookstoreException(this.message, [this.statusCode]);
+  PurchaseResponse({
+    required this.success,
+    required this.message,
+    required this.purchaseId,
+    required this.book,
+    required this.creditsUsed,
+    required this.pricePaid,
+    required this.remainingCredits,
+    this.downloadUrl,
+  });
 
-  @override
-  String toString() => 'BookstoreException: $message';
+  factory PurchaseResponse.fromJson(Map<String, dynamic> json) {
+    return PurchaseResponse(
+      success: json['success'],
+      message: json['message'],
+      purchaseId: json['purchase_id'],
+      book: Book.fromJson(json['book']),
+      creditsUsed: json['credits_used'] ?? 0,
+      pricePaid: (json['price_paid'] ?? 0.0).toDouble(),
+      remainingCredits: json['remaining_credits'],
+      downloadUrl: json['download_url'],
+    );
+  }
 }
 
-/// Helper extension for formatting currencies
-extension CurrencyFormatter on double {
-  String get formattedPrice => '\$${toStringAsFixed(2)}';
+/// Credit balance model
+class CreditBalance {
+  final String userId;
+  final int totalCredits;
+  final int usedCredits;
+  final int availableCredits;
+  final DateTime lastUpdated;
+
+  CreditBalance({
+    required this.userId,
+    required this.totalCredits,
+    required this.usedCredits,
+    required this.availableCredits,
+    required this.lastUpdated,
+  });
+
+  factory CreditBalance.fromJson(Map<String, dynamic> json) {
+    return CreditBalance(
+      userId: json['user_id'],
+      totalCredits: json['total_credits'],
+      usedCredits: json['used_credits'],
+      availableCredits: json['available_credits'],
+      lastUpdated: DateTime.parse(json['last_updated']),
+    );
+  }
 }
 
-/// Helper extension for formatting durations
-extension DurationFormatter on int {
-  String get formattedDuration {
-    if (this < 60) return '${this}s';
-    if (this < 3600) return '${(this / 60).floor()}m ${this % 60}s';
-    final hours = (this / 3600).floor();
-    final minutes = ((this % 3600) / 60).floor();
-    return '${hours}h ${minutes}m';
+/// User library response model
+class UserLibrary {
+  final String userId;
+  final List<Book> books;
+  final int totalBooks;
+
+  UserLibrary({
+    required this.userId,
+    required this.books,
+    required this.totalBooks,
+  });
+
+  factory UserLibrary.fromJson(Map<String, dynamic> json) {
+    return UserLibrary(
+      userId: json['user_id'],
+      books: (json['books'] as List).map((book) => Book.fromJson(book)).toList(),
+      totalBooks: json['total_books'],
+    );
+  }
+}
+
+/// Enhanced bookstore service for EchoWright mobile app
+class BookstoreService {
+  static const Duration _timeoutDuration = Duration(seconds: 30);
+  static String? _authToken;
+  static String? _currentUserId;
+  
+  /// Set authentication credentials
+  static void setAuth(String token, String userId) {
+    _authToken = token;
+    _currentUserId = userId;
+  }
+
+  /// Get HTTP headers with authentication
+  static Map<String, String> _getHeaders() {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    if (_authToken != null) {
+      headers['Authorization'] = 'Bearer $_authToken';
+    }
+    
+    return headers;
+  }
+
+  /// Get book catalog with optional filtering
+  static Future<BookCatalogResponse> getCatalog({
+    String? categoryId,
+    bool? featured,
+    bool? bestseller,
+    bool? newRelease,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$apiBaseUrl/v2/bookstore/catalog').replace(
+        queryParameters: {
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (categoryId != null) 'category_id': categoryId,
+          if (featured != null) 'featured': featured.toString(),
+          if (bestseller != null) 'bestseller': bestseller.toString(),
+          if (newRelease != null) 'new_release': newRelease.toString(),
+        },
+      );
+
+      final response = await http.get(uri, headers: _getHeaders())
+          .timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return BookCatalogResponse.fromJson(json);
+      } else {
+        throw Exception('Failed to load catalog: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading catalog: $e');
+    }
+  }
+
+  /// Get book details by ID
+  static Future<Book> getBookDetails(String bookId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/v2/bookstore/books/$bookId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return Book.fromJson(json);
+      } else {
+        throw Exception('Failed to load book details: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading book details: $e');
+    }
+  }
+
+  /// Search books
+  static Future<BookCatalogResponse> searchBooks(
+    String searchText, {
+    String? categoryId,
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final uri = Uri.parse('$apiBaseUrl/v2/bookstore/search').replace(
+        queryParameters: {
+          'search_text': searchText,
+          'limit': limit.toString(),
+          'offset': offset.toString(),
+          if (categoryId != null) 'category_id': categoryId,
+        },
+      );
+
+      final response = await http.post(uri, headers: _getHeaders())
+          .timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return BookCatalogResponse.fromJson(json);
+      } else {
+        throw Exception('Failed to search books: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error searching books: $e');
+    }
+  }
+
+  /// Get book categories
+  static Future<List<BookCategory>> getCategories() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/v2/bookstore/categories'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> json = jsonDecode(response.body);
+        return json.map((category) => BookCategory.fromJson(category)).toList();
+      } else {
+        throw Exception('Failed to load categories: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading categories: $e');
+    }
+  }
+
+  /// Purchase a book
+  static Future<PurchaseResponse> purchaseBook(
+    String bookId, {
+    String purchaseType = 'credit',
+    int? creditsToUse,
+  }) async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final request = PurchaseRequest(
+        userId: _currentUserId!,
+        bookId: bookId,
+        purchaseType: purchaseType,
+        creditsToUse: creditsToUse,
+      );
+
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/v2/bookstore/purchase'),
+        headers: _getHeaders(),
+        body: jsonEncode(request.toJson()),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return PurchaseResponse.fromJson(json);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['detail'] ?? 'Purchase failed');
+      }
+    } catch (e) {
+      throw Exception('Network error during purchase: $e');
+    }
+  }
+
+  /// Get user's library
+  static Future<UserLibrary> getUserLibrary() async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/v2/bookstore/library/$_currentUserId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return UserLibrary.fromJson(json);
+      } else {
+        throw Exception('Failed to load library: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading library: $e');
+    }
+  }
+
+  /// Get credit balance
+  static Future<CreditBalance> getCreditBalance() async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/v2/bookstore/credits/$_currentUserId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return CreditBalance.fromJson(json);
+      } else {
+        throw Exception('Failed to load credits: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading credits: $e');
+    }
+  }
+
+  /// Add to wishlist
+  static Future<void> addToWishlist(String bookId) async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/v2/bookstore/wishlist/$_currentUserId/$bookId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to add to wishlist: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error adding to wishlist: $e');
+    }
+  }
+
+  /// Remove from wishlist
+  static Future<void> removeFromWishlist(String bookId) async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.delete(
+        Uri.parse('$apiBaseUrl/v2/bookstore/wishlist/$_currentUserId/$bookId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to remove from wishlist: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error removing from wishlist: $e');
+    }
+  }
+
+  /// Get wishlist
+  static Future<List<Book>> getWishlist() async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/v2/bookstore/wishlist/$_currentUserId'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> json = jsonDecode(response.body);
+        return json.map((book) => Book.fromJson(book)).toList();
+      } else {
+        throw Exception('Failed to load wishlist: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading wishlist: $e');
+    }
+  }
+
+  /// Generate download URL for owned book
+  static Future<String> getDownloadUrl(String bookId) async {
+    if (_currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/v2/bookstore/download'),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'user_id': _currentUserId,
+          'book_id': bookId,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return json['download_url'];
+      } else {
+        throw Exception('Failed to get download URL: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error getting download URL: $e');
+    }
+  }
+
+  /// Get featured books for home screen
+  static Future<List<Book>> getFeaturedBooks({int limit = 10}) async {
+    final response = await getCatalog(featured: true, limit: limit);
+    return response.books;
+  }
+
+  /// Get new releases for home screen
+  static Future<List<Book>> getNewReleases({int limit = 10}) async {
+    final response = await getCatalog(newRelease: true, limit: limit);
+    return response.books;
+  }
+
+  /// Get bestsellers for home screen
+  static Future<List<Book>> getBestsellers({int limit = 10}) async {
+    final response = await getCatalog(bestseller: true, limit: limit);
+    return response.books;
+  }
+
+  /// Check if user owns a book
+  static Future<bool> userOwnsBook(String bookId) async {
+    try {
+      final library = await getUserLibrary();
+      return library.books.any((book) => book.id == bookId);
+    } catch (e) {
+      return false; // Assume not owned if we can't check
+    }
   }
 }

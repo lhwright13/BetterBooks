@@ -58,7 +58,7 @@ class _UserSettingsScreenState extends State<UserSettingsScreen> {
                         Text(
                           'Choose your AI companion for book discussions',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                         SizedBox(height: 16),
@@ -285,13 +285,13 @@ class PersonaTile extends StatelessWidget {
     return Card(
       elevation: isSelected ? 4 : 1,
       color: isSelected 
-          ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
           : null,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: isSelected
               ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
           child: Icon(
             Icons.person,
             color: isSelected 

@@ -1,23 +1,35 @@
 #!/bin/bash
 
-# BetterBooks TestFlight Build Script
+# EchoWright TestFlight Build Script
 # This script builds the iOS app for TestFlight distribution
 
 set -e
 
-echo "🚀 Building BetterBooks for TestFlight..."
+echo "🚀 Building EchoWright for TestFlight..."
 
 # Navigate to the mobile app directory
 cd "$(dirname "$0")/.."
+
+# Set production API endpoint
+PRODUCTION_API="http://34.111.209.241:8000"
+echo "🌐 Using production API: $PRODUCTION_API"
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
 flutter clean
 flutter pub get
 
-# Build iOS release version
-echo "📱 Building iOS release version..."
-flutter build ios --release --no-codesign
+# Install iOS dependencies
+echo "📦 Installing iOS dependencies..."
+cd ios && pod install --repo-update && cd ..
+
+# Build iOS release version with production API
+echo "📱 Building iOS release version for TestFlight..."
+flutter build ios --release \
+  --build-name=1.0.0 \
+  --build-number=2 \
+  --dart-define=API_BASE_URL="$PRODUCTION_API" \
+  --no-codesign
 
 # Create archive using xcodebuild
 echo "📦 Creating Xcode archive..."
@@ -48,7 +60,29 @@ echo "           -exportPath build/export \\"
 echo "           -exportOptionsPlist ExportOptions.plist"
 
 echo ""
-echo "📱 App built with:"
+echo "✅ TestFlight build ready!"
+echo ""
+echo "📱 App Configuration:"
+echo "   App Name: EchoWright"
 echo "   Bundle ID: com.betterbooks.app"
-echo "   Version: 1.0.0+1"
-echo "   API Endpoint: http://34.111.209.241"
+echo "   Version: 1.0.0 (Build 2)"
+echo "   API Endpoint: $PRODUCTION_API"
+echo "   Configuration: Release"
+echo ""
+echo "🔐 Before uploading to TestFlight:"
+echo "1. Replace REPLACE_WITH_YOUR_APPLE_TEAM_ID in ios/ExportOptions.plist"
+echo "2. Ensure your Apple Developer account has access to com.betterbooks.app"
+echo "3. Configure code signing in Xcode"
+echo "4. Verify backend is running at $PRODUCTION_API"
+echo ""
+echo "📋 Upload Instructions:"
+echo "Option 1: Via Xcode UI"
+echo "  1. Open Xcode > Window > Organizer"
+echo "  2. Select 'Runner' archive and click 'Distribute App'"
+echo "  3. Choose 'App Store Connect' > 'Upload'"
+echo ""
+echo "Option 2: Via Command Line (after updating ExportOptions.plist)"
+echo "  xcodebuild -exportArchive \\"
+echo "             -archivePath ios/build/Runner.xcarchive \\"
+echo "             -exportPath ios/build/export \\"
+echo "             -exportOptionsPlist ios/ExportOptions.plist"

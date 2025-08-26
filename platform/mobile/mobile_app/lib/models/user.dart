@@ -103,10 +103,20 @@ class User {
   /// Get user's initials for avatar fallback
   String get initials {
     if (displayName == null || displayName!.isEmpty) {
-      return email?.substring(0, 1).toUpperCase() ?? 'U';
+      if (email != null && email!.isNotEmpty) {
+        return email!.substring(0, 1).toUpperCase();
+      }
+      return 'U';
     }
     
-    final parts = displayName!.split(' ');
+    final parts = displayName!.split(' ').where((part) => part.isNotEmpty).toList();
+    if (parts.isEmpty) {
+      if (email != null && email!.isNotEmpty) {
+        return email!.substring(0, 1).toUpperCase();
+      }
+      return 'U';
+    }
+    
     if (parts.length >= 2) {
       return '${parts[0].substring(0, 1)}${parts[1].substring(0, 1)}'.toUpperCase();
     } else {

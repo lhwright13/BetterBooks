@@ -193,7 +193,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                     center: Alignment.center,
                     radius: 1.0,
                     colors: [
-                      Colors.indigo.withOpacity(0.3),
+                      Colors.indigo.withValues(alpha: 0.3),
                       Colors.black,
                     ],
                   ),
@@ -219,7 +219,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                               boxShadow: [
                                 BoxShadow(
                                   color: Theme.of(context).colorScheme.primary
-                                      .withOpacity(_glowAnimation.value * 0.5),
+                                      .withValues(alpha: _glowAnimation.value * 0.5),
                                   blurRadius: 30 + (_glowAnimation.value * 20),
                                   spreadRadius: 5 + (_glowAnimation.value * 10),
                                 ),
@@ -244,7 +244,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                                             width: 300,
                                             height: 300,
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                               borderRadius: BorderRadius.circular(20),
                                             ),
                                             child: Icon(
@@ -259,7 +259,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                                         width: 300,
                                         height: 300,
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Icon(
@@ -322,10 +322,10 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.2),
+                            color: Colors.red.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: Colors.red.withOpacity(0.5),
+                              color: Colors.red.withValues(alpha: 0.5),
                               width: 2,
                             ),
                           ),
@@ -345,8 +345,8 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                           height: 80,
                           decoration: BoxDecoration(
                             color: _isListening 
-                                ? Colors.red.withOpacity(0.2)
-                                : Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                ? Colors.red.withValues(alpha: 0.2)
+                                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(40),
                             border: Border.all(
                               color: _isListening 
@@ -380,10 +380,10 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.grey.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(32),
                             border: Border.all(
-                              color: Colors.grey.withOpacity(0.5),
+                              color: Colors.grey.withValues(alpha: 0.5),
                               width: 2,
                             ),
                           ),
@@ -412,7 +412,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen>
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(

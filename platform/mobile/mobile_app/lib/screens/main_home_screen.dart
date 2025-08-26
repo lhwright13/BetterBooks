@@ -68,7 +68,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
   Widget _buildCleanBottomNavigation() {
     return Container(
-      height: 70,
+      height: 92,
       decoration: BoxDecoration(
         color: EchoWrightTheme.surfaceDark,
         border: Border(
@@ -111,7 +111,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
         child: AnimatedContainer(
           duration: Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          padding: EdgeInsets.only(top: 7, bottom: 27, left: 4, right: 4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -123,11 +123,12 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     ? EchoWrightTheme.primaryTurquoise
                     : EchoWrightTheme.textSecondary,
               ),
-              SizedBox(height: 4),
+              SizedBox(height: 3),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 11,
+                  height: 1.0,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected 
                       ? EchoWrightTheme.primaryTurquoise

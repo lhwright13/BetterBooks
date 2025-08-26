@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:math' as math;
-import '../theme/retro_theme.dart';
+import '../theme/echowright_theme.dart';
 
 /// Space Background Widget - Animated background matching the web interface
 /// Features floating planets, orbital rings, and twinkling stars
@@ -73,9 +74,9 @@ class _SpaceBackgroundState extends State<SpaceBackground>
         size: 1.0 + random.nextDouble() * 2.0,
         twinklePhase: random.nextDouble() * 2 * math.pi,
         color: [
-          SpaceColors.starWhite,
-          SpaceColors.goldenYellow.withOpacity(0.8),
-          SpaceColors.cyanBlue.withOpacity(0.6),
+          EchoWrightTheme.textOnPrimary,
+          EchoWrightTheme.brandGold.withValues(alpha: 0.8),
+          EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.6),
         ][random.nextInt(3)],
       );
     });
@@ -87,7 +88,7 @@ class _SpaceBackgroundState extends State<SpaceBackground>
         x: 0.8,
         y: 0.2,
         size: 60,
-        color: SpaceColors.dustyRed.withOpacity(0.3),
+        color: EchoWrightTheme.primaryCoral.withValues(alpha: 0.3),
         orbitRadius: 120,
         orbitSpeed: 1.0,
       ),
@@ -95,7 +96,7 @@ class _SpaceBackgroundState extends State<SpaceBackground>
         x: 0.1,
         y: 0.7,
         size: 40,
-        color: SpaceColors.tealBlue.withOpacity(0.2),
+        color: EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2),
         orbitRadius: 80,
         orbitSpeed: 1.5,
       ),
@@ -103,7 +104,7 @@ class _SpaceBackgroundState extends State<SpaceBackground>
         x: 0.6,
         y: 0.8,
         size: 25,
-        color: SpaceColors.goldenYellow.withOpacity(0.25),
+        color: EchoWrightTheme.brandGold.withValues(alpha: 0.25),
         orbitRadius: 50,
         orbitSpeed: 2.0,
       ),
@@ -118,9 +119,9 @@ class _SpaceBackgroundState extends State<SpaceBackground>
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            SpaceColors.creamBg,
-            SpaceColors.warmBeige,
-            SpaceColors.lightCream,
+            EchoWrightTheme.backgroundDark,
+            EchoWrightTheme.backgroundLight,
+            EchoWrightTheme.surfaceDark,
           ],
         ),
       ),
@@ -216,7 +217,7 @@ class StarsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final star in stars) {
       final paint = Paint()
-        ..color = star.color.withOpacity(
+        ..color = star.color.withValues(alpha: 
           0.3 + 0.7 * (math.sin(animation.value * 2 * math.pi + star.twinklePhase) * 0.5 + 0.5),
         )
         ..style = PaintingStyle.fill;
@@ -230,7 +231,7 @@ class StarsPainter extends CustomPainter {
       canvas.drawCircle(center, star.size, paint);
       
       // Add subtle glow
-      paint.color = star.color.withOpacity(0.1);
+      paint.color = star.color.withValues(alpha: 0.1);
       canvas.drawCircle(center, star.size * 3, paint);
     }
   }
@@ -261,9 +262,9 @@ class PlanetsPainter extends CustomPainter {
         ..shader = RadialGradient(
           center: Alignment(-0.3, -0.3),
           colors: [
-            planet.color.withOpacity(0.8),
-            planet.color.withOpacity(0.3),
-            planet.color.withOpacity(0.1),
+            planet.color.withValues(alpha: 0.8),
+            planet.color.withValues(alpha: 0.3),
+            planet.color.withValues(alpha: 0.1),
           ],
         ).createShader(Rect.fromCircle(
           center: Offset(planetX, planetY),
@@ -278,7 +279,7 @@ class PlanetsPainter extends CustomPainter {
       
       // Draw subtle orbital path
       final pathPaint = Paint()
-        ..color = SpaceColors.systemGray.withOpacity(0.1)
+        ..color = EchoWrightTheme.textMuted.withValues(alpha: 0.1)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
       
@@ -306,7 +307,7 @@ class OrbitRingsPainter extends CustomPainter {
       ..strokeWidth = 2;
 
     // Main orbital ring
-    paint.color = SpaceColors.tealBlue.withOpacity(0.2 + 0.1 * math.sin(animation.value * 2 * math.pi));
+    paint.color = EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2 + 0.1 * math.sin(animation.value * 2 * math.pi));
     canvas.drawCircle(
       Offset(size.width * 0.3, size.height * 0.4),
       150 + 20 * math.sin(animation.value * 2 * math.pi),
@@ -314,7 +315,7 @@ class OrbitRingsPainter extends CustomPainter {
     );
 
     // Secondary orbital ring
-    paint.color = SpaceColors.dustyRed.withOpacity(0.15 + 0.1 * math.cos(animation.value * 2 * math.pi * 1.3));
+    paint.color = EchoWrightTheme.primaryCoral.withValues(alpha: 0.15 + 0.1 * math.cos(animation.value * 2 * math.pi * 1.3));
     canvas.drawCircle(
       Offset(size.width * 0.7, size.height * 0.6),
       100 + 15 * math.cos(animation.value * 2 * math.pi * 1.3),
@@ -322,7 +323,7 @@ class OrbitRingsPainter extends CustomPainter {
     );
 
     // Tertiary orbital ring
-    paint.color = SpaceColors.goldenYellow.withOpacity(0.1 + 0.05 * math.sin(animation.value * 2 * math.pi * 0.8));
+    paint.color = EchoWrightTheme.brandGold.withValues(alpha: 0.1 + 0.05 * math.sin(animation.value * 2 * math.pi * 0.8));
     canvas.drawCircle(
       Offset(size.width * 0.5, size.height * 0.2),
       80 + 10 * math.sin(animation.value * 2 * math.pi * 0.8),
@@ -383,23 +384,17 @@ class _EchoWrightLogoState extends State<EchoWrightLogo>
   @override
   Widget build(BuildContext context) {
     if (!widget.animate) {
-      return CustomPaint(
-        painter: LogoPainter(0, 0),
-        size: Size(widget.size, widget.size),
+      return SvgPicture.asset(
+        'assets/images/EchoWright.svg',
+        width: widget.size,
+        height: widget.size * 0.6, // Maintain aspect ratio
       );
     }
-
-    return AnimatedBuilder(
-      animation: Listenable.merge([_satelliteController, _pulseController]),
-      builder: (context, child) {
-        return CustomPaint(
-          painter: LogoPainter(
-            _satelliteController.value,
-            _pulseController.value,
-          ),
-          size: Size(widget.size, widget.size),
-        );
-      },
+    
+    return SvgPicture.asset(
+      'assets/images/EchoWright.svg',
+      width: widget.size,
+      height: widget.size * 0.6, // Maintain aspect ratio
     );
   }
 }
@@ -419,9 +414,9 @@ class LogoPainter extends CustomPainter {
     final corePaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          SpaceColors.dustyRed,
-          SpaceColors.warmRed,
-          SpaceColors.dustyRed.withOpacity(0.8),
+          EchoWrightTheme.primaryCoral,
+          EchoWrightTheme.primaryOrange,
+          EchoWrightTheme.primaryCoral.withValues(alpha: 0.8),
         ],
       ).createShader(Rect.fromCircle(center: center, radius: radius * 0.3));
 
@@ -433,11 +428,11 @@ class LogoPainter extends CustomPainter {
       ..strokeWidth = 3;
 
     // Inner ring
-    ringPaint.color = SpaceColors.tealBlue.withOpacity(0.6);
+    ringPaint.color = EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.6);
     canvas.drawCircle(center, radius * 0.6, ringPaint);
 
     // Outer ring
-    ringPaint.color = SpaceColors.goldenYellow.withOpacity(0.4);
+    ringPaint.color = EchoWrightTheme.brandGold.withValues(alpha: 0.4);
     canvas.drawCircle(center, radius * 0.8, ringPaint);
 
     // Rotating satellite
@@ -447,7 +442,7 @@ class LogoPainter extends CustomPainter {
     final satelliteY = center.dy + satelliteRadius * math.sin(satelliteAngle);
 
     final satellitePaint = Paint()
-      ..color = SpaceColors.goldenYellow
+      ..color = EchoWrightTheme.brandGold
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(
@@ -457,7 +452,7 @@ class LogoPainter extends CustomPainter {
     );
 
     // Satellite glow
-    satellitePaint.color = SpaceColors.goldenYellow.withOpacity(0.3);
+    satellitePaint.color = EchoWrightTheme.brandGold.withValues(alpha: 0.3);
     canvas.drawCircle(
       Offset(satelliteX, satelliteY),
       12 + pulseAnimation * 4,
@@ -466,7 +461,7 @@ class LogoPainter extends CustomPainter {
 
     // Connection beam (optional visual effect)
     final beamPaint = Paint()
-      ..color = SpaceColors.tealBlue.withOpacity(0.2)
+      ..color = EchoWrightTheme.primaryTurquoise.withValues(alpha: 0.2)
       ..strokeWidth = 2;
 
     canvas.drawLine(
@@ -497,15 +492,15 @@ class MissionStatusIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: SpaceSpacing.sm,
-        vertical: SpaceSpacing.xs,
+        horizontal: 16.0,
+        vertical: 8.0,
       ),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(SpaceSizes.smallRadius),
-        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8.0),
+        color: color.withValues(alpha: 0.1),
         border: Border.all(
-          color: color.withOpacity(0.3),
-          width: SpaceSizes.subtleBorder,
+          color: color.withValues(alpha: 0.3),
+          width: 1.0,
         ),
       ),
       child: Row(
@@ -519,14 +514,14 @@ class MissionStatusIndicator extends StatelessWidget {
               color: color,
               boxShadow: isActive ? [
                 BoxShadow(
-                  color: color.withOpacity(0.5),
+                  color: color.withValues(alpha: 0.5),
                   blurRadius: 4,
                   spreadRadius: 1,
                 ),
               ] : null,
             ),
           ),
-          SizedBox(width: SpaceSpacing.xs),
+          SizedBox(width: 8.0),
           Text(
             status.toUpperCase(),
             style: TextStyle(

@@ -49,7 +49,7 @@ class _LibraryBodyState extends State<LibraryBody> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().loadBooks();
+      context.read<AppState>().loadPurchasedBooks();
     });
   }
 
@@ -97,7 +97,7 @@ class _LibraryBodyState extends State<LibraryBody> {
                   ),
                   SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => appState.loadBooks(),
+                    onPressed: () => appState.loadPurchasedBooks(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoWrightTheme.primaryTurquoise,
                       foregroundColor: Colors.white,
@@ -110,7 +110,7 @@ class _LibraryBodyState extends State<LibraryBody> {
           );
         }
 
-        if (appState.books.isEmpty) {
+        if (appState.purchasedBooks.isEmpty) {
           return Center(
             child: Padding(
               padding: EdgeInsets.all(24),
@@ -144,7 +144,7 @@ class _LibraryBodyState extends State<LibraryBody> {
                   ElevatedButton(
                     onPressed: () => Navigator.pushNamed(context, '/store'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: EchoWrightTheme.accentCoral,
+                      backgroundColor: EchoWrightTheme.primaryCoral,
                       foregroundColor: Colors.white,
                       padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                     ),
@@ -157,13 +157,13 @@ class _LibraryBodyState extends State<LibraryBody> {
         }
 
         return RefreshIndicator(
-          onRefresh: () => appState.loadBooks(),
+          onRefresh: () => appState.loadPurchasedBooks(),
           color: EchoWrightTheme.primaryTurquoise,
           child: ListView.builder(
             padding: EdgeInsets.all(16),
-            itemCount: appState.books.length,
+            itemCount: appState.purchasedBooks.length,
             itemBuilder: (context, index) {
-              final book = appState.books[index];
+              final book = appState.purchasedBooks[index];
               return BookCard(book: book);
             },
           ),

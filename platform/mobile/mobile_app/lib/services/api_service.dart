@@ -34,6 +34,7 @@ import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../models/book.dart';
 import '../models/persona.dart';
+import 'log_service.dart';
 
 /// Service class for all HTTP communication with EchoWright backend services
 /// Provides methods for books, personas, chat, TTS, and context operations
@@ -45,14 +46,14 @@ class ApiService {
   /// Should be called after successful login/authentication
   static void setAuthToken(String token) {
     _authToken = token;
-    print('ApiService: Auth token set');
+    LogService.auth('Auth token set');
   }
 
   /// Clear authentication token 
   /// Should be called on logout or token expiry
   static void clearAuthToken() {
     _authToken = null;
-    print('ApiService: Auth token cleared');
+    LogService.auth('Auth token cleared');
   }
 
   /// Get current authentication token
@@ -90,14 +91,14 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         _authToken = data['tokens']['access_token'];
-        print('Authentication successful, token stored');
+        LogService.auth('Authentication successful, token stored');
         return true;
       } else {
-        print('Auth failed: ${response.statusCode} - ${response.body}');
+        LogService.auth('Auth failed: ${response.statusCode} - ${response.body}', isError: true);
         return false;
       }
     } catch (e) {
-      print('Auth error: $e');
+      LogService.auth('Auth error: $e', isError: true);
       return false;
     }
   }
@@ -107,16 +108,16 @@ class ApiService {
   /// Used to verify network connectivity before making other API calls
   static Future<bool> testConnection() async {
     try {
-      print('Testing connection to: $apiBaseUrl/health');
+      LogService.api('GET', '$apiBaseUrl/health');
       final response = await http.get(
         Uri.parse('$apiBaseUrl/health'),
         headers: {'Content-Type': 'application/json'},
       ).timeout(_timeoutDuration);
       
-      print('Health check response: ${response.statusCode} - ${response.body}');
+      LogService.api('GET', '$apiBaseUrl/health', statusCode: response.statusCode);
       return response.statusCode == 200;
     } catch (e) {
-      print('Health check error: $e');
+      LogService.api('GET', '$apiBaseUrl/health', error: e.toString());
       return false;
     }
   }
@@ -140,7 +141,7 @@ class ApiService {
         final data = jsonDecode(response.body);
         final books = <Book>[];
         
-        print('API Response: $data');
+        LogService.debug('API Response: $data', 'getBooks');
         
         // Handle single-file audiobooks (e.g., standalone MP3 files)
         if (data['single_books'] != null) {
@@ -184,7 +185,7 @@ class ApiService {
           }
         }
         
-        print('Loaded ${books.length} books from backend');
+        LogService.info('Loaded ${books.length} books from backend', 'getBooks');
         return books;
       } else {
         throw Exception('Failed to load books: ${response.statusCode}');
@@ -403,6 +404,83 @@ class ApiService {
       }
     } catch (e) {
       throw Exception('Question generation error: $e');
+    }
+  }
+
+  /// Get user's credit balance
+  static Future<Map<String, dynamic>> getCreditBalance() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/user/credits'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to get credit balance: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Credit balance error: $e');
+    }
+  }
+
+  /// Get user's purchased books library
+  static Future<Map<String, dynamic>> getUserLibrary() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/user/library'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to get user library: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('User library error: $e');
+    }
+  }
+
+  /// Purchase a book with credits
+  static Future<Map<String, dynamic>> purchaseBook(String bookId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/bookstore/user/purchase'),
+        headers: _getHeaders(),
+        body: jsonEncode({
+          'book_id': bookId,
+          'use_credits': true,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorBody = response.body;
+        throw Exception('Purchase failed: ${response.statusCode} - $errorBody');
+      }
+    } catch (e) {
+      throw Exception('Purchase error: $e');
+    }
+  }
+
+  /// Initialize credits for a new user
+  static Future<Map<String, dynamic>> initializeCredits() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/bookstore/user/initialize-credits'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception('Failed to initialize credits: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Credit initialization error: $e');
     }
   }
 }

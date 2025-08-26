@@ -37,12 +37,12 @@ class IndexCard extends StatelessWidget {
               border: Border.all(
                 color: isSelected 
                     ? RetroColors.neonCyan 
-                    : RetroColors.gridBlue.withOpacity(0.3),
+                    : RetroColors.gridBlue.withValues(alpha: 0.3),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: isSelected ? [
                 BoxShadow(
-                  color: RetroColors.neonCyan.withOpacity(0.3),
+                  color: RetroColors.neonCyan.withValues(alpha: 0.3),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
@@ -61,7 +61,7 @@ class IndexCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: tabColor,
                         border: Border.all(
-                          color: RetroColors.gridBlue.withOpacity(0.5),
+                          color: RetroColors.gridBlue.withValues(alpha: 0.5),
                           width: 1,
                         ),
                       ),
@@ -109,7 +109,7 @@ class IndexCard extends StatelessWidget {
                                 subtitle!,
                                 style: GoogleFonts.sourceCodePro(
                                   fontSize: 10,
-                                  color: RetroColors.orangeGlow.withOpacity(0.8),
+                                  color: RetroColors.orangeGlow.withValues(alpha: 0.8),
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -121,9 +121,9 @@ class IndexCard extends StatelessWidget {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: RetroColors.gridBlue.withOpacity(0.2),
+                            color: RetroColors.gridBlue.withValues(alpha: 0.2),
                             border: Border.all(
-                              color: RetroColors.gridBlue.withOpacity(0.5),
+                              color: RetroColors.gridBlue.withValues(alpha: 0.5),
                               width: 1,
                             ),
                           ),
@@ -216,7 +216,7 @@ class _FileDrawerState extends State<FileDrawer>
       decoration: BoxDecoration(
         color: Color(0xFF0F0F23),
         border: Border.all(
-          color: RetroColors.gridBlue.withOpacity(0.4),
+          color: RetroColors.gridBlue.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -231,10 +231,10 @@ class _FileDrawerState extends State<FileDrawer>
               child: Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: widget.tabColor?.withOpacity(0.2) ?? Color(0xFF16213E),
+                  color: widget.tabColor?.withValues(alpha: 0.2) ?? Color(0xFF16213E),
                   border: Border(
                     bottom: BorderSide(
-                      color: RetroColors.gridBlue.withOpacity(0.3),
+                      color: RetroColors.gridBlue.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -265,9 +265,9 @@ class _FileDrawerState extends State<FileDrawer>
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: RetroColors.orangeGlow.withOpacity(0.2),
+                        color: RetroColors.orangeGlow.withValues(alpha: 0.2),
                         border: Border.all(
-                          color: RetroColors.orangeGlow.withOpacity(0.5),
+                          color: RetroColors.orangeGlow.withValues(alpha: 0.5),
                           width: 1,
                         ),
                       ),
@@ -321,12 +321,12 @@ class TerminalWindow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Color(0xFF0F0F23),
         border: Border.all(
-          color: RetroColors.gridBlue.withOpacity(0.6),
+          color: RetroColors.gridBlue.withValues(alpha: 0.6),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: RetroColors.neonCyan.withOpacity(0.1),
+            color: RetroColors.neonCyan.withValues(alpha: 0.1),
             blurRadius: 12,
             spreadRadius: 2,
           ),
@@ -343,7 +343,7 @@ class TerminalWindow extends StatelessWidget {
               color: titleBarColor ?? Color(0xFF16213E),
               border: Border(
                 bottom: BorderSide(
-                  color: RetroColors.gridBlue.withOpacity(0.4),
+                  color: RetroColors.gridBlue.withValues(alpha: 0.4),
                   width: 1,
                 ),
               ),
@@ -421,7 +421,7 @@ class VhsProgressBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Color(0xFF0F0F23),
         border: Border.all(
-          color: RetroColors.gridBlue.withOpacity(0.4),
+          color: RetroColors.gridBlue.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -433,7 +433,7 @@ class VhsProgressBar extends StatelessWidget {
             gradient: LinearGradient(
               colors: [
                 color ?? RetroColors.neonCyan,
-                (color ?? RetroColors.neonCyan).withOpacity(0.6),
+                (color ?? RetroColors.neonCyan).withValues(alpha: 0.6),
               ],
             ),
           ),

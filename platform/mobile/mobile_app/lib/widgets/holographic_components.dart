@@ -75,22 +75,22 @@ class _SpaceCommandPanelState extends State<SpaceCommandPanel>
             border: Border.all(
               width: SpaceSizes.subtleBorder,
               color: Color.lerp(
-                accentColor.withOpacity(0.3),
-                SpaceColors.tealBlue.withOpacity(0.4),
+                accentColor.withValues(alpha: 0.3),
+                SpaceColors.tealBlue.withValues(alpha: 0.4),
                 _orbitalGlowController.value,
               )!,
             ),
             boxShadow: [
               // Primary orbital glow
               BoxShadow(
-                color: accentColor.withOpacity(0.15 + (_pulseController.value * 0.1)),
+                color: accentColor.withValues(alpha: 0.15 + (_pulseController.value * 0.1)),
                 blurRadius: 20 + (_pulseController.value * 8),
                 spreadRadius: 2 + (_pulseController.value * 1),
                 offset: Offset(0, 4),
               ),
               // Secondary atmospheric glow
               BoxShadow(
-                color: SpaceColors.tealBlue.withOpacity(0.08 + (_orbitalGlowController.value * 0.05)),
+                color: SpaceColors.tealBlue.withValues(alpha: 0.08 + (_orbitalGlowController.value * 0.05)),
                 blurRadius: 32,
                 offset: Offset(0, 8),
               ),
@@ -189,20 +189,20 @@ class _OrbitButtonState extends State<OrbitButton> with TickerProviderStateMixin
                 center: Alignment.center,
                 radius: _isPressed ? 0.5 : 1.0,
                 colors: [
-                  color.withOpacity(0.9),
-                  color.withOpacity(0.7),
-                  color.withOpacity(0.8),
+                  color.withValues(alpha: 0.9),
+                  color.withValues(alpha: 0.7),
+                  color.withValues(alpha: 0.8),
                 ],
                 stops: [0.0, 0.7, 1.0],
               ),
               border: Border.all(
-                color: SpaceColors.goldenYellow.withOpacity(0.4 + (_orbitController.value * 0.2)),
+                color: SpaceColors.goldenYellow.withValues(alpha: 0.4 + (_orbitController.value * 0.2)),
                 width: SpaceSizes.subtleBorder,
               ),
               boxShadow: _isPressed ? [
                 // Landing effect - compressed glow
                 BoxShadow(
-                  color: color.withOpacity(0.4),
+                  color: color.withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: Offset(0, 2),
                   spreadRadius: 1,
@@ -210,13 +210,13 @@ class _OrbitButtonState extends State<OrbitButton> with TickerProviderStateMixin
               ] : [
                 // Launch effect - expanded orbital glow
                 BoxShadow(
-                  color: color.withOpacity(0.3 + (_orbitController.value * 0.1)),
+                  color: color.withValues(alpha: 0.3 + (_orbitController.value * 0.1)),
                   blurRadius: 16 + (_orbitController.value * 4),
                   offset: Offset(0, 4),
                   spreadRadius: 2,
                 ),
                 BoxShadow(
-                  color: SpaceColors.goldenYellow.withOpacity(0.1),
+                  color: SpaceColors.goldenYellow.withValues(alpha: 0.1),
                   blurRadius: 24,
                   offset: Offset(0, 6),
                 ),
@@ -259,14 +259,14 @@ class MissionDataPanel extends StatelessWidget {
         ),
         border: Border.all(
           color: isActive 
-              ? accent.withOpacity(0.5) 
-              : accent.withOpacity(0.2),
+              ? accent.withValues(alpha: 0.5) 
+              : accent.withValues(alpha: 0.2),
           width: isActive ? 2.0 : SpaceSizes.subtleBorder,
         ),
         boxShadow: [
           if (isActive) 
             BoxShadow(
-              color: accent.withOpacity(0.3),
+              color: accent.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: Offset(0, 4),
               spreadRadius: 1,
@@ -292,13 +292,13 @@ class MissionDataPanel extends StatelessWidget {
               ),
               gradient: LinearGradient(
                 colors: [
-                  accent.withOpacity(0.15),
-                  accent.withOpacity(0.08),
+                  accent.withValues(alpha: 0.15),
+                  accent.withValues(alpha: 0.08),
                 ],
               ),
               border: Border(
                 bottom: BorderSide(
-                  color: accent.withOpacity(0.3),
+                  color: accent.withValues(alpha: 0.3),
                   width: SpaceSizes.subtleBorder,
                 ),
               ),
@@ -314,7 +314,7 @@ class MissionDataPanel extends StatelessWidget {
                     color: isActive ? SpaceColors.successGreen : accent,
                     boxShadow: [
                       BoxShadow(
-                        color: (isActive ? SpaceColors.successGreen : accent).withOpacity(0.5),
+                        color: (isActive ? SpaceColors.successGreen : accent).withValues(alpha: 0.5),
                         blurRadius: 4,
                         spreadRadius: 1,
                       ),
@@ -456,7 +456,7 @@ class _OrbitalFABState extends State<OrbitalFAB>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: SpaceColors.tealBlue.withOpacity(0.3 + (_orbitController.value * 0.2)),
+                  color: SpaceColors.tealBlue.withValues(alpha: 0.3 + (_orbitController.value * 0.2)),
                   width: 1,
                 ),
               ),
@@ -472,25 +472,25 @@ class _OrbitalFABState extends State<OrbitalFAB>
                   center: Alignment(-0.3, -0.3),
                   colors: [
                     color,
-                    color.withOpacity(0.8),
-                    color.withOpacity(0.9),
+                    color.withValues(alpha: 0.8),
+                    color.withValues(alpha: 0.9),
                   ],
                   stops: [0.0, 0.7, 1.0],
                 ),
                 border: Border.all(
-                  color: SpaceColors.goldenYellow.withOpacity(0.4),
+                  color: SpaceColors.goldenYellow.withValues(alpha: 0.4),
                   width: SpaceSizes.subtleBorder,
                 ),
                 boxShadow: [
                   // Primary orbital glow
                   BoxShadow(
-                    color: color.withOpacity(0.4 + (_satellitePulseController.value * 0.2)),
+                    color: color.withValues(alpha: 0.4 + (_satellitePulseController.value * 0.2)),
                     blurRadius: 20 + (_satellitePulseController.value * 8),
                     spreadRadius: 3 + (_satellitePulseController.value * 2),
                   ),
                   // Secondary space glow
                   BoxShadow(
-                    color: SpaceColors.tealBlue.withOpacity(0.2),
+                    color: SpaceColors.tealBlue.withValues(alpha: 0.2),
                     blurRadius: 32,
                     offset: Offset(0, 4),
                   ),
@@ -524,10 +524,10 @@ class _OrbitalFABState extends State<OrbitalFAB>
                   height: 4,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: SpaceColors.goldenYellow.withOpacity(0.8),
+                    color: SpaceColors.goldenYellow.withValues(alpha: 0.8),
                     boxShadow: [
                       BoxShadow(
-                        color: SpaceColors.goldenYellow.withOpacity(0.5),
+                        color: SpaceColors.goldenYellow.withValues(alpha: 0.5),
                         blurRadius: 3,
                         spreadRadius: 0.5,
                       ),
@@ -594,7 +594,7 @@ class _MissionProgressIndicatorState extends State<MissionProgressIndicator>
             borderRadius: BorderRadius.circular(widget.height / 2),
             color: SpaceColors.warmBeige,
             border: Border.all(
-              color: color.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               width: SpaceSizes.subtleBorder,
             ),
             boxShadow: [
@@ -625,7 +625,7 @@ class _MissionProgressIndicatorState extends State<MissionProgressIndicator>
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: color.withOpacity(0.4),
+                          color: color.withValues(alpha: 0.4),
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),
@@ -645,7 +645,7 @@ class _MissionProgressIndicatorState extends State<MissionProgressIndicator>
                         gradient: LinearGradient(
                           colors: [
                             Colors.transparent,
-                            SpaceColors.starWhite.withOpacity(0.8),
+                            SpaceColors.starWhite.withValues(alpha: 0.8),
                             Colors.transparent,
                           ],
                         ),
@@ -826,7 +826,7 @@ class BookCardSkeleton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: ArchitecturalColors.shadowBlack.withOpacity(0.5),
+            color: ArchitecturalColors.shadowBlack.withValues(alpha: 0.5),
             blurRadius: 4,
             offset: Offset(0, 2),
           ),
@@ -905,12 +905,12 @@ class ErrorStateWidget extends StatelessWidget {
         color: ArchitecturalColors.pureWhite,
         borderRadius: BorderRadius.circular(ArchitecturalSizes.borderRadius),
         border: Border.all(
-          color: ArchitecturalColors.errorRed.withOpacity(0.3),
+          color: ArchitecturalColors.errorRed.withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: ArchitecturalColors.errorRed.withOpacity(0.1),
+            color: ArchitecturalColors.errorRed.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: Offset(0, 4),
           ),

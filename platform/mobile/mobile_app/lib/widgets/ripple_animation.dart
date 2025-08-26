@@ -166,7 +166,7 @@ class RipplePainter extends CustomPainter {
 
       if (opacity > 0) {
         final paint = Paint()
-          ..color = color.withOpacity(opacity * 0.3)
+          ..color = color.withValues(alpha: opacity * 0.3)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.0;
 
@@ -176,7 +176,7 @@ class RipplePainter extends CustomPainter {
         // Inner ripple with higher opacity
         if (curved > 0.2) {
           final innerPaint = Paint()
-            ..color = color.withOpacity(opacity * 0.6)
+            ..color = color.withValues(alpha: opacity * 0.6)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 1.0;
 

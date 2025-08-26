@@ -32,12 +32,14 @@ import '../models/book.dart';
 import '../models/persona.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
+import '../services/log_service.dart';
 
 /// Global application state manager using Provider pattern for reactive UI updates
 /// Coordinates audiobook playback, AI interactions, and backend communication
 class AppState extends ChangeNotifier {
   // Private state variables
   List<Book> _books = [];                    // Available audiobooks from backend
+  List<Book> _purchasedBooks = [];           // User's purchased books (library)
   List<Persona> _personas = [];              // AI personas for chat interactions
   List<ChatMessage> _chatMessages = [];      // Chat conversation history
   Book? _currentBook;                        // Currently selected/playing book
@@ -54,6 +56,7 @@ class AppState extends ChangeNotifier {
 
   // Public getters for UI components
   List<Book> get books => _books;
+  List<Book> get purchasedBooks => _purchasedBooks;
   List<Persona> get personas => _personas;
   List<ChatMessage> get chatMessages => _chatMessages;
   Book? get currentBook => _currentBook;
@@ -99,6 +102,33 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> loadPurchasedBooks() async {
+    _setLoading(true);
+    try {
+      final response = await ApiService.getUserLibrary();
+      final booksData = response['books'] as List<dynamic>;
+      
+      _purchasedBooks = booksData.map((bookData) {
+        return Book(
+          id: bookData['id'],
+          title: bookData['title'],
+          author: bookData['author'],
+          audioUrl: bookData['download_url'],
+          coverUrl: bookData['cover_image_url'],
+          duration: Duration(hours: 1), // Default 1 hour
+          chapters: [],
+        );
+      }).toList();
+      
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      LogService.debug('Error loading purchased books: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> loadPersonas() async {
     try {
       _personas = await ApiService.getPersonas();
@@ -132,7 +162,7 @@ class AppState extends ChangeNotifier {
         throw Exception('No audio URL available');
       }
 
-      print('Attempting to play audio from: $audioUrl');
+      LogService.debug('Attempting to play audio from: $audioUrl');
       
       // Stop any existing playback
       await _audioPlayer.stop();
@@ -152,7 +182,7 @@ class AppState extends ChangeNotifier {
     const int maxRetries = 3;
     const Duration retryDelay = Duration(seconds: 2);
     
-    print('Audio playback error (attempt ${retryCount + 1}): $error');
+    LogService.debug('Audio playback error (attempt ${retryCount + 1}): $error');
     
     // Determine error type and appropriate response
     String errorMessage;
@@ -183,7 +213,7 @@ class AppState extends ChangeNotifier {
         await _audioPlayer.play(UrlSource(audioUrl));
         _error = null; // Clear error on successful retry
         notifyListeners();
-        print('Audio playback recovered after ${retryCount + 1} retries');
+        LogService.debug('Audio playback recovered after ${retryCount + 1} retries');
       } catch (retryError) {
         await _handleAudioError(retryError, audioUrl, retryCount: retryCount + 1);
       }
@@ -213,14 +243,14 @@ class AppState extends ChangeNotifier {
 
   Future<String> getCurrentContext() async {
     if (_currentBook == null) {
-      print('DEBUG: No current book selected for context');
+      LogService.debug('DEBUG: No current book selected for context');
       return '';
     }
     
     try {
-      print('DEBUG: Requesting context for book: ${_currentBook!.title}');
-      print('DEBUG: Current chapter: ${_currentChapter?.title ?? "none"}');
-      print('DEBUG: Current position: ${_currentPosition.inSeconds}s');
+      LogService.debug('DEBUG: Requesting context for book: ${_currentBook!.title}');
+      LogService.debug('DEBUG: Current chapter: ${_currentChapter?.title ?? "none"}');
+      LogService.debug('DEBUG: Current position: ${_currentPosition.inSeconds}s');
       
       final context = await ApiService.getContext(
         _currentBook!.title, 
@@ -228,16 +258,16 @@ class AppState extends ChangeNotifier {
         _currentPosition.inSeconds.toDouble(),
       );
       
-      print('DEBUG: Context received: ${context.length} characters');
+      LogService.debug('DEBUG: Context received: ${context.length} characters');
       if (context.length > 100) {
-        print('DEBUG: Context preview: ${context.substring(0, 100)}...');
+        LogService.debug('DEBUG: Context preview: ${context.substring(0, 100)}...');
       } else {
-        print('DEBUG: Full context: $context');
+        LogService.debug('DEBUG: Full context: $context');
       }
       
       return context;
     } catch (e) {
-      print('DEBUG: Context extraction failed: $e');
+      LogService.debug('DEBUG: Context extraction failed: $e');
       return '';
     }
   }
@@ -280,12 +310,12 @@ class AppState extends ChangeNotifier {
         final context = await getCurrentContext();
         if (context.isNotEmpty) {
           contextualMessage = "Context from current playbook: $context\n\nUser question: $message";
-          print('DEBUG: Sending contextual message to LLM (${contextualMessage.length} chars)');
+          LogService.debug('DEBUG: Sending contextual message to LLM (${contextualMessage.length} chars)');
         } else {
-          print('DEBUG: No context available, sending message without context');
+          LogService.debug('DEBUG: No context available, sending message without context');
         }
       } else {
-        print('DEBUG: No book playing, sending message without context');
+        LogService.debug('DEBUG: No book playing, sending message without context');
       }
 
       // Get AI response
@@ -319,12 +349,12 @@ class AppState extends ChangeNotifier {
         final context = await getCurrentContext();
         if (context.isNotEmpty) {
           contextualMessage = "Context from current playback: $context\n\nUser question: $voiceText";
-          print('DEBUG: Sending contextual voice message to LLM (${contextualMessage.length} chars)');
+          LogService.debug('DEBUG: Sending contextual voice message to LLM (${contextualMessage.length} chars)');
         } else {
-          print('DEBUG: No context available for voice message, sending without context');
+          LogService.debug('DEBUG: No context available for voice message, sending without context');
         }
       } else {
-        print('DEBUG: No book playing for voice message, sending without context');
+        LogService.debug('DEBUG: No book playing for voice message, sending without context');
       }
 
       // Get AI response
