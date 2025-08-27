@@ -81,8 +81,8 @@ services:
 
   context_service:
     build:
-      context: ./platform/backend/
-      dockerfile: services/context_service/Dockerfile
+      context: .
+      dockerfile: platform/backend/services/context_service/Dockerfile
       cache_from:
         - betterbooks/context_service:latest
     env_file:
@@ -104,8 +104,8 @@ services:
 
   llm_gateway:
     build:
-      context: ./platform/backend/
-      dockerfile: services/llm_gateway/Dockerfile
+      context: .
+      dockerfile: platform/backend/services/llm_gateway/Dockerfile
       cache_from:
         - betterbooks/llm_gateway:latest
     env_file:
@@ -159,8 +159,8 @@ services:
 
   tts_service:
     build:
-      context: ./platform/backend/
-      dockerfile: services/tts_service/Dockerfile
+      context: .
+      dockerfile: platform/backend/services/tts_service/Dockerfile
       cache_from:
         - betterbooks/tts_service:latest
     env_file:

@@ -1,4 +1,5 @@
 fastapi
+pydantic[email]
 uvicorn[standard]
 google-generativeai
 psutil==5.9.6

@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install requirements
-COPY services/llm_gateway/requirements.txt ./
+COPY platform/backend/services/llm_gateway/requirements.txt ./
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Production stage
@@ -19,22 +19,25 @@ FROM python:3.11-slim as production
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Create non-root user for security first
+RUN groupadd -r betterbooks && useradd -r -g betterbooks betterbooks
+
+# Copy Python packages from builder and set ownership
+COPY --from=builder /root/.local /home/betterbooks/.local
+RUN chown -R betterbooks:betterbooks /home/betterbooks/.local
 
 # Make sure scripts in .local are usable:
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/betterbooks/.local/bin:$PATH
 
 # Copy application code
-COPY services/llm_gateway/ ./
+COPY platform/backend/services/llm_gateway/ ./
 COPY core/ ./core/
 
 # Set Python path to include core modules
 ENV PYTHONPATH="/app/core:/app"
 
-# Create non-root user for security
-RUN groupadd -r betterbooks && useradd -r -g betterbooks betterbooks \
-    && chown -R betterbooks:betterbooks /app
+# Set ownership and switch to non-root user
+RUN chown -R betterbooks:betterbooks /app
 USER betterbooks
 
 # Health check

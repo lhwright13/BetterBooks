@@ -25,31 +25,50 @@ from typing import List, Optional
 # import httpx  # Disabled until dependencies resolved
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, RedirectResponse
 from pydantic import BaseModel
 
+# Import centralized configuration first
+from core.shared.utils.config_manager import get_config
+app_config = get_config()
+
+# Service URLs from centralized configuration
+CONTEXT_URL = app_config.get_service_url("context_service")
+LLM_URL = app_config.get_service_url("llm_gateway") 
+TTS_URL = app_config.get_service_url("tts_service")
+TRANSCRIPTION_URL = app_config.get_service_url("transcription_service")
+
 # Import authentication routes
-from temp_auth_routes import auth_router  # Using temporary implementation until dependencies resolved
+from core.auth.api_routes import router as auth_router  # Using proper authentication routes
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 # from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
 # from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
 
-# Base URLs for the other services. These can be overridden via environment
-# variables when running inside Docker or a deployment environment.
-CONTEXT_URL = os.getenv("CONTEXT_SERVICE_URL", "http://context_service:8000")
-LLM_URL = os.getenv("LLM_GATEWAY_URL", "http://llm_gateway:8000")
-TTS_URL = os.getenv("TTS_SERVICE_URL", "http://tts_service:8000")
-TRANSCRIPTION_URL = os.getenv("TRANSCRIPTION_SERVICE_URL", "http://transcription_service:8000")
-
 # Book files directory - will be mounted in Docker
 BOOK_FILES_DIR = Path("/app/book_files")
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Set up logging from centralized configuration
+logging_config = app_config.get_logging_config()
+log_level = getattr(logging, logging_config.level.upper(), logging.INFO)
+
+if logging_config.format == "json":
+    # Use structured JSON logging for production
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # Simplified for now
+    )
+else:
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
 logger = logging.getLogger(__name__)
+logger.info(f"API Gateway starting with configuration: {app_config.get_config_summary()}")
+
+# Import Azure storage helper (config already imported above)
+from azure_storage_helper import AzureStorageHelper
+azure_storage = AzureStorageHelper()
 
 # Create FastAPI app
 app = FastAPI(
@@ -60,24 +79,27 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Add CORS middleware
+# Add CORS middleware with centralized configuration
+security_config = app_config.get_security_config()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=security_config.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Include authentication routes
-app.include_router(auth_router)  # Using temporary implementation
+app.include_router(auth_router)  # Using proper authentication routes
 
 # Include bookstore routes
 # app.include_router(bookstore_router)  # Removed - was demo code
 # app.include_router(enhanced_bookstore_router)  # Disabled - requires httpx
 # app.include_router(user_bookstore_router)  # Temporarily disabled
 
-# Temporary user endpoints (no auth required for demo)
+# Database-backed user endpoints
+from db_utils import get_user_credits as db_get_user_credits, get_user_library as db_get_user_library, get_browse_books as db_get_browse_books, test_database_connection
+
 class CreditBalanceResponse(BaseModel):
     total_credits: int
     used_credits: int
@@ -89,35 +111,111 @@ class LibraryBook(BaseModel):
     author: str
     cover_image_url: str
     progress: float = 0.0
+    purchased_at: Optional[str] = None
 
 class UserLibraryResponse(BaseModel):
     books: List[LibraryBook]
     total_books: int
 
+class BrowseBook(BaseModel):
+    id: str
+    title: str
+    author: str
+    cover_image_url: str
+    price_usd: float = 9.99
+    credit_price: int = 1
+    is_featured: bool = False
+    is_bestseller: bool = False
+    is_new_release: bool = False
+
+class BrowseResponse(BaseModel):
+    books: List[BrowseBook]
+    total_books: int
+    page: int = 1
+    page_size: int = 20
+
 @app.get("/bookstore/user/credits", response_model=CreditBalanceResponse)
 async def get_user_credits():
-    """Get user credit balance (temporary demo endpoint)"""
-    return CreditBalanceResponse(
-        total_credits=5,
-        used_credits=0,
-        available_credits=5
-    )
+    """Get user credit balance from database"""
+    # Using demo user ID for now - in production this would come from auth
+    demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
+    
+    credits_data = db_get_user_credits(demo_user_id)
+    return CreditBalanceResponse(**credits_data)
 
 @app.get("/bookstore/user/library", response_model=UserLibraryResponse) 
 async def get_user_library():
-    """Get user library (temporary demo endpoint)"""
+    """Get user library from database"""
+    # Using demo user ID for now - in production this would come from auth  
+    demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
+    
+    library_data = db_get_user_library(demo_user_id)
+    
+    # Convert to response format
+    books = [
+        LibraryBook(
+            id=str(book['id']),  # Convert UUID to string
+            title=book['title'],
+            author=book['author'] or 'Unknown Author',
+            cover_image_url=book.get('cover_image_url', ''),
+            progress=float(book.get('progress', 0.0)),
+            purchased_at=book.get('purchased_at').isoformat() if book.get('purchased_at') else None
+        )
+        for book in library_data['books']
+    ]
+    
     return UserLibraryResponse(
-        books=[
-            LibraryBook(
-                id="gatsby-001",
-                title="The Great Gatsby",
-                author="F. Scott Fitzgerald", 
-                cover_image_url="https://covers.openlibrary.org/b/id/12583542-L.jpg",
-                progress=0.25
-            )
-        ],
-        total_books=1
+        books=books,
+        total_books=library_data['total_books']
     )
+
+@app.get("/bookstore/browse", response_model=BrowseResponse)
+async def browse_books(
+    featured: bool = False,
+    bestsellers: bool = False,
+    new_releases: bool = False,
+    page: int = 1,
+    limit: int = 20
+):
+    """Browse books in the bookstore with database-backed data"""
+    
+    # Calculate offset for pagination
+    offset = (page - 1) * limit
+    
+    # For now, just handle featured filter - can extend for bestsellers/new_releases
+    browse_data = db_get_browse_books(limit=limit, offset=offset, featured_only=featured)
+    
+    # Convert to response format
+    books = [
+        BrowseBook(
+            id=str(book['id']),  # Convert UUID to string
+            title=book['title'],
+            author=book['author'] or 'Unknown Author',
+            cover_image_url=book.get('cover_image_url', ''),
+            price_usd=float(book.get('price_usd', 9.99)),
+            credit_price=int(book.get('credit_price', 1)),
+            is_featured=bool(book.get('is_featured', False)),
+            is_bestseller=bool(book.get('is_bestseller', False)),
+            is_new_release=bool(book.get('is_new_release', False))
+        )
+        for book in browse_data['books']
+    ]
+    
+    return BrowseResponse(
+        books=books,
+        total_books=browse_data['total_books'],
+        page=page,
+        page_size=limit
+    )
+
+@app.get("/database/test")
+async def test_database():
+    """Test database connection"""
+    is_connected = test_database_connection()
+    return {
+        "database_connected": is_connected,
+        "message": "Database is working" if is_connected else "Database connection failed"
+    }
 
 # Basic health check
 @app.get("/health")
@@ -138,8 +236,15 @@ async def root():
 # File serving endpoints
 @app.get("/books/{book_folder}/{filename}")
 async def serve_book_file(book_folder: str, filename: str):
-    """Serve audiobook files"""
+    """Serve audiobook files from Azure Storage or local fallback"""
     try:
+        # Try Azure Storage first
+        azure_url = azure_storage.generate_audio_url(book_folder, filename)
+        if azure_url:
+            logger.info(f"Redirecting to Azure Storage for {book_folder}/{filename}")
+            return RedirectResponse(url=azure_url)
+        
+        # Fallback to local storage
         file_path = BOOK_FILES_DIR / book_folder / filename
         
         if not file_path.exists():
@@ -156,6 +261,7 @@ async def serve_book_file(book_folder: str, filename: str):
         elif filename.endswith(".m4a"):
             media_type = "audio/mp4"
         
+        logger.info(f"Serving from local storage: {book_folder}/{filename}")
         return FileResponse(
             path=file_path,
             media_type=media_type,
@@ -167,8 +273,15 @@ async def serve_book_file(book_folder: str, filename: str):
 
 @app.get("/books/cover/{book_folder}/{filename}")
 async def serve_cover_image(book_folder: str, filename: str):
-    """Serve book cover images"""
+    """Serve book cover images from Azure Storage or local fallback"""
     try:
+        # Try Azure Storage first
+        azure_url = azure_storage.generate_cover_url(book_folder, filename)
+        if azure_url:
+            logger.info(f"Redirecting to Azure Storage for cover {book_folder}/{filename}")
+            return RedirectResponse(url=azure_url)
+        
+        # Fallback to local storage
         file_path = BOOK_FILES_DIR / book_folder / filename
         
         if not file_path.exists():
@@ -182,6 +295,7 @@ async def serve_cover_image(book_folder: str, filename: str):
             elif filename.lower().endswith('.gif'):
                 media_type = "image/gif"
         
+        logger.info(f"Serving cover from local storage: {book_folder}/{filename}")
         return FileResponse(
             path=file_path,
             media_type=media_type,

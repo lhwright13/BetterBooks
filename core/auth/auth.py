@@ -27,6 +27,9 @@ Usage:
 
 import os
 import logging
+
+# Set up logging first
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple
 # Optional dependencies for full auth functionality
@@ -80,7 +83,6 @@ except ImportError:
     def get_config():
         return BasicConfig()
 
-logger = logging.getLogger(__name__)
 config = get_config()
 
 # JWT Configuration
@@ -217,19 +219,19 @@ def verify_token(token: str, token_type: str = "access") -> Dict[str, Any]:
         logger.error(f"Token verification failed: {e}")
         raise AuthError("Token verification failed")
 
-# Database-backed user management
-from ..database.database_manager import DatabaseManager
-from .user_manager import UserManager
+# Initialize user storage - always available as fallback
+USERS_DB: Dict[str, Dict[str, Any]] = {}
 
-# Initialize database connection
+# Database-backed user management
 try:
+    from ..database.database_manager import DatabaseManager
+    from .user_manager import UserManager
     db_manager = DatabaseManager()
     user_manager = UserManager(db_manager)
     logger.info("Database user management initialized")
 except Exception as e:
     logger.warning(f"Failed to initialize database user management: {e}")
-    # Fallback to in-memory for development
-    USERS_DB: Dict[str, Dict[str, Any]] = {}
+    # Use in-memory fallback for development
     db_manager = None
     user_manager = None
 
@@ -775,5 +777,5 @@ def verify_apple_token(id_token_str: str, nonce: str = None) -> Tuple[bool, Opti
         logger.error(f"Unexpected error verifying Apple token: {e}")
         return False, None
 
-# Initialize default admin
-ensure_admin_user()
+# Initialize default admin - commented out to prevent import-time side effects
+# ensure_admin_user() should be called explicitly when needed

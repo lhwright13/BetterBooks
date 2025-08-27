@@ -23,7 +23,10 @@ def test_api_gateway_health():
     client = TestClient(mod.app)
     resp = client.get("/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    response_data = resp.json()
+    assert response_data["status"] == "healthy"
+    assert "timestamp" in response_data
+    assert response_data["service"] == "api_gateway"
 
 
 def test_llm_gateway_health():
