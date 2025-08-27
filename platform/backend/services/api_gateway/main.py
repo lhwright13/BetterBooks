@@ -30,7 +30,7 @@ from pydantic import BaseModel
 
 # Import authentication routes
 # from auth_routes import auth_router  # Temporarily disabled due to JSON serialization issues
-from simple_bookstore_routes import router as bookstore_router
+# from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 from bookstore_routes import router as enhanced_bookstore_router
 from user_bookstore_routes import router as user_bookstore_router
 
@@ -73,7 +73,7 @@ app.add_middleware(
 # app.include_router(auth_router)  # Temporarily disabled
 
 # Include bookstore routes
-app.include_router(bookstore_router)
+# app.include_router(bookstore_router)  # Removed - was demo code
 app.include_router(enhanced_bookstore_router)
 app.include_router(user_bookstore_router)
 
