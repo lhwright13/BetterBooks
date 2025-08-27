@@ -29,16 +29,37 @@ import os
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any, List, Tuple
-import jwt
-import bcrypt
-import redis
+# Optional dependencies for full auth functionality
+try:
+    import jwt
+    JWT_AVAILABLE = True
+except ImportError:
+    JWT_AVAILABLE = False
+    
+try:
+    import bcrypt
+    BCRYPT_AVAILABLE = True
+except ImportError:
+    BCRYPT_AVAILABLE = False
+    
+try:
+    import redis
+    REDIS_AVAILABLE = True
+except ImportError:
+    REDIS_AVAILABLE = False
 import requests
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 from enum import Enum
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token
+# Optional Google OAuth dependencies - graceful degradation if not available
+try:
+    from google.auth.transport import requests as google_requests
+    from google.oauth2 import id_token
+    GOOGLE_AUTH_AVAILABLE = True
+except ImportError:
+    GOOGLE_AUTH_AVAILABLE = False
+    logger.warning("Google Auth not available - OAuth will be disabled")
 
 try:
     from core.shared.utils.config_manager import get_config
@@ -620,6 +641,10 @@ def create_or_update_oauth_user(email: str, display_name: str, provider: str, pr
 
 def verify_google_token(id_token_str: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
     """Verify Google ID token and return user info"""
+    if not GOOGLE_AUTH_AVAILABLE:
+        logger.error("Google Auth not available - cannot verify token")
+        return False, None
+        
     try:
         # Verify the token with Google
         # For production, you should specify your Google OAuth client ID

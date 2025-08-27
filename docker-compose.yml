@@ -174,8 +174,8 @@ services:
 
   api_gateway:
     build:
-      context: ./platform/backend/
-      dockerfile: services/api_gateway/Dockerfile
+      context: .
+      dockerfile: platform/backend/services/api_gateway/Dockerfile
       cache_from:
         - betterbooks/api_gateway:latest
     env_file:

@@ -19,18 +19,19 @@ FROM python:3.11-slim as production
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
-
-# Make sure scripts in .local are usable:
-ENV PATH=/root/.local/bin:$PATH
-
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' --uid 1000 appuser
+
+# Copy Python packages from builder and make them accessible to appuser
+COPY --from=builder /root/.local /home/appuser/.local
+RUN chown -R appuser:appuser /home/appuser/.local
 
 # Copy application code and set ownership
 COPY --chown=appuser:appuser platform/backend/services/api_gateway/ ./
 COPY --chown=appuser:appuser core/ ./core/
+
+# Make sure scripts in .local are usable:
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 # Create minimal test book files structure for testing
 RUN mkdir -p ./book_files/The\ Great\ Gatsby && \
@@ -41,7 +42,7 @@ RUN mkdir -p ./book_files/The\ Great\ Gatsby && \
 # Set Python path to include core modules
 ENV PYTHONPATH="/app/core:/app"
 
-# Switch to non-root user
+# Switch to non-root user with proper PATH
 USER appuser
 
 # Health check

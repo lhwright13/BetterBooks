@@ -22,16 +22,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-import httpx
+# import httpx  # Disabled until dependencies resolved
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 # Import authentication routes
-# from auth_routes import auth_router  # Temporarily disabled - missing dependencies (google-auth, psycopg2)
+from temp_auth_routes import auth_router  # Using temporary implementation until dependencies resolved
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
-from bookstore_routes import router as enhanced_bookstore_router
+# from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
 # from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
 
 # Base URLs for the other services. These can be overridden via environment
@@ -70,11 +70,11 @@ app.add_middleware(
 )
 
 # Include authentication routes
-# app.include_router(auth_router)  # Temporarily disabled - missing dependencies
+app.include_router(auth_router)  # Using temporary implementation
 
 # Include bookstore routes
 # app.include_router(bookstore_router)  # Removed - was demo code
-app.include_router(enhanced_bookstore_router)
+# app.include_router(enhanced_bookstore_router)  # Disabled - requires httpx
 # app.include_router(user_bookstore_router)  # Temporarily disabled
 
 # Temporary user endpoints (no auth required for demo)

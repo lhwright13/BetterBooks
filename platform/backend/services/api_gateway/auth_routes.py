@@ -19,14 +19,35 @@ from fastapi.security import HTTPAuthorizationCredentials
 import logging
 from typing import List, Dict, Any
 
-from core.auth.auth import (
-    User, UserRegistration, UserLogin, TokenResponse, UserRole,
-    create_user, authenticate_user, get_current_user, get_optional_user,
-    require_role, require_admin, check_rate_limit,
-    create_access_token, create_refresh_token, verify_token,
-    blacklist_token, USERS_DB,
-    ACCESS_TOKEN_EXPIRE_MINUTES, security
-)
+# Temporarily disable full auth functionality until dependencies are resolved
+# from core.auth.auth import (
+#     User, UserRegistration, UserLogin, TokenResponse, UserRole,
+#     create_user, authenticate_user, get_current_user, get_optional_user,
+#     require_role, require_admin, check_rate_limit,
+#     create_access_token, create_refresh_token, verify_token,
+#     blacklist_token, USERS_DB,
+#     ACCESS_TOKEN_EXPIRE_MINUTES, security
+# )
+
+# Temporary minimal models for API compatibility
+from pydantic import BaseModel, EmailStr
+
+class User(BaseModel):
+    id: str
+    email: str
+    role: str = "user"
+
+class UserRegistration(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: str = ""
+    last_name: str = ""
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = 1800
 
 logger = logging.getLogger(__name__)
 
