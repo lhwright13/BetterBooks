@@ -35,3 +35,5 @@ itsdangerous==2.1.2
 # Azure Storage dependencies
 azure-storage-blob==12.19.0
 azure-identity==1.15.0
+# GraphQL dependencies
+strawberry-graphql[fastapi]==0.200.0

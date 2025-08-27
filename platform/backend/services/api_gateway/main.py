@@ -40,6 +40,9 @@ TRANSCRIPTION_URL = app_config.get_service_url("transcription_service")
 
 # Import authentication routes
 from core.auth.api_routes import router as auth_router  # Using proper authentication routes
+
+# Import GraphQL schema
+from graphql_schema import graphql_router
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 # from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
 # from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
@@ -91,6 +94,9 @@ app.add_middleware(
 
 # Include authentication routes
 app.include_router(auth_router)  # Using proper authentication routes
+
+# Include GraphQL endpoint
+app.include_router(graphql_router, prefix="/graphql")
 
 # Include bookstore routes
 # app.include_router(bookstore_router)  # Removed - was demo code

@@ -396,43 +396,47 @@ class TestAPIEndpoints:
     
     def test_summary_request_validation(self):
         """Test API request schema validation."""
-        from platform.backend.services.transcription_service.simple_main import SummaryGenerationRequest
+        from core.ai.summary_types import SummaryRequest, SummaryStyle
         
         # Valid request
-        valid_request = SummaryGenerationRequest(
-            audio_file_path="/test/audio.mp3",
+        valid_request = SummaryRequest(
+            book_id="book_123",
             book_title="Test Book",
-            summary_style="detailed"
+            chapter_ids=["chapter_1", "chapter_2"],
+            summary_style=SummaryStyle.DETAILED
         )
         
-        assert valid_request.audio_file_path == "/test/audio.mp3"
-        assert valid_request.summary_style == "detailed"
+        assert valid_request.book_title == "Test Book"
+        assert valid_request.summary_style == SummaryStyle.DETAILED
         assert valid_request.include_themes is True
         
         print("✅ API request validation works correctly")
     
     def test_summary_response_structure(self):
         """Test API response schema."""
-        from platform.backend.services.transcription_service.simple_main import SummaryResponse
+        from core.ai.summary_types import ChapterSummary, SummaryStyle
+        from datetime import datetime
         
-        response = SummaryResponse(
-            book_title="Test Book",
-            total_summaries=3,
-            summary_style="detailed",
-            summaries=[
-                {
-                    "chapter_id": "chapter_1",
-                    "summary_text": "Test summary",
-                    "confidence_score": 0.9
-                }
-            ],
-            processing_time_seconds=45.2,
-            cached=False
+        # Create a sample chapter summary
+        chapter_summary = ChapterSummary(
+            chapter_id="chapter_1",
+            chapter_number=1,
+            chapter_title="The Beginning",
+            summary_style=SummaryStyle.DETAILED,
+            summary_text="This chapter introduces the main character.",
+            key_points=["Character introduction", "Setting establishment"],
+            themes=["New beginnings", "Adventure"],
+            characters_mentioned=["Alice", "White Rabbit"],
+            word_count=50,
+            confidence_score=0.85,
+            generation_timestamp=datetime.now(),
+            metadata={"model": "test"}
         )
         
-        assert response.total_summaries == 3
-        assert response.processing_time_seconds == 45.2
-        assert len(response.summaries) == 1
+        assert chapter_summary.chapter_number == 1
+        assert chapter_summary.summary_style == SummaryStyle.DETAILED
+        assert len(chapter_summary.key_points) == 2
+        assert chapter_summary.confidence_score == 0.85
         
         print("✅ API response structure is correct")
     

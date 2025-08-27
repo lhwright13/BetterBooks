@@ -296,3 +296,82 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requires_external_api: Tests requiring external APIs"
     )
+    config.addinivalue_line(
+        "markers", "graphql: GraphQL-related tests"
+    )
+
+# GraphQL test fixtures
+@pytest.fixture
+def mock_graphql_context():
+    """Mock GraphQL context with user authentication."""
+    return {
+        "request": MagicMock(),
+        "user_id": "test-user-123",
+        "user": {
+            "id": "test-user-123",
+            "email": "test@example.com",
+            "subscription_tier": "premium"
+        }
+    }
+
+@pytest.fixture
+def sample_graphql_query():
+    """Sample GraphQL queries for testing."""
+    return {
+        "books_query": '''
+            query GetBooks($featured: Boolean!) {
+                books(featured: $featured) {
+                    id
+                    title
+                    author
+                    price_usd
+                }
+            }
+        ''',
+        "user_library_query": '''
+            query GetUserLibrary {
+                user_library {
+                    id
+                    title
+                    author
+                    progress
+                }
+            }
+        ''',
+        "purchase_mutation": '''
+            mutation PurchaseBook($bookId: String!, $credits: Int!) {
+                purchase_book(book_id: $bookId, credits_to_use: $credits) {
+                    id
+                    title
+                    author
+                }
+            }
+        '''
+    }
+
+@pytest.fixture
+def mock_jwt_token():
+    """Mock JWT token for testing."""
+    return "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoidGVzdC11c2VyLTEyMyIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImV4cCI6OTk5OTk5OTk5OX0.test_signature"
+
+@pytest.fixture 
+def graphql_test_client():
+    """GraphQL test client with authentication."""
+    from unittest.mock import patch
+    
+    with patch('platform.backend.services.api_gateway.graphql_security.verify_token') as mock_verify:
+        mock_verify.return_value = {
+            "user_id": "test-user-123",
+            "email": "test@example.com",
+            "subscription_tier": "premium"
+        }
+        
+        # Import after patching
+        from platform.backend.services.api_gateway.graphql_schema import graphql_router
+        from fastapi.testclient import TestClient
+        from fastapi import FastAPI
+        
+        app = FastAPI()
+        app.include_router(graphql_router, prefix="/graphql")
+        
+        yield TestClient(app)

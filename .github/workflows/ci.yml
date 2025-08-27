@@ -1,3 +1,4 @@
+---
 # GitHub Actions CI/CD Pipeline for EchoWright Audiobook Platform
 # Comprehensive testing, building, and deployment workflow
 
@@ -5,9 +6,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -17,7 +18,6 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-  
   # Test configuration
   POSTGRES_DB: betterbooks_test
   POSTGRES_USER: test_user
@@ -29,71 +29,85 @@ jobs:
   validate-code:
     name: Code Quality & Format Validation
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-    
-    - name: Install formatting tools
-      run: |
-        pip install black isort flake8
-    
-    - name: Check code formatting
-      run: |
-        black --check --diff platform/backend/services/ || echo "Code formatting issues found, continuing..."
-        isort --check-only --diff platform/backend/services/ || echo "Import sorting issues found, continuing..."
-        flake8 platform/backend/services/ --max-line-length=100 --ignore=E203,W503 || echo "Linting issues found, continuing..."
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install formatting tools
+        run: |
+          pip install black isort flake8
+
+      - name: Check code formatting
+        run: |
+          echo "Checking code formatting..."
+          black --check --diff platform/backend/services/ || \
+            (echo "❌ Code formatting issues found" && exit 1)
+          echo "Checking import sorting..."
+          isort --check-only --diff platform/backend/services/ || \
+            (echo "❌ Import sorting issues found" && exit 1)
+          echo "Running linting..."
+          flake8 platform/backend/services/ --max-line-length=100 \
+            --ignore=E203,W503 || \
+            (echo "❌ Linting issues found" && exit 1)
+          echo "✅ All code quality checks passed"
 
   validate-docker:
     name: Docker Compose Validation
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Validate Docker Compose
-      run: |
-        docker compose config --quiet
-        echo "✅ Docker Compose validation successful"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: |
+          docker compose config --quiet
+          echo "✅ Docker Compose validation successful"
 
   validate-flutter:
     name: Flutter Analysis & Tests
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.27.1'
-    
-    - name: Flutter analysis and tests
-      run: |
-        cd platform/mobile/mobile_app/
-        flutter pub get
-        flutter analyze --no-fatal-infos --no-fatal-warnings || echo "Analysis has warnings, continuing..."
-        flutter test --coverage || echo "Tests completed with issues"
-    
-    - name: Upload Flutter coverage
-      uses: codecov/codecov-action@v3
-      with:
-        file: platform/mobile/mobile_app/coverage/lcov.info
-        flags: flutter
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+
+      - name: Flutter analysis and tests
+        run: |
+          cd platform/mobile/mobile_app/
+          echo "Installing Flutter dependencies..."
+          flutter pub get
+          echo "Running Flutter analysis..."
+          flutter analyze --no-fatal-infos --no-fatal-warnings || \
+            (echo "❌ Flutter analysis found issues" && exit 1)
+          echo "Running Flutter tests..."
+          flutter test --coverage || \
+            (echo "❌ Flutter tests failed" && exit 1)
+          echo "✅ Flutter analysis and tests passed"
+
+      - name: Upload Flutter coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: platform/mobile/mobile_app/coverage/lcov.info
+          flags: flutter
 
   # === TESTING JOBS ===
   unit-tests:
     name: Python Unit Tests
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: pgvector/pgvector:pg15
@@ -108,7 +122,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -118,227 +132,298 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        pip install --upgrade pip
-        pip install pytest pytest-cov pytest-asyncio
-        
-        # Install core dependencies
-        if [ -f requirements.txt ]; then
-          pip install -r requirements.txt
-        fi
-        
-        # Install service dependencies
-        for service in api_gateway context_service llm_gateway tts_service transcription_service; do
-          if [ -f platform/backend/services/$service/requirements.txt ]; then
-            pip install -r platform/backend/services/$service/requirements.txt
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+
+          echo "Installing test dependencies..."
+          pip install -r tests/requirements.txt
+
+          echo "Installing core dependencies..."
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
           fi
-        done
-        
-        # Install additional test dependencies
-        pip install pgvector fastapi uvicorn httpx
-    
-    - name: Run unit tests
-      env:
-        POSTGRES_HOST: localhost
-        REDIS_HOST: localhost
-        PYTHONPATH: "${{ github.workspace }}/core:${{ github.workspace }}/platform/backend:$PYTHONPATH"
-      run: |
-        pytest tests/ -v --cov=platform/backend/services --cov-report=xml --cov-report=term --tb=short || echo "Unit tests completed with issues"
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: python-backend
+
+          echo "Installing service dependencies..."
+          for service in api_gateway context_service llm_gateway \
+                         tts_service transcription_service; do
+            req_file="platform/backend/services/$service/requirements.txt"
+            if [ -f "$req_file" ]; then
+              echo "Installing dependencies for $service..."
+              pip install -r "$req_file"
+            fi
+          done
+
+          echo "Installing additional test dependencies..."
+          pip install pgvector fastapi uvicorn httpx
+
+      - name: Run unit tests
+        env:
+          POSTGRES_HOST: localhost
+          REDIS_HOST: localhost
+          DATABASE_URL: >-
+            postgresql://test_user:test_password@localhost:5432/betterbooks_test
+          REDIS_URL: "redis://localhost:6379/0"
+          ENVIRONMENT: "test"
+          PYTHONPATH: >-
+            ${{ github.workspace }}/core:${{ github.workspace }}:$PYTHONPATH
+        run: |
+          echo "Running unit tests..."
+          pytest tests/unit/ -v \
+                 --cov=platform/backend/services \
+                 --cov=core --cov-report=xml \
+                 --cov-report=term --tb=short
+          echo "✅ Unit tests completed successfully"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: python-backend
+
+  graphql-tests:
+    name: GraphQL Schema & Security Tests
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install GraphQL dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r tests/requirements.txt
+          pip install -r platform/backend/services/api_gateway/requirements.txt
+
+      - name: Run GraphQL tests
+        env:
+          ENVIRONMENT: "test"
+          REDIS_URL: "redis://localhost:6379/0"
+          PYTHONPATH: >-
+            ${{ github.workspace }}/core:${{ github.workspace }}:$PYTHONPATH
+        run: |
+          echo "Running GraphQL schema tests..."
+          pytest tests/unit/test_graphql.py -v \
+                 --tb=short -m graphql
+          echo "Running GraphQL security tests..."
+          pytest tests/unit/test_graphql_security.py -v \
+                 --tb=short -m graphql
+          echo "✅ GraphQL tests completed successfully"
 
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Start test environment
-      run: |
-        docker compose -f config/testing/docker-compose.test.yml up --build -d
-        sleep 30
-    
-    - name: Run integration tests
-      run: |
-        chmod +x ./scripts/run_integration_tests.sh
-        ./scripts/run_integration_tests.sh || echo "Integration tests completed with issues"
-    
-    - name: Collect logs on failure
-      if: failure()
-      run: |
-        echo "=== Service Logs ==="
-        docker compose -f config/testing/docker-compose.test.yml logs
-    
-    - name: Cleanup test environment
-      if: always()
-      run: |
-        docker compose -f config/testing/docker-compose.test.yml down -v
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start test environment
+        run: |
+          docker compose -f config/testing/docker-compose.test.yml up \
+            --build -d
+          sleep 30
+
+      - name: Run integration tests
+        run: |
+          echo "Starting integration tests..."
+          chmod +x ./scripts/run_integration_tests.sh
+          ./scripts/run_integration_tests.sh
+          echo "✅ Integration tests completed successfully"
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Service Logs ==="
+          docker compose -f config/testing/docker-compose.test.yml logs
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          docker compose -f config/testing/docker-compose.test.yml down -v
 
   # === SECURITY JOBS ===
   security-scan:
     name: Security & Dependency Scanning
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install security tools
-      run: |
-        pip install safety bandit semgrep
-    
-    - name: Run dependency scan
-      continue-on-error: true
-      run: |
-        safety check --json --output safety-report.json || true
-    
-    - name: Run static analysis
-      continue-on-error: true
-      run: |
-        bandit -r platform/backend/services/ -f json -o bandit-report.json || true
-    
-    - name: Run Semgrep scan
-      continue-on-error: true
-      run: |
-        semgrep --config=auto platform/backend/services/ --json --output=semgrep-report.json || true
-    
-    - name: Upload security reports
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: security-reports
-        path: |
-          safety-report.json
-          bandit-report.json
-          semgrep-report.json
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install security tools
+        run: |
+          pip install safety bandit semgrep
+
+      - name: Run dependency scan
+        continue-on-error: true
+        run: |
+          safety check --json --output safety-report.json || true
+
+      - name: Run static analysis
+        continue-on-error: true
+        run: |
+          bandit -r platform/backend/services/ \
+            -f json -o bandit-report.json || true
+
+      - name: Run Semgrep scan
+        continue-on-error: true
+        run: |
+          semgrep --config=auto platform/backend/services/ \
+            --json --output=semgrep-report.json || true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            safety-report.json
+            bandit-report.json
+            semgrep-report.json
 
   container-security:
     name: Container Security Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Build test image
-      run: |
-        docker build -t test-scan:latest -f platform/backend/services/api_gateway/Dockerfile platform/backend/
-    
-    - name: Run Trivy vulnerability scanner
-      continue-on-error: true
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: test-scan:latest
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-    
-    - name: Upload Trivy scan results
-      uses: github/codeql-action/upload-sarif@v3
-      if: always() && hashFiles('trivy-results.sarif') != ''
-      with:
-        sarif_file: 'trivy-results.sarif'
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build test image
+        run: |
+          docker build -t test-scan:latest \
+            -f platform/backend/services/api_gateway/Dockerfile \
+            platform/backend/
+
+      - name: Run Trivy vulnerability scanner
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: test-scan:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        with:
+          sarif_file: 'trivy-results.sarif'
 
   # === BUILD JOBS ===
   build-services:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
-    needs: [validate-code, validate-docker, unit-tests, integration-tests]
-    
+    needs: [validate-code, validate-docker, unit-tests,
+            graphql-tests, integration-tests]
+
     strategy:
       matrix:
-        service: [api_gateway, context_service, llm_gateway, tts_service, transcription_service]
-    
+        service: [api_gateway, context_service, llm_gateway,
+                  tts_service, transcription_service]
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-    
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: platform/backend/
-        file: platform/backend/services/${{ matrix.service }}/Dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: >-
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: platform/backend/
+          file: platform/backend/services/${{ matrix.service }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   build-mobile:
     name: Build Mobile App
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     needs: [validate-flutter]
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.27.1'
-    
-    - name: Build Android APK and App Bundle
-      run: |
-        cd platform/mobile/mobile_app/
-        flutter pub get
-        flutter build apk --release
-        flutter build appbundle --release
-    
-    - name: Upload mobile artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: mobile-builds
-        path: |
-          platform/mobile/mobile_app/build/app/outputs/flutter-apk/app-release.apk
-          platform/mobile/mobile_app/build/app/outputs/bundle/release/app-release.aab
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.1'
+
+      - name: Build Android APK and App Bundle
+        run: |
+          cd platform/mobile/mobile_app/
+          flutter pub get
+          flutter build apk --release
+          flutter build appbundle --release
+
+      - name: Upload mobile artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-builds
+          path: |
+            platform/mobile/mobile_app/build/app/outputs/flutter-apk/app-release.apk
+            platform/mobile/mobile_app/build/app/outputs/bundle/release/app-release.aab
