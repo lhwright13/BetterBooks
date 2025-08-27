@@ -29,10 +29,10 @@ from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 # Import authentication routes
-# from auth_routes import auth_router  # Temporarily disabled due to JSON serialization issues
+# from auth_routes import auth_router  # Temporarily disabled - missing dependencies (google-auth, psycopg2)
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 from bookstore_routes import router as enhanced_bookstore_router
-from user_bookstore_routes import router as user_bookstore_router
+# from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
 
 # Base URLs for the other services. These can be overridden via environment
 # variables when running inside Docker or a deployment environment.
@@ -70,12 +70,54 @@ app.add_middleware(
 )
 
 # Include authentication routes
-# app.include_router(auth_router)  # Temporarily disabled
+# app.include_router(auth_router)  # Temporarily disabled - missing dependencies
 
 # Include bookstore routes
 # app.include_router(bookstore_router)  # Removed - was demo code
 app.include_router(enhanced_bookstore_router)
-app.include_router(user_bookstore_router)
+# app.include_router(user_bookstore_router)  # Temporarily disabled
+
+# Temporary user endpoints (no auth required for demo)
+class CreditBalanceResponse(BaseModel):
+    total_credits: int
+    used_credits: int
+    available_credits: int
+
+class LibraryBook(BaseModel):
+    id: str
+    title: str
+    author: str
+    cover_image_url: str
+    progress: float = 0.0
+
+class UserLibraryResponse(BaseModel):
+    books: List[LibraryBook]
+    total_books: int
+
+@app.get("/bookstore/user/credits", response_model=CreditBalanceResponse)
+async def get_user_credits():
+    """Get user credit balance (temporary demo endpoint)"""
+    return CreditBalanceResponse(
+        total_credits=5,
+        used_credits=0,
+        available_credits=5
+    )
+
+@app.get("/bookstore/user/library", response_model=UserLibraryResponse) 
+async def get_user_library():
+    """Get user library (temporary demo endpoint)"""
+    return UserLibraryResponse(
+        books=[
+            LibraryBook(
+                id="gatsby-001",
+                title="The Great Gatsby",
+                author="F. Scott Fitzgerald", 
+                cover_image_url="https://covers.openlibrary.org/b/id/12583542-L.jpg",
+                progress=0.25
+            )
+        ],
+        total_books=1
+    )
 
 # Basic health check
 @app.get("/health")

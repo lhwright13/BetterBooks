@@ -25,9 +25,13 @@ COPY --from=builder /root/.local /root/.local
 # Make sure scripts in .local are usable:
 ENV PATH=/root/.local/bin:$PATH
 
-# Copy application code
-COPY platform/backend/services/api_gateway/ ./
-COPY core/ ./core/
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' --uid 1000 appuser
+
+# Copy application code and set ownership
+COPY --chown=appuser:appuser platform/backend/services/api_gateway/ ./
+COPY --chown=appuser:appuser core/ ./core/
+
 # Create minimal test book files structure for testing
 RUN mkdir -p ./book_files/The\ Great\ Gatsby && \
     echo "placeholder audio content" > "./book_files/The Great Gatsby/Chapter 1.mp3" && \
@@ -37,8 +41,8 @@ RUN mkdir -p ./book_files/The\ Great\ Gatsby && \
 # Set Python path to include core modules
 ENV PYTHONPATH="/app/core:/app"
 
-# Note: Running as root for now to avoid permission issues with dependencies
-# TODO: Implement proper non-root user setup
+# Switch to non-root user
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
