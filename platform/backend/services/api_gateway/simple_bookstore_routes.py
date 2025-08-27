@@ -48,6 +48,50 @@ class SimpleCategoryResponse(BaseModel):
     description: str
     book_count: int
 
+# Helper function for browsing books
+def _browse_books_helper(
+    category_id: Optional[str] = None,
+    featured_only: bool = False,
+    bestsellers_only: bool = False,
+    new_releases_only: bool = False,
+    page: int = 1,
+    page_size: int = 20
+) -> SimpleBrowseResponse:
+    """Helper function for browsing books with filtering and pagination"""
+    try:
+        # Apply filters
+        filtered_books = SAMPLE_BOOKS.copy()
+        
+        if featured_only:
+            filtered_books = [book for book in filtered_books if book.is_featured]
+        if bestsellers_only:
+            filtered_books = [book for book in filtered_books if book.is_bestseller]
+        if new_releases_only:
+            filtered_books = [book for book in filtered_books if book.is_new_release]
+        
+        # Apply pagination
+        start_idx = (page - 1) * page_size
+        end_idx = start_idx + page_size
+        paginated_books = filtered_books[start_idx:end_idx]
+        
+        return SimpleBrowseResponse(
+            books=paginated_books,
+            total_count=len(filtered_books),
+            page=page,
+            page_size=page_size,
+            has_next_page=len(filtered_books) > end_idx
+        )
+        
+    except Exception as e:
+        logger.error(f"Error browsing books: {e}")
+        return SimpleBrowseResponse(
+            books=[],
+            total_count=0,
+            page=page,
+            page_size=page_size,
+            has_next_page=False
+        )
+
 # Hardcoded data based on our actual books
 SAMPLE_BOOKS = [
     SimpleBookResponse(
@@ -183,39 +227,7 @@ async def browse_books(
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ):
     """Browse books with filtering and pagination"""
-    try:
-        # Apply filters
-        filtered_books = SAMPLE_BOOKS.copy()
-        
-        if featured_only:
-            filtered_books = [book for book in filtered_books if book.is_featured]
-        if bestsellers_only:
-            filtered_books = [book for book in filtered_books if book.is_bestseller]
-        if new_releases_only:
-            filtered_books = [book for book in filtered_books if book.is_new_release]
-        
-        # Apply pagination
-        start_idx = (page - 1) * page_size
-        end_idx = start_idx + page_size
-        paginated_books = filtered_books[start_idx:end_idx]
-        
-        return SimpleBrowseResponse(
-            books=paginated_books,
-            total_count=len(filtered_books),
-            page=page,
-            page_size=page_size,
-            has_next_page=len(filtered_books) > end_idx
-        )
-        
-    except Exception as e:
-        logger.error(f"Error browsing books: {e}")
-        return SimpleBrowseResponse(
-            books=[],
-            total_count=0,
-            page=page,
-            page_size=page_size,
-            has_next_page=False
-        )
+    return _browse_books_helper(category_id, featured_only, bestsellers_only, new_releases_only, page, page_size)
 
 @router.get("/categories", response_model=List[SimpleCategoryResponse])
 async def get_categories():
@@ -279,7 +291,7 @@ async def get_featured_books(
     page_size: int = Query(10, ge=1, le=50, description="Items per page"),
 ):
     """Get featured books"""
-    return await browse_books(featured_only=True, page=page, page_size=page_size)
+    return _browse_books_helper(featured_only=True, page=page, page_size=page_size)
 
 @router.get("/bestsellers", response_model=SimpleBrowseResponse)
 async def get_bestsellers(
@@ -287,7 +299,7 @@ async def get_bestsellers(
     page_size: int = Query(10, ge=1, le=50, description="Items per page"),
 ):
     """Get bestseller books"""
-    return await browse_books(bestsellers_only=True, page=page, page_size=page_size)
+    return _browse_books_helper(bestsellers_only=True, page=page, page_size=page_size)
 
 # Health check endpoint
 @router.get("/health")

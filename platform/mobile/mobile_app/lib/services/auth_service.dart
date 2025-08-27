@@ -677,6 +677,89 @@ class AuthService {
     }
   }
 
+  /// Get user library (mock implementation for now)
+  static Future<Map<String, dynamic>> getUserLibrary({
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    try {
+      // TODO: Replace with real API call when backend auth is enabled
+      LogService.debug('Getting user library (mock data)', 'AuthService');
+      await Future.delayed(Duration(milliseconds: 300)); // Simulate network delay
+      
+      return {
+        'books': [
+          {
+            'id': 'gatsby-001',
+            'title': 'The Great Gatsby',
+            'author': 'F. Scott Fitzgerald',
+            'cover_image_url': '/books/cover/The Great Gatsby/GatsbyCover.jpg',
+            'progress': 0.25,
+            'is_downloaded': false,
+            'purchase_date': DateTime.now().subtract(Duration(days: 7)).toIso8601String(),
+          }
+        ],
+        'total_count': 1,
+        'limit': limit,
+        'offset': offset,
+        'has_more': false,
+      };
+    } catch (e) {
+      LogService.error('Get user library error: $e', 'AuthService');
+      return {
+        'books': [],
+        'total_count': 0,
+        'limit': limit,
+        'offset': offset,
+        'has_more': false,
+      };
+    }
+  }
+
+  /// Purchase a book (mock implementation for now)
+  static Future<Map<String, dynamic>> purchaseBook(
+    String bookId, {
+    int creditsToUse = 1,
+  }) async {
+    try {
+      // TODO: Replace with real API call when backend auth is enabled
+      LogService.debug('Purchasing book $bookId (mock)', 'AuthService');
+      await Future.delayed(Duration(milliseconds: 500)); // Simulate network delay
+      
+      return {
+        'success': true,
+        'message': 'Book purchased successfully',
+        'purchase_id': 'mock-purchase-${DateTime.now().millisecondsSinceEpoch}',
+        'book_id': bookId,
+        'credits_used': creditsToUse,
+        'remaining_credits': 4, // Assume 5 - 1 = 4
+        'download_url': null, // Will be available in library
+      };
+    } catch (e) {
+      LogService.error('Purchase book error: $e', 'AuthService');
+      return {
+        'success': false,
+        'message': 'Purchase failed',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Check if user owns a book (mock implementation for now)
+  static Future<bool> checkBookOwnership(String bookId) async {
+    try {
+      // TODO: Replace with real API call when backend auth is enabled
+      LogService.debug('Checking ownership for book $bookId (mock)', 'AuthService');
+      await Future.delayed(Duration(milliseconds: 200)); // Simulate network delay
+      
+      // For demo purposes, assume user owns The Great Gatsby
+      return bookId == 'gatsby-001';
+    } catch (e) {
+      LogService.error('Check book ownership error: $e', 'AuthService');
+      return false;
+    }
+  }
+
   /// Get auth headers with current access token
   static Map<String, String> _getAuthHeaders() {
     return {
