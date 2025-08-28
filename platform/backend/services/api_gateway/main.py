@@ -38,8 +38,8 @@ LLM_URL = app_config.get_service_url("llm_gateway")
 TTS_URL = app_config.get_service_url("tts_service")
 TRANSCRIPTION_URL = app_config.get_service_url("transcription_service")
 
-# Import GraphQL schema
-from graphql_schema import graphql_router
+# Import GraphQL schema - temporarily disabled due to supabase dependency
+# from graphql_schema import graphql_router
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 # from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
 # from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
@@ -93,8 +93,8 @@ app.add_middleware(
 from simple_auth_routes import router as auth_router
 app.include_router(auth_router)
 
-# Include GraphQL endpoint
-app.include_router(graphql_router, prefix="/graphql")
+# Include GraphQL endpoint - temporarily disabled
+# app.include_router(graphql_router, prefix="/graphql")
 
 # Include bookstore routes
 # app.include_router(bookstore_router)  # Removed - was demo code
