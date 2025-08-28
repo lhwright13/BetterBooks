@@ -38,11 +38,17 @@ LLM_URL = app_config.get_service_url("llm_gateway")
 TTS_URL = app_config.get_service_url("tts_service")
 TRANSCRIPTION_URL = app_config.get_service_url("transcription_service")
 
-# Import authentication routes
-from core.auth.api_routes import router as auth_router  # Using proper authentication routes
+# Import authentication routes - temporarily disabled due to Supabase dependency issues
+# from core.auth.api_routes import router as auth_router  # Using proper authentication routes
 
 # Import GraphQL schema
 from graphql_schema import graphql_router
+
+# Temporary mock authentication endpoints for immediate functionality
+from pydantic import EmailStr
+from uuid import uuid4
+import jwt
+from datetime import datetime, timedelta
 # from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
 # from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
 # from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
@@ -92,8 +98,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include authentication routes
-app.include_router(auth_router)  # Using proper authentication routes
+# Include authentication routes - temporarily disabled
+# app.include_router(auth_router)  # Using proper authentication routes
 
 # Include GraphQL endpoint
 app.include_router(graphql_router, prefix="/graphql")
@@ -102,6 +108,165 @@ app.include_router(graphql_router, prefix="/graphql")
 # app.include_router(bookstore_router)  # Removed - was demo code
 # app.include_router(enhanced_bookstore_router)  # Disabled - requires httpx
 # app.include_router(user_bookstore_router)  # Temporarily disabled
+
+# =====================================================
+# TEMPORARY MOCK AUTHENTICATION ENDPOINTS
+# =====================================================
+
+# Mock JWT secret for development
+MOCK_JWT_SECRET = "dev-secret-key-replace-in-production"
+
+class MockAuthRequest(BaseModel):
+    id_token: str
+    nonce: Optional[str] = None
+    user_info: Optional[dict] = None
+
+class MockEmailAuthRequest(BaseModel):
+    email: EmailStr
+    password: str
+    display_name: Optional[str] = None
+
+class MockAuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    expires_at: Optional[int] = None
+    user: dict
+
+def create_mock_user_token(user_id: str, email: str, display_name: str = None):
+    """Create a mock JWT token for development"""
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+    payload = {
+        'sub': user_id,
+        'email': email,
+        'display_name': display_name or email.split('@')[0],
+        'exp': expires_at.timestamp(),
+        'iat': datetime.utcnow().timestamp(),
+        'iss': 'echowright-dev'
+    }
+    
+    access_token = jwt.encode(payload, MOCK_JWT_SECRET, algorithm='HS256')
+    refresh_token = jwt.encode({**payload, 'type': 'refresh'}, MOCK_JWT_SECRET, algorithm='HS256')
+    
+    user_data = {
+        'id': user_id,
+        'email': email,
+        'display_name': display_name or email.split('@')[0],
+        'avatar_url': None,
+        'created_at': datetime.utcnow().isoformat(),
+        'updated_at': datetime.utcnow().isoformat()
+    }
+    
+    return MockAuthResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_at=int(expires_at.timestamp()),
+        user=user_data
+    )
+
+@app.post("/auth/google", response_model=MockAuthResponse)
+async def mock_google_signin(request: MockAuthRequest):
+    """Mock Google Sign In endpoint for development"""
+    try:
+        # Create a mock user based on the request
+        user_id = str(uuid4())
+        email = f"google-user-{user_id[:8]}@gmail.com"
+        display_name = "Google User"
+        
+        logger.info(f"Mock Google sign in for: {email}")
+        return create_mock_user_token(user_id, email, display_name)
+        
+    except Exception as e:
+        logger.error(f"Mock Google sign in failed: {e}")
+        raise HTTPException(status_code=401, detail="Google sign in failed")
+
+@app.post("/auth/apple", response_model=MockAuthResponse)
+async def mock_apple_signin(request: MockAuthRequest):
+    """Mock Apple Sign In endpoint for development"""
+    try:
+        # Create a mock user based on the request
+        user_id = str(uuid4())
+        
+        # Use user_info if provided
+        if request.user_info and request.user_info.get('email'):
+            email = request.user_info['email']
+            first_name = request.user_info.get('first_name', 'Apple')
+            last_name = request.user_info.get('last_name', 'User')
+            display_name = f"{first_name} {last_name}".strip()
+        else:
+            email = f"apple-user-{user_id[:8]}@icloud.com"
+            display_name = "Apple User"
+        
+        logger.info(f"Mock Apple sign in for: {email}")
+        return create_mock_user_token(user_id, email, display_name)
+        
+    except Exception as e:
+        logger.error(f"Mock Apple sign in failed: {e}")
+        raise HTTPException(status_code=401, detail="Apple sign in failed")
+
+@app.post("/auth/signup", response_model=MockAuthResponse)
+async def mock_email_signup(request: MockEmailAuthRequest):
+    """Mock email sign up endpoint for development"""
+    try:
+        user_id = str(uuid4())
+        logger.info(f"Mock email sign up for: {request.email}")
+        return create_mock_user_token(user_id, request.email, request.display_name)
+        
+    except Exception as e:
+        logger.error(f"Mock email sign up failed: {e}")
+        raise HTTPException(status_code=400, detail="Email sign up failed")
+
+@app.post("/auth/signin", response_model=MockAuthResponse)
+async def mock_email_signin(request: MockEmailAuthRequest):
+    """Mock email sign in endpoint for development"""
+    try:
+        user_id = str(uuid4())
+        logger.info(f"Mock email sign in for: {request.email}")
+        return create_mock_user_token(user_id, request.email)
+        
+    except Exception as e:
+        logger.error(f"Mock email sign in failed: {e}")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+@app.post("/auth/refresh", response_model=MockAuthResponse)
+async def mock_refresh_token():
+    """Mock token refresh endpoint for development"""
+    try:
+        # For development, just return a new token
+        user_id = str(uuid4())
+        email = "refreshed-user@example.com"
+        return create_mock_user_token(user_id, email)
+        
+    except Exception as e:
+        logger.error(f"Mock token refresh failed: {e}")
+        raise HTTPException(status_code=401, detail="Token refresh failed")
+
+@app.post("/auth/logout")
+async def mock_logout():
+    """Mock logout endpoint for development"""
+    logger.info("Mock logout successful")
+    return {"message": "Successfully logged out"}
+
+@app.get("/me")
+async def mock_get_user():
+    """Mock get current user endpoint for development"""
+    return {
+        "id": str(uuid4()),
+        "email": "mock-user@example.com",
+        "display_name": "Mock User",
+        "avatar_url": None,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
+    }
+
+@app.post("/email/send-verification")
+async def mock_send_verification():
+    """Mock send verification email endpoint for development"""
+    return {"message": "Verification email sent successfully"}
+
+@app.post("/password/reset")
+async def mock_password_reset():
+    """Mock password reset endpoint for development"""
+    return {"message": "Password reset link sent successfully"}
 
 # Database-backed user endpoints
 from db_utils import get_user_credits as db_get_user_credits, get_user_library as db_get_user_library, get_browse_books as db_get_browse_books, test_database_connection

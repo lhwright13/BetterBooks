@@ -154,11 +154,10 @@ class AuthService {
 
       // Send to backend for verification and account creation
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/google/signin'),
+        Uri.parse('$apiBaseUrl/auth/google'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'id_token': googleAuth.idToken,
-          'temp_id': googleUser.id, // For rate limiting
         }),
       ).timeout(_timeoutDuration);
 
@@ -225,12 +224,11 @@ class AuthService {
 
       // Send to backend for verification and account creation
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/apple/signin'),
+        Uri.parse('$apiBaseUrl/auth/apple'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'id_token': credential.identityToken,
           'nonce': rawNonce,
-          'temp_id': credential.userIdentifier, // For rate limiting
           'user_info': {
             'email': credential.email,
             'first_name': credential.givenName,
@@ -286,7 +284,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/email/signup'),
+        Uri.parse('$apiBaseUrl/auth/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -326,7 +324,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/email/signin'),
+        Uri.parse('$apiBaseUrl/auth/signin'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -362,7 +360,7 @@ class AuthService {
   static Future<bool> sendEmailVerification(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/email/send-verification'),
+        Uri.parse('$apiBaseUrl/email/send-verification'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       ).timeout(_timeoutDuration);
@@ -378,7 +376,7 @@ class AuthService {
   static Future<bool> requestPasswordReset(String email) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/password/reset'),
+        Uri.parse('$apiBaseUrl/password/reset'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       ).timeout(_timeoutDuration);
@@ -402,6 +400,7 @@ class AuthService {
         await http.post(
           Uri.parse('$apiBaseUrl/auth/logout'),
           headers: {'Authorization': 'Bearer $accessToken'},
+          body: jsonEncode({'refresh_token': refreshToken}),
         ).timeout(_timeoutDuration);
       }
 
