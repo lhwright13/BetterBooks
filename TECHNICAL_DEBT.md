@@ -133,3 +133,8 @@
 ---
 *Last updated: 2025-01-27*
 *Priority levels: 🔥 Critical | 🔴 High | 🟠 High | 🟡 Medium | 🟢 Low*
+
+User feed back issues:
+the sign in proc does not work. users can not create an account. it just says user not found after putting in credentials
+the sign in with google crashes and the sign in with apple returns an error
+

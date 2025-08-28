@@ -82,53 +82,16 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Sign in with Google OAuth
+  /// Sign in with Google OAuth - Coming Soon
   Future<bool> signInWithGoogle() async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final result = await AuthService.signInWithGoogle();
-      
-      if (result.success && result.user != null) {
-        _setAuthenticatedUser(result.user!);
-        return true;
-      } else {
-        _setError(result.error ?? 'Google sign in failed');
-        return false;
-      }
-    } catch (e) {
-      _setError('Google sign in failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
+    _setError('Google Sign In coming soon! Please use email registration for now.');
+    return false;
   }
 
-  /// Sign in with Apple
+  /// Sign in with Apple - Coming Soon
   Future<bool> signInWithApple() async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final result = await AuthService.signInWithApple();
-      
-      if (result.success && result.user != null) {
-        _setAuthenticatedUser(result.user!);
-        return true;
-      } else if (result.cancelled) {
-        // Don't show error for user cancellation
-        return false;
-      } else {
-        _setError(result.error ?? 'Apple sign in failed');
-        return false;
-      }
-    } catch (e) {
-      _setError('Apple sign in failed: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
+    _setError('Apple Sign In coming soon! Please use email registration for now.');
+    return false;
   }
 
   /// Sign up with email and password

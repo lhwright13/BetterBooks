@@ -112,6 +112,7 @@ class User(BaseModel):
     id: str
     email: EmailStr
     username: str
+    display_name: Optional[str] = None
     role: UserRole
     is_active: bool = True
     email_verified: bool = True  # For now, auto-verify all emails since email service is not configured
@@ -120,6 +121,19 @@ class User(BaseModel):
     class Config:
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
+        }
+        
+    def to_dict(self):
+        """Convert user to dictionary for API responses"""
+        return {
+            "id": self.id,
+            "email": str(self.email),
+            "username": self.username,
+            "display_name": self.display_name,
+            "role": self.role.value,
+            "is_active": self.is_active,
+            "email_verified": self.email_verified,
+            "created_at": self.created_at.isoformat()
         }
 
 class UserRegistration(BaseModel):
@@ -260,6 +274,7 @@ def create_user(user_data: UserRegistration) -> User:
                 id=user_dict['id'],
                 email=user_dict['email'],
                 username=user_dict['username'],
+                display_name=user_dict.get('display_name'),
                 role=user_data.role,
                 is_active=user_dict['is_active'],
                 email_verified=user_dict['email_verified'],
@@ -324,6 +339,7 @@ def create_user(user_data: UserRegistration) -> User:
             id=user_id,
             email=user_data.email,
             username=user_data.username,
+            display_name=user_data.email.split('@')[0],
             role=user_data.role,
             is_active=True,
             email_verified=True,
@@ -348,6 +364,7 @@ def authenticate_user(email: str, password: str) -> Optional[User]:
                     id=user_dict['id'],
                     email=user_dict['email'],
                     username=user_dict['username'],
+                    display_name=user_dict.get('display_name'),
                     role=UserRole(user_dict['role']),
                     is_active=user_dict['is_active'],
                     email_verified=user_dict['email_verified'],
@@ -374,6 +391,7 @@ def authenticate_user(email: str, password: str) -> Optional[User]:
                         id=user_record["id"],
                         email=user_record["email"],
                         username=user_record["username"],
+                        display_name=user_record.get("display_name", user_record["email"].split('@')[0]),
                         role=UserRole(user_record["role"]),
                         is_active=user_record["is_active"],
                         email_verified=user_record.get("email_verified", True),
@@ -399,6 +417,7 @@ def get_user_by_id(user_id: str) -> Optional[User]:
                     id=user_dict['id'],
                     email=user_dict['email'],
                     username=user_dict['username'],
+                    display_name=user_dict.get('display_name'),
                     role=UserRole(user_dict['role']),
                     is_active=user_dict['is_active'],
                     email_verified=user_dict['email_verified'],
