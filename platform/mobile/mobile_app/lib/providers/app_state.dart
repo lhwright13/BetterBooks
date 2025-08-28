@@ -28,7 +28,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../api_config.dart';
 import '../models/book.dart';
 import '../models/persona.dart';
 import '../models/chat_message.dart';
@@ -104,36 +103,22 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> loadPurchasedBooks() async {
+  Future<void> loadPurchasedBooks(String userId) async {
     _setLoading(true);
     try {
       final bookstoreAdapter = BookstoreAdapter();
-      final catalogBooks = await bookstoreAdapter.getUserLibrary('mock-user-id');
+      final catalogBooks = await bookstoreAdapter.getUserLibrary(userId);
       
       _purchasedBooks = catalogBooks.map((catalogBook) {
-        // Generate proper audio URLs based on book title
-        String audioUrl;
-        switch (catalogBook.title) {
-          case 'The Great Gatsby':
-            audioUrl = '$apiBaseUrl/books/The Great Gatsby/Chapter 1.mp3';
-            break;
-          case 'Alice\'s Adventures in Wonderland':
-            audioUrl = '$apiBaseUrl/books/Alice\'s Adventures in Wonderland/Chapter 1.mp3';
-            break;
-          case 'Moby Dick':
-            audioUrl = '$apiBaseUrl/books/Moby Dick/Chapter 1.mp3';
-            break;
-          default:
-            audioUrl = '$apiBaseUrl/books/${Uri.encodeComponent(catalogBook.title)}/Chapter 1.mp3';
-        }
-        
         return Book(
           id: catalogBook.id,
           title: catalogBook.title,
-          author: catalogBook.author ?? 'Unknown Author',
-          audioUrl: audioUrl,
+          author: catalogBook.author,
+          audioUrl: catalogBook.sampleAudioUrl,
           coverUrl: catalogBook.coverImageUrl,
-          duration: Duration(seconds: catalogBook.durationSeconds ?? 3600),
+          duration: catalogBook.durationSeconds != null 
+            ? Duration(seconds: catalogBook.durationSeconds!) 
+            : null,
           chapters: [],
         );
       }).toList();

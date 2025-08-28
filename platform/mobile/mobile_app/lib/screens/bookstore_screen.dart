@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/bookstore_models.dart';
 import '../services/bookstore_adapter.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/smart_cover_image.dart';
 import 'book_details_screen.dart';
 
 class BookstoreScreen extends StatefulWidget {
@@ -360,26 +361,18 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                   borderRadius: BorderRadius.circular(12),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
-                child: book.coverImageUrl != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          book.coverImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.book,
-                              size: 32,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            );
-                          },
-                        ),
-                      )
-                    : Icon(
-                        Icons.book,
-                        size: 32,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                child: SmartCoverImageHelpers.fromBookCatalog(
+                  book: book,
+                  width: 72,
+                  height: 108,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(12),
+                  errorWidget: Icon(
+                    Icons.book,
+                    size: 32,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
               
               SizedBox(width: 16),

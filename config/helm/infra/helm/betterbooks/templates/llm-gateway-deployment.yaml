@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-gateway
+  namespace: {{ .Values.global.namespace | default "betterbooks" }}
+  labels:
+    app: llm-gateway
+    version: {{ .Values.global.imageTag | default "latest" }}
+spec:
+  replicas: {{ .Values.llmGateway.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: llm-gateway
+  template:
+    metadata:
+      labels:
+        app: llm-gateway
+        version: {{ .Values.global.imageTag | default "latest" }}
+    spec:
+      containers:
+      - name: llm-gateway
+        image: {{ .Values.global.registry }}/{{ .Values.global.imageRepository }}/llm_gateway:{{ .Values.global.imageTag | default "latest" }}
+        ports:
+        - containerPort: 8002
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.global.environment | default "production" }}
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: gemini-api-key
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | default "redis" }}
+        - name: REDIS_PORT
+          value: {{ .Values.redis.port | default "6379" | quote }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: {{ .Values.llmGateway.resources.requests.memory | default "256Mi" }}
+            cpu: {{ .Values.llmGateway.resources.requests.cpu | default "250m" }}
+          limits:
+            memory: {{ .Values.llmGateway.resources.limits.memory | default "512Mi" }}
+            cpu: {{ .Values.llmGateway.resources.limits.cpu | default "500m" }}

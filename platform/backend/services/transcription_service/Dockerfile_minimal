@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy minimal requirements and install dependencies
-COPY services/transcription_service/requirements_minimal.txt ./
+COPY platform/backend/services/transcription_service/requirements_minimal.txt ./
 RUN pip install --no-cache-dir --user -r requirements_minimal.txt
 
 # Production stage
@@ -31,7 +31,7 @@ COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
 # Copy transcription service code
-COPY services/transcription_service/ ./
+COPY platform/backend/services/transcription_service/ ./
 COPY core/ ./core/
 
 # Set Python path to include core modules

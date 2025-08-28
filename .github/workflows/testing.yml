@@ -57,18 +57,18 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
+        uses: actions/setup-python@v4
+        with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
         
       - name: Install system dependencies
-      run: |
+        run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
         
       - name: Install Python dependencies
-      run: |
+        run: |
           python -m pip install --upgrade pip
           pip install -r tests/requirements.txt
           pip install -r platform/backend/services/api_gateway/requirements.txt
@@ -76,46 +76,46 @@ jobs:
           pip install -r platform/backend/services/llm_gateway/requirements.txt
         
       - name: Set up test environment
-      run: |
-        export PYTHONPATH="${PWD}:$PYTHONPATH"
-        export ENVIRONMENT="test"
-        export LOG_LEVEL="WARNING"
+        run: |
+          export PYTHONPATH="${PWD}:$PYTHONPATH"
+          export ENVIRONMENT="test"
+          export LOG_LEVEL="WARNING"
           export GEMINI_API_KEY="test-key-for-testing"
           export REDIS_URL="redis://localhost:6379/1"
           export DATABASE_URL="postgresql://test:test@localhost:5432/test_db"
         
       - name: Wait for services
-      run: |
+        run: |
           sleep 10
           pg_isready -h localhost -p 5432 -U test
           redis-cli -h localhost -p 6379 ping
         
       - name: Run unit tests with coverage
-      run: |
-        export PYTHONPATH="${PWD}/core:${PWD}:$PYTHONPATH"
-        export ENVIRONMENT="test"
-        export GEMINI_API_KEY="test-key-for-testing"
-        export REDIS_URL="redis://localhost:6379/1"
-        export DATABASE_URL="postgresql://test:test@localhost:5432/test_db"
-        
-        mkdir -p tests/coverage tests/reports
-        
-        echo "Running unit tests with coverage..."
+        run: |
+          export PYTHONPATH="${PWD}/core:${PWD}:$PYTHONPATH"
+          export ENVIRONMENT="test"
+          export GEMINI_API_KEY="test-key-for-testing"
+          export REDIS_URL="redis://localhost:6379/1"
+          export DATABASE_URL="postgresql://test:test@localhost:5432/test_db"
+          
+          mkdir -p tests/coverage tests/reports
+          
+          echo "Running unit tests with coverage..."
           pytest tests/unit/ -v --cov=platform/backend/services --cov=core \
             --cov-report=html:tests/coverage/html \
             --cov-report=xml:tests/coverage/coverage.xml \
             --cov-report=term \
             --tb=short
-        
-        # Check if test directories exist, create if not
-        if [ ! -d "tests/unit" ]; then
-          echo "Creating tests/unit directory structure..."
-          mkdir -p tests/unit
-          echo "# Placeholder test file" > tests/unit/test_placeholder.py
-          echo "def test_placeholder():" >> tests/unit/test_placeholder.py
-          echo "    assert True" >> tests/unit/test_placeholder.py
-        fi
-        
+          
+          # Check if test directories exist, create if not
+          if [ ! -d "tests/unit" ]; then
+            echo "Creating tests/unit directory structure..."
+            mkdir -p tests/unit
+            echo "# Placeholder test file" > tests/unit/test_placeholder.py
+            echo "def test_placeholder():" >> tests/unit/test_placeholder.py
+            echo "    assert True" >> tests/unit/test_placeholder.py
+          fi
+          
           pytest tests/unit/ \
             --cov=platform/backend/services \
             --cov=core \
@@ -128,27 +128,27 @@ jobs:
             -v || echo "Tests completed with issues, but continuing..."
           
       - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
-      if: matrix.python-version == '3.11'
-      with:
+        uses: codecov/codecov-action@v3
+        if: matrix.python-version == '3.11'
+        with:
           file: tests/coverage/coverage.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
         
       - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
           name: unit-test-results-${{ matrix.python-version }}
           path: |
             tests/reports/unit-tests.xml
             tests/coverage/
         
       - name: Publish test results
-      uses: dorny/test-reporter@v1
-      if: always()
-      with:
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
           name: Unit Tests (Python ${{ matrix.python-version }})
           path: tests/reports/unit-tests.xml
           reporter: java-junit

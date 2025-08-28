@@ -179,31 +179,6 @@ class AuthService {
         final error = jsonDecode(response.body);
         LogService.auth('Google OAuth backend error: ${error['detail']}', isError: true);
         
-        // Fallback to demo mode if backend is unavailable (500 errors)
-        if (response.statusCode >= 500) {
-          LogService.debug('Backend unavailable, using demo mode for Google sign in');
-          final userData = {
-            'id': 'google-demo-${googleUser.id}',
-            'email': googleUser.email,
-            'display_name': googleUser.displayName ?? googleUser.email.split('@')[0],
-            'username': googleUser.email.split('@')[0],
-            'role': 'user',
-            'is_active': true,
-            'email_verified': true,
-            'created_at': DateTime.now().toIso8601String(),
-            'avatar_url': googleUser.photoUrl
-          };
-          
-          await _storeAuthData(
-            accessToken: 'demo-google-token-${DateTime.now().millisecondsSinceEpoch}',
-            refreshToken: 'demo-google-refresh-${DateTime.now().millisecondsSinceEpoch}',
-            expiresAt: 3600,
-            userData: userData,
-          );
-          
-          return AuthResult.success(User.fromJson(userData));
-        }
-        
         return AuthResult.error(error['detail'] ?? 'Google sign in failed');
       }
     } on PlatformException catch (e) {
@@ -281,30 +256,6 @@ class AuthService {
         final error = jsonDecode(response.body);
         LogService.auth('Apple OAuth backend error: ${error['detail']}', isError: true);
         
-        // Fallback to demo mode if backend is unavailable (500 errors)
-        if (response.statusCode >= 500) {
-          LogService.debug('Backend unavailable, using demo mode for Apple sign in');
-          final userData = {
-            'id': 'apple-demo-${credential.userIdentifier ?? DateTime.now().millisecondsSinceEpoch}',
-            'email': credential.email ?? 'apple.user@privaterelay.appleid.com',
-            'display_name': '${credential.givenName ?? 'Apple'} ${credential.familyName ?? 'User'}',
-            'username': credential.givenName?.toLowerCase() ?? 'appleuser',
-            'role': 'user',
-            'is_active': true,
-            'email_verified': true,
-            'created_at': DateTime.now().toIso8601String()
-          };
-          
-          await _storeAuthData(
-            accessToken: 'demo-apple-token-${DateTime.now().millisecondsSinceEpoch}',
-            refreshToken: 'demo-apple-refresh-${DateTime.now().millisecondsSinceEpoch}',
-            expiresAt: 3600,
-            userData: userData,
-          );
-          
-          return AuthResult.success(User.fromJson(userData));
-        }
-        
         return AuthResult.error(error['detail'] ?? 'Apple sign in failed');
       }
     } catch (e) {
@@ -334,41 +285,13 @@ class AuthService {
     required String displayName,
   }) async {
     try {
-      // TEMPORARY: Skip backend auth for testing
-      LogService.debug('Demo mode: Creating account for email: $email');
-      await Future.delayed(Duration(milliseconds: 500)); // Simulate network delay
-      
-      // Create mock user data
-      final userData = {
-        'id': 'demo-${email.hashCode}',
-        'email': email,
-        'display_name': displayName,
-        'username': displayName.split(' ')[0].toLowerCase(),
-        'role': 'user',
-        'is_active': true,
-        'email_verified': true,
-        'created_at': DateTime.now().toIso8601String()
-      };
-      
-      // Store mock tokens
-      await _storeAuthData(
-        accessToken: 'mock-token-${DateTime.now().millisecondsSinceEpoch}',
-        refreshToken: 'mock-refresh-${DateTime.now().millisecondsSinceEpoch}',
-        expiresAt: 3600, // 1 hour
-        userData: userData,
-      );
-      
-      return AuthResult.success(User.fromJson(userData));
-      
-      // TODO: Re-enable when backend is fixed
-      /*
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/register'),
+        Uri.parse('$apiBaseUrl/auth/email/signup'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
-          'username': displayName,
           'password': password,
+          'display_name': displayName,
         }),
       ).timeout(_timeoutDuration);
 
@@ -377,18 +300,19 @@ class AuthService {
         
         // Store tokens and user data
         await _storeAuthData(
-          accessToken: data['tokens']['access_token'],
-          refreshToken: data['tokens']['refresh_token'],
-          expiresAt: data['tokens']['expires_in'],
+          accessToken: data['access_token'],
+          refreshToken: data['refresh_token'],
+          expiresAt: data['expires_in'],
           userData: data['user'],
         );
 
+        LogService.debug('Email registration successful: ${data['user']['email']}');
         return AuthResult.success(User.fromJson(data['user']));
       } else {
         final error = jsonDecode(response.body);
+        LogService.auth('Email registration error: ${error['detail']}', isError: true);
         return AuthResult.error(error['detail'] ?? 'Registration failed');
       }
-      */
     } catch (e) {
       LogService.auth('Registration error: $e', isError: true);
       return AuthResult.error('Registration failed: $e');
@@ -401,36 +325,8 @@ class AuthService {
     required String password,
   }) async {
     try {
-      // TEMPORARY: Skip backend auth for testing
-      LogService.debug('Demo mode: Bypassing authentication for email: $email');
-      await Future.delayed(Duration(milliseconds: 500)); // Simulate network delay
-      
-      // Create mock user data
-      final userData = {
-        'id': 'demo-${email.hashCode}',
-        'email': email,
-        'display_name': email.split('@')[0],
-        'username': email.split('@')[0],
-        'role': 'user',
-        'is_active': true,
-        'email_verified': true,
-        'created_at': DateTime.now().toIso8601String()
-      };
-      
-      // Store mock tokens
-      await _storeAuthData(
-        accessToken: 'mock-token-${DateTime.now().millisecondsSinceEpoch}',
-        refreshToken: 'mock-refresh-${DateTime.now().millisecondsSinceEpoch}',
-        expiresAt: 3600, // 1 hour
-        userData: userData,
-      );
-      
-      return AuthResult.success(User.fromJson(userData));
-      
-      // TODO: Re-enable when backend is fixed
-      /*
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/auth/login'),
+        Uri.parse('$apiBaseUrl/auth/email/signin'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -441,53 +337,21 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store tokens and user data - need to get user data from /me endpoint
+        // Store tokens and user data
         await _storeAuthData(
           accessToken: data['access_token'],
           refreshToken: data['refresh_token'],
           expiresAt: data['expires_in'],
-          userData: {
-            'id': email, // Temporary until we get from /me
-            'email': email,
-            'username': email.split('@')[0],
-            'role': 'user',
-            'is_active': true,
-            'email_verified': true,
-            'created_at': DateTime.now().toIso8601String()
-          },
+          userData: data['user'],
         );
 
-        // Get full user data from /me endpoint
-        try {
-          final meResponse = await http.get(
-            Uri.parse('$apiBaseUrl/auth/me'),
-            headers: {'Authorization': 'Bearer ${data['access_token']}'},
-          ).timeout(_timeoutDuration);
-          
-          if (meResponse.statusCode == 200) {
-            final userData = jsonDecode(meResponse.body);
-            await _secureStorage.write(key: _userDataKey, value: jsonEncode(userData));
-            return AuthResult.success(User.fromJson(userData));
-          }
-        } catch (e) {
-          print('Failed to get user data: $e');
-        }
-
-        // Fallback to basic user data
-        return AuthResult.success(User.fromJson({
-          'id': email,
-          'email': email,
-          'username': email.split('@')[0],
-          'role': 'user',
-          'is_active': true,
-          'email_verified': true,
-          'created_at': DateTime.now().toIso8601String()
-        }));
+        LogService.debug('Email sign-in successful: ${data['user']['email']}');
+        return AuthResult.success(User.fromJson(data['user']));
       } else {
         final error = jsonDecode(response.body);
+        LogService.auth('Email sign-in error: ${error['detail']}', isError: true);
         return AuthResult.error(error['detail'] ?? 'Login failed');
       }
-      */
     } catch (e) {
       LogService.auth('Login error: $e', isError: true);
       return AuthResult.error('Login failed: $e');
@@ -639,7 +503,7 @@ class AuthService {
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/bookstore/user/credits'),
-        headers: _getAuthHeaders(),
+        headers: await _getAuthHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -663,7 +527,7 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse('$apiBaseUrl/bookstore/user/initialize-credits'),
-        headers: _getAuthHeaders(),
+        headers: await _getAuthHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -677,64 +541,66 @@ class AuthService {
     }
   }
 
-  /// Get user library (mock implementation for now)
+  /// Get user library from the backend
   static Future<Map<String, dynamic>> getUserLibrary({
     int limit = 50,
     int offset = 0,
   }) async {
     try {
-      // TODO: Replace with real API call when backend auth is enabled
-      LogService.debug('Getting user library (mock data)', 'AuthService');
-      await Future.delayed(Duration(milliseconds: 300)); // Simulate network delay
-      
-      return {
-        'books': [
-          {
-            'id': 'gatsby-001',
-            'title': 'The Great Gatsby',
-            'author': 'F. Scott Fitzgerald',
-            'cover_image_url': '/books/cover/The Great Gatsby/GatsbyCover.jpg',
-            'progress': 0.25,
-            'is_downloaded': false,
-            'purchase_date': DateTime.now().subtract(Duration(days: 7)).toIso8601String(),
-          }
-        ],
-        'total_count': 1,
-        'limit': limit,
-        'offset': offset,
-        'has_more': false,
-      };
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/user/library'),
+        headers: await _getAuthHeaders(),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'books': data['books'] ?? [],
+          'total_count': data['total_books'] ?? 0,
+          'limit': limit,
+          'offset': offset,
+          'has_more': (data['total_books'] ?? 0) > (offset + limit),
+        };
+      } else {
+        throw Exception('Failed to load user library: ${response.statusCode}');
+      }
     } catch (e) {
       LogService.error('Get user library error: $e', 'AuthService');
-      return {
-        'books': [],
-        'total_count': 0,
-        'limit': limit,
-        'offset': offset,
-        'has_more': false,
-      };
+      throw Exception('Failed to load user library: $e');
     }
   }
 
-  /// Purchase a book (mock implementation for now)
+  /// Purchase a book using credits
   static Future<Map<String, dynamic>> purchaseBook(
     String bookId, {
     int creditsToUse = 1,
   }) async {
     try {
-      // TODO: Replace with real API call when backend auth is enabled
-      LogService.debug('Purchasing book $bookId (mock)', 'AuthService');
-      await Future.delayed(Duration(milliseconds: 500)); // Simulate network delay
-      
-      return {
-        'success': true,
-        'message': 'Book purchased successfully',
-        'purchase_id': 'mock-purchase-${DateTime.now().millisecondsSinceEpoch}',
-        'book_id': bookId,
-        'credits_used': creditsToUse,
-        'remaining_credits': 4, // Assume 5 - 1 = 4
-        'download_url': null, // Will be available in library
-      };
+      final response = await http.post(
+        Uri.parse('$apiBaseUrl/bookstore/purchase'),
+        headers: await _getAuthHeaders(),
+        body: jsonEncode({
+          'book_id': bookId,
+          'payment_method': 'credit',
+          'credits_to_use': creditsToUse,
+        }),
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Book purchased successfully',
+          'purchase_id': data['transaction_id'] ?? data['purchase_id'],
+          'book_id': bookId,
+          'credits_used': creditsToUse,
+          'remaining_credits': data['remaining_credits'] ?? 0,
+          'download_url': data['download_url'],
+        };
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['detail'] ?? 'Purchase failed');
+      }
     } catch (e) {
       LogService.error('Purchase book error: $e', 'AuthService');
       return {
@@ -745,27 +611,32 @@ class AuthService {
     }
   }
 
-  /// Check if user owns a book (mock implementation for now)
+  /// Check if user owns a book by checking their library
   static Future<bool> checkBookOwnership(String bookId) async {
     try {
-      // TODO: Replace with real API call when backend auth is enabled
-      LogService.debug('Checking ownership for book $bookId (mock)', 'AuthService');
-      await Future.delayed(Duration(milliseconds: 200)); // Simulate network delay
+      final library = await getUserLibrary(limit: 100);
+      final books = library['books'] as List<dynamic>;
       
-      // For demo purposes, assume user owns The Great Gatsby
-      return bookId == 'gatsby-001';
+      return books.any((book) => book['id'] == bookId);
     } catch (e) {
       LogService.error('Check book ownership error: $e', 'AuthService');
-      return false;
+      return false; // Assume not owned if we can't check
     }
   }
 
   /// Get auth headers with current access token
-  static Map<String, String> _getAuthHeaders() {
-    return {
+  static Future<Map<String, String>> _getAuthHeaders() async {
+    final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+    
+    final token = await getAccessToken();
+    if (token != null) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    
+    return headers;
   }
 }
 

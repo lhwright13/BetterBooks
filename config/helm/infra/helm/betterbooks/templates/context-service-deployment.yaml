@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: context-service
+  namespace: {{ .Values.global.namespace | default "betterbooks" }}
+  labels:
+    app: context-service
+    version: {{ .Values.global.imageTag | default "latest" }}
+spec:
+  replicas: {{ .Values.contextService.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: context-service
+  template:
+    metadata:
+      labels:
+        app: context-service
+        version: {{ .Values.global.imageTag | default "latest" }}
+    spec:
+      containers:
+      - name: context-service
+        image: {{ .Values.global.registry }}/{{ .Values.global.imageRepository }}/context_service:{{ .Values.global.imageTag | default "latest" }}
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.global.environment | default "production" }}
+        - name: POSTGRES_HOST
+          value: {{ .Values.postgres.host | default "postgres" }}
+        - name: POSTGRES_PORT
+          value: {{ .Values.postgres.port | default "5432" | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.database | default "betterbooks" }}
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-password
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | default "redis" }}
+        - name: REDIS_PORT
+          value: {{ .Values.redis.port | default "6379" | quote }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: {{ .Values.contextService.resources.requests.memory | default "512Mi" }}
+            cpu: {{ .Values.contextService.resources.requests.cpu | default "250m" }}
+          limits:
+            memory: {{ .Values.contextService.resources.limits.memory | default "1Gi" }}
+            cpu: {{ .Values.contextService.resources.limits.cpu | default "500m" }}

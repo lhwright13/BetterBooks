@@ -5,7 +5,9 @@ import '../providers/app_state.dart';
 import '../providers/auth_provider.dart';
 import '../theme/echowright_theme.dart';
 import '../models/bookstore_models.dart';
-import '../api_config.dart';
+import '../services/bookstore_adapter.dart';
+import '../services/log_service.dart';
+import '../widgets/smart_cover_image.dart';
 import 'bookstore_screen.dart';
 
 class HomeTabScreen extends StatefulWidget {
@@ -39,90 +41,44 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     });
 
     try {
-      // Use the working AppState books data instead of bookstore API
-      final appState = context.read<AppState>();
+      final bookstoreAdapter = BookstoreAdapter();
       
-      // Convert Book models to BookCatalog models for display
-      final allBooks = appState.books;
-      final catalogBooks = allBooks.map((book) {
-        // Generate cover image URL based on book title
-        String? coverImageUrl;
-        String? author;
-        String? description;
-        double price = 12.95;
-        
-        // Map specific books to their cover images and metadata using OpenLibrary
-        switch (book.title) {
-          case 'Alice\'s Adventures in Wonderland':
-            coverImageUrl = 'https://covers.openlibrary.org/b/id/8164365-L.jpg';
-            author = 'Lewis Carroll';
-            description = 'A young girl falls down a rabbit hole into a fantasy world.';
-            price = 9.95;
-            break;
-          case 'Moby Dick':
-            coverImageUrl = 'https://covers.openlibrary.org/b/id/8893680-L.jpg';
-            author = 'Herman Melville';
-            description = 'The tale of Captain Ahab\'s quest for revenge against the white whale.';
-            price = 19.95;
-            break;
-          case 'War and Peace':
-            coverImageUrl = 'https://covers.openlibrary.org/b/id/8231674-L.jpg';
-            author = 'Leo Tolstoy';
-            description = 'Epic novel chronicling Russian society during the Napoleonic era.';
-            price = 24.95;
-            break;
-          case 'The Great Gatsby':
-            coverImageUrl = 'https://covers.openlibrary.org/b/id/8225261-L.jpg';
-            author = 'F. Scott Fitzgerald';
-            description = 'The story of Jay Gatsby and the American Dream in the Jazz Age.';
-            price = 12.95;
-            break;
-          case 'The Odyssey':
-            coverImageUrl = 'https://covers.openlibrary.org/b/id/8231237-L.jpg';
-            author = 'Homer';
-            description = 'Ancient Greek epic about Odysseus\'s journey home from Troy.';
-            price = 15.95;
-            break;
-          default:
-            author = 'Unknown Author';
-            description = 'A great audiobook.';
-            coverImageUrl = null;
-        }
-
-        return BookCatalog(
-          id: book.id,
-          title: book.title,
-          author: author,
-          narrator: null,
-          description: description,
-          coverImageUrl: coverImageUrl,
-          sampleAudioUrl: book.audioUrl,
-          priceUsd: price,
-          creditPrice: price > 20 ? 2 : 1,
-          formattedPrice: '\$${price.toStringAsFixed(2)}',
-          durationSeconds: null,
-          formattedDuration: 'Unknown',
-          language: 'en',
-          isFeatured: true,
-          isBestseller: price > 15,
-          isNewRelease: book.title == 'Alice\'s Adventures in Wonderland',
-          averageRating: 4.0 + (price / 10),
-          reviewCount: (price * 100).toInt(),
-          purchaseCount: (price * 50).toInt(),
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
-      }).toList();
+      // Load different book sections from backend
+      final [featuredResponse, newReleaseResponse, bestsellersResponse] = await Future.wait([
+        bookstoreAdapter.browseBooks(featuredOnly: true, pageSize: 6),
+        bookstoreAdapter.browseBooks(newReleasesOnly: true, pageSize: 6),
+        bookstoreAdapter.browseBooks(bestsellersOnly: true, pageSize: 6),
+      ]);
 
       setState(() {
-        // Distribute books across sections
-        _featuredBooks = catalogBooks.take(2).toList();
-        _newReleaseBooks = catalogBooks.skip(2).take(2).toList();
-        _popularBooks = catalogBooks.skip(1).take(2).toList();
+        _featuredBooks = featuredResponse.books;
+        _newReleaseBooks = newReleaseResponse.books;
+        _popularBooks = bestsellersResponse.books;
       });
     } catch (e) {
-      print('Error loading book sections: $e');
-      // Keep empty lists as fallback
+      // Log the error and show empty lists with user-friendly message
+      LogService.error('Failed to load book sections: $e', 'HomeTabScreen');
+      
+      setState(() {
+        _featuredBooks = [];
+        _newReleaseBooks = [];
+        _popularBooks = [];
+      });
+      
+      // Show a snackbar to inform the user of the issue
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to load book recommendations. Please check your internet connection.'),
+            backgroundColor: Colors.red.shade600,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _loadBookSections,
+            ),
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -176,10 +132,6 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
 
                   // Popular Right Now
                   _buildPopularSection(),
-                  SizedBox(height: 32),
-
-                  // Trending This Week
-                  _buildTrendingSection(),
                 ],
               ),
             ),
@@ -361,166 +313,6 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     return _buildRealBookSection('Popular Right Now', _popularBooks);
   }
 
-  Widget _buildTrendingSection() {
-    return _buildBookSection(
-      'Trending This Week',
-      [
-        {'title': 'The Thursday Murder Club', 'author': 'Richard Osman'},
-        {'title': 'The Silent Patient', 'author': 'Alex Michaelides'},
-        {'title': 'Educated', 'author': 'Tara Westover'},
-        {'title': 'Becoming', 'author': 'Michelle Obama'},
-      ],
-    );
-  }
-
-  Widget _buildBookSection(String title, List<Map<String, String>> books) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: EchoWrightTheme.darkGreen,
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('View all $title - Coming Soon!'),
-                    backgroundColor: EchoWrightTheme.primaryCoral,
-                  ),
-                );
-              },
-              child: Text(
-                'View All',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: EchoWrightTheme.primaryCoral,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16),
-
-        // Horizontal scrolling book list
-        SizedBox(
-          height: 200,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.only(left: 4),
-            itemCount: books.length,
-            itemBuilder: (context, index) {
-              final book = books[index];
-              return _buildCategoryBookCard(book);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryBookCard(Map<String, String> book) {
-    return Container(
-      width: 140,
-      margin: EdgeInsets.only(right: 16),
-      decoration: BoxDecoration(
-        color: EchoWrightTheme.softTan,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: EchoWrightTheme.deepForest.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${book['title']} - Coming to EchoWright soon!'),
-                backgroundColor: EchoWrightTheme.primaryCoral,
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Book cover placeholder
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: EchoWrightTheme.warmCream,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: EchoWrightTheme.darkGreen.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.menu_book_outlined,
-                      color: EchoWrightTheme.darkGreen,
-                      size: 40,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 12),
-
-                // Book title
-                Text(
-                  book['title']!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: EchoWrightTheme.darkGreen,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-
-                // Author
-                Text(
-                  book['author']!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: EchoWrightTheme.deepForest,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 6),
-
-                // Coming soon text
-                Text(
-                  'Coming Soon',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: EchoWrightTheme.primaryCoral,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildLoadingSection(String title) {
     return Column(
@@ -666,56 +458,42 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
                                       width: 1,
                                     ),
                                   ),
-                                  child: book.coverImageUrl != null
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(12),
-                                          child: Image.network(
-                                            book.coverImageUrl!,
-                                            fit: BoxFit.cover,
-                                            loadingBuilder: (context, child, loadingProgress) {
-                                              if (loadingProgress == null) return child;
-                                              return Center(
-                                                child: CircularProgressIndicator(
-                                                  color: EchoWrightTheme.primaryCoral,
-                                                  strokeWidth: 2,
-                                                ),
-                                              );
-                                            },
-                                            errorBuilder: (context, error, stackTrace) {
-                                              // For now, show a styled placeholder with book info
-                                              return Container(
-                                                padding: EdgeInsets.all(8),
-                                                child: Column(
-                                                  mainAxisAlignment: MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.auto_stories,
-                                                      color: EchoWrightTheme.primaryCoral,
-                                                      size: 32,
-                                                    ),
-                                                    SizedBox(height: 4),
-                                                    Text(
-                                                      book.author?.split(' ').last ?? 'Book',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: EchoWrightTheme.darkGreen,
-                                                      ),
-                                                      textAlign: TextAlign.center,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
+                                  child: SmartCoverImageHelpers.fromBookCatalog(
+                                    book: book,
+                                    fit: BoxFit.cover,
+                                    borderRadius: BorderRadius.circular(12),
+                                    placeholder: Center(
+                                      child: CircularProgressIndicator(
+                                        color: EchoWrightTheme.primaryCoral,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    errorWidget: Container(
+                                      padding: EdgeInsets.all(8),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.auto_stories,
+                                            color: EchoWrightTheme.primaryCoral,
+                                            size: 32,
                                           ),
-                                        )
-                                      : Icon(
-                                          Icons.menu_book_outlined,
-                                          color: EchoWrightTheme.darkGreen,
-                                          size: 40,
-                                        ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            book.author?.split(' ').last ?? 'Book',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: EchoWrightTheme.darkGreen,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 12),
@@ -834,15 +612,4 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
     );
   }
 
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-
-    if (duration.inHours > 0) {
-      return "${duration.inHours}:$twoDigitMinutes:$twoDigitSeconds";
-    } else {
-      return "${duration.inMinutes}:$twoDigitSeconds";
-    }
-  }
 }

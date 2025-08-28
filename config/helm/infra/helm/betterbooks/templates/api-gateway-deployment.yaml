@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: {{ .Values.global.namespace | default "betterbooks" }}
+  labels:
+    app: api-gateway
+    version: {{ .Values.global.imageTag | default "latest" }}
+spec:
+  replicas: {{ .Values.apiGateway.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        version: {{ .Values.global.imageTag | default "latest" }}
+    spec:
+      containers:
+      - name: api-gateway
+        image: {{ .Values.global.registry }}/{{ .Values.global.imageRepository }}/api_gateway:{{ .Values.global.imageTag | default "latest" }}
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.global.environment | default "production" }}
+        - name: POSTGRES_HOST
+          value: {{ .Values.postgres.host | default "postgres" }}
+        - name: POSTGRES_PORT
+          value: {{ .Values.postgres.port | default "5432" | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.database | default "betterbooks" }}
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: postgres-password
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | default "redis" }}
+        - name: REDIS_PORT
+          value: {{ .Values.redis.port | default "6379" | quote }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: redis-password
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: jwt-secret
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: gemini-api-key
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: {{ .Values.apiGateway.resources.requests.memory | default "256Mi" }}
+            cpu: {{ .Values.apiGateway.resources.requests.cpu | default "250m" }}
+          limits:
+            memory: {{ .Values.apiGateway.resources.limits.memory | default "512Mi" }}
+            cpu: {{ .Values.apiGateway.resources.limits.cpu | default "500m" }}

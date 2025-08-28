@@ -9,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/api_service.dart';
 import '../theme/echowright_theme.dart';
+import '../widgets/smart_cover_image.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final BookCatalog book;
@@ -244,24 +245,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             borderRadius: BorderRadius.circular(8),
             color: EchoWrightTheme.surfaceDark,
           ),
-          child: widget.book.coverImageUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    widget.book.coverImageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.book,
-                      size: 48,
-                      color: EchoWrightTheme.textMuted,
-                    ),
-                  ),
-                )
-              : Icon(
-                  Icons.book,
-                  size: 48,
-                  color: EchoWrightTheme.textMuted,
-                ),
+          child: SmartCoverImageHelpers.fromBookCatalog(
+            book: widget.book,
+            fit: BoxFit.cover,
+            borderRadius: BorderRadius.circular(8),
+            errorWidget: Icon(
+              Icons.book,
+              size: 48,
+              color: EchoWrightTheme.textMuted,
+            ),
+          ),
         ),
         const SizedBox(width: 16),
         

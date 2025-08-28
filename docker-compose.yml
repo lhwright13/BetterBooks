@@ -126,8 +126,8 @@ services:
 
   transcription_service:
     build:
-      context: ./platform/backend/
-      dockerfile: services/transcription_service/Dockerfile_minimal
+      context: .
+      dockerfile: platform/backend/services/transcription_service/Dockerfile_minimal
       cache_from:
         - betterbooks/transcription_service:latest
     env_file:

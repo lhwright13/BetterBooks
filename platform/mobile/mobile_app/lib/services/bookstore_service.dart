@@ -227,7 +227,7 @@ class BookstoreService {
     int offset = 0,
   }) async {
     try {
-      final uri = Uri.parse('$apiBaseUrl/v2/bookstore/catalog').replace(
+      final uri = Uri.parse('$apiBaseUrl/bookstore/browse').replace(
         queryParameters: {
           'limit': limit.toString(),
           'offset': offset.toString(),
@@ -256,7 +256,7 @@ class BookstoreService {
   static Future<Book> getBookDetails(String bookId) async {
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/v2/bookstore/books/$bookId'),
+        Uri.parse('$apiBaseUrl/bookstore/books/$bookId'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -279,16 +279,16 @@ class BookstoreService {
     int offset = 0,
   }) async {
     try {
-      final uri = Uri.parse('$apiBaseUrl/v2/bookstore/search').replace(
+      final uri = Uri.parse('$apiBaseUrl/bookstore/search').replace(
         queryParameters: {
-          'search_text': searchText,
+          'q': searchText,
           'limit': limit.toString(),
           'offset': offset.toString(),
           if (categoryId != null) 'category_id': categoryId,
         },
       );
 
-      final response = await http.post(uri, headers: _getHeaders())
+      final response = await http.get(uri, headers: _getHeaders())
           .timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -306,7 +306,7 @@ class BookstoreService {
   static Future<List<BookCategory>> getCategories() async {
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/v2/bookstore/categories'),
+        Uri.parse('$apiBaseUrl/bookstore/categories'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -365,7 +365,7 @@ class BookstoreService {
 
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/v2/bookstore/library/$_currentUserId'),
+        Uri.parse('$apiBaseUrl/bookstore/user/library'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -388,7 +388,7 @@ class BookstoreService {
 
     try {
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/v2/bookstore/credits/$_currentUserId'),
+        Uri.parse('$apiBaseUrl/bookstore/user/credits'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -495,11 +495,26 @@ class BookstoreService {
 
   /// Get featured books for home screen
   static Future<List<Book>> getFeaturedBooks({int limit = 10}) async {
-    final response = await getCatalog(featured: true, limit: limit);
-    return response.books;
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/featured').replace(
+          queryParameters: {'limit': limit.toString()},
+        ),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+      
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return (json['books'] as List).map((book) => Book.fromJson(book)).toList();
+      } else {
+        throw Exception('Failed to load featured books: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading featured books: $e');
+    }
   }
 
-  /// Get new releases for home screen
+  /// Get new releases for home screen (fallback to browse with new_release filter)
   static Future<List<Book>> getNewReleases({int limit = 10}) async {
     final response = await getCatalog(newRelease: true, limit: limit);
     return response.books;
@@ -507,8 +522,23 @@ class BookstoreService {
 
   /// Get bestsellers for home screen
   static Future<List<Book>> getBestsellers({int limit = 10}) async {
-    final response = await getCatalog(bestseller: true, limit: limit);
-    return response.books;
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/bestsellers').replace(
+          queryParameters: {'limit': limit.toString()},
+        ),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
+      
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return (json['books'] as List).map((book) => Book.fromJson(book)).toList();
+      } else {
+        throw Exception('Failed to load bestsellers: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Network error loading bestsellers: $e');
+    }
   }
 
   /// Check if user owns a book

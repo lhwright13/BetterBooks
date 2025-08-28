@@ -133,7 +133,7 @@ class ApiService {
       }
 
       final response = await http.get(
-        Uri.parse('$apiBaseUrl/books/list'),
+        Uri.parse('$apiBaseUrl/debug/books'),
         headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
@@ -143,45 +143,49 @@ class ApiService {
         
         LogService.debug('API Response: $data', 'getBooks');
         
-        // Handle single-file audiobooks (e.g., standalone MP3 files)
-        if (data['single_books'] != null) {
-          for (final bookData in data['single_books']) {
-            final bookName = bookData['name'] ?? bookData['filename'] ?? 'Unknown';
-            books.add(Book.fromJson({
-              'id': bookName,
-              'title': bookName.replaceAll('.mp3', ''), // Clean filename for display
-              'audio_url': '$apiBaseUrl/books/play/$bookName', // Direct streaming URL
-            }));
-          }
-        }
-        
-        // Handle multi-chapter audiobooks (e.g., The Great Gatsby with Chapter 1.mp3, etc.)
-        if (data['chapter_books'] != null) {
-          for (final bookData in data['chapter_books']) {
-            final bookName = bookData['name'] as String;
-            final chapterFiles = bookData['chapters'] as List<dynamic>;
+        // Parse the books from debug endpoint format
+        if (data['books'] != null) {
+          final bookData = data['books'] as Map<String, dynamic>;
+          
+          for (final entry in bookData.entries) {
+            final bookName = entry.key;
+            final bookInfo = entry.value as Map<String, dynamic>;
+            final files = bookInfo['files'] as List<dynamic>;
             
-            // Convert chapter file list to Chapter objects with streaming URLs
-            final chapters = chapterFiles.map((chapterFile) {
-              final chapterFileName = chapterFile.toString();
-              // Extract chapter number from filename (e.g., "Chapter 1.mp3" -> 1)
-              final chapterNum = int.tryParse(
-                chapterFileName.split(' ').last.replaceAll('.mp3', '')
-              ) ?? 0;
-              return Chapter(
-                id: chapterFileName,
-                title: chapterFileName.replaceAll('.mp3', ''),
-                // URL encode components for safe HTTP URLs
-                audioUrl: '$apiBaseUrl/books/play/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(chapterFileName)}',
-                chapterNumber: chapterNum,
-              );
-            }).toList();
-            
-            books.add(Book(
-              id: bookName,
-              title: bookName,
-              chapters: chapters,
-            ));
+            if (files.length == 1) {
+              // Single file audiobook
+              final fileName = files.first['name'] as String;
+              books.add(Book.fromJson({
+                'id': bookName.toLowerCase().replaceAll(' ', '-'),
+                'title': bookName,
+                'audio_url': '$apiBaseUrl/books/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(fileName)}',
+                'cover_url': '$apiBaseUrl/books/cover/${Uri.encodeComponent(bookName)}/cover.jpg',
+              }));
+            } else {
+              // Multi-chapter audiobook
+              final chapters = files.map((fileData) {
+                final fileName = fileData['name'] as String;
+                // Extract chapter number from filename (e.g., "Chapter 1.mp3" -> 1)
+                final chapterNum = int.tryParse(
+                  fileName.split(' ').length > 1 ? 
+                    fileName.split(' ')[1].replaceAll('.mp3', '') : '0'
+                ) ?? 0;
+                
+                return Chapter(
+                  id: fileName,
+                  title: fileName.replaceAll('.mp3', ''),
+                  audioUrl: '$apiBaseUrl/books/${Uri.encodeComponent(bookName)}/${Uri.encodeComponent(fileName)}',
+                  chapterNumber: chapterNum,
+                );
+              }).toList();
+              
+              books.add(Book(
+                id: bookName.toLowerCase().replaceAll(' ', '-'),
+                title: bookName,
+                chapters: chapters,
+                coverUrl: '$apiBaseUrl/books/cover/${Uri.encodeComponent(bookName)}/cover.jpg',
+              ));
+            }
           }
         }
         

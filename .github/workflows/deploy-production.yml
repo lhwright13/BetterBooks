@@ -15,7 +15,7 @@ on:
         default: 'production'
         type: choice
         options:
-        - production
+          - production
       confirm_deployment:
         description: 'Type "DEPLOY" to confirm production deployment'
         required: true
@@ -33,7 +33,7 @@ jobs:
     
     steps:
       - name: Validate deployment confirmation
-          if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch'
         run: |
           if [ "${{ github.event.inputs.confirm_deployment }}" != "DEPLOY" ]; then
             echo "❌ Deployment confirmation failed. You must type 'DEPLOY' to confirm."
@@ -96,7 +96,7 @@ jobs:
           version: '1.28.0'
     
       - name: Configure AWS credentials (if using EKS)
-          if: contains(secrets.KUBE_CONFIG_DATA, 'aws')
+        if: contains(secrets.KUBE_CONFIG_DATA, 'aws')
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -107,7 +107,7 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA_PRODUCTION }}" | base64 -d > ~/.kube/config
-        chmod 600 ~/.kube/config
+          chmod 600 ~/.kube/config
     
       - name: Verify cluster connection
         run: |
@@ -122,19 +122,19 @@ jobs:
       - name: Pre-deployment backup
         run: |
           echo "📦 Creating pre-deployment backup..."
-        
-        # Create backup of current deployment
+          
+          # Create backup of current deployment
           helm get values echowright-prod -n ${{ env.KUBE_NAMESPACE }} > /tmp/pre-deployment-values.yaml || true
           kubectl get all -n ${{ env.KUBE_NAMESPACE }} -o yaml > /tmp/pre-deployment-resources.yaml || true
-        
+          
           echo "✅ Backup completed"
     
       - name: Deploy to production
         id: deploy
         run: |
           echo "🚀 Starting production deployment..."
-        
-        # Use external secrets for production (assuming they're already set up)
+          
+          # Use external secrets for production (assuming they're already set up)
           helm upgrade --install echowright-prod ./config/helm/infra/helm/betterbooks/ \
           --namespace ${{ env.KUBE_NAMESPACE }} \
           --create-namespace \
@@ -150,29 +150,29 @@ jobs:
       - name: Verify production deployment
         run: |
           echo "🔍 Verifying production deployment..."
-        
-        # Check all deployments are ready
+          
+          # Check all deployments are ready
           kubectl rollout status deployment/api-gateway -n ${{ env.KUBE_NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/context-service -n ${{ env.KUBE_NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/llm-gateway -n ${{ env.KUBE_NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/tts-service -n ${{ env.KUBE_NAMESPACE }} --timeout=300s
           kubectl rollout status deployment/transcription-service -n ${{ env.KUBE_NAMESPACE }} --timeout=300s
         
-        # Check pod health
+          # Check pod health
           kubectl get pods -n ${{ env.KUBE_NAMESPACE }}
-        
+          
           echo "✅ All deployments are ready"
     
       - name: Run production smoke tests
         run: |
           echo "🧪 Running production smoke tests..."
-        
-        # Wait for services to stabilize
+          
+          # Wait for services to stabilize
           sleep 60
-        
+          
           PROD_URL="https://echowright.com"
-        
-        # Critical health checks
+          
+          # Critical health checks
           curl -f -s "$PROD_URL/health" || exit 1
           curl -f -s "$PROD_URL/health/ready" || exit 1
           curl -f -s "$PROD_URL/api/v1/context/health" || exit 1
@@ -185,47 +185,47 @@ jobs:
       - name: Monitor post-deployment metrics
         run: |
           echo "📊 Monitoring post-deployment metrics..."
-        
-        # Check error rates and response times
+          
+          # Check error rates and response times
           PROD_URL="https://echowright.com"
-        
-        # Get metrics
+          
+          # Get metrics
           METRICS_RESPONSE=$(curl -s "$PROD_URL/metrics" || echo "metrics_unavailable")
-        
+          
           if [[ "$METRICS_RESPONSE" != "metrics_unavailable" ]]; then
-          echo "✅ Metrics endpoint is responding"
-        else
-          echo "⚠️  Metrics endpoint not available, continuing..."
-        fi
-        
-        # Additional monitoring would typically integrate with your monitoring system
+            echo "✅ Metrics endpoint is responding"
+          else
+            echo "⚠️  Metrics endpoint not available, continuing..."
+          fi
+          
+          # Additional monitoring would typically integrate with your monitoring system
           echo "✅ Post-deployment monitoring complete"
     
       - name: Rollback on failure
         if: failure()
         run: |
           echo "❌ Deployment failed, initiating rollback..."
-        
-        # Rollback to previous release
+          
+          # Rollback to previous release
           helm rollback echowright-prod -n ${{ env.KUBE_NAMESPACE }} || true
-        
-        # Wait for rollback to complete
+          
+          # Wait for rollback to complete
           sleep 30
-        
-        # Verify rollback health
+          
+          # Verify rollback health
           kubectl get pods -n ${{ env.KUBE_NAMESPACE }}
-        
+          
           echo "🔄 Rollback completed"
     
       - name: Update deployment status
         if: always()
         run: |
           if [ "${{ steps.deploy.outputs.deployment_status }}" = "success" ] && [ "${{ job.status }}" = "success" ]; then
-          echo "✅ Production deployment successful!"
-          echo "🌐 Live at: https://echowright.com"
-        else
-          echo "❌ Production deployment failed"
-        fi
+            echo "✅ Production deployment successful!"
+            echo "🌐 Live at: https://echowright.com"
+          else
+            echo "❌ Production deployment failed"
+          fi
     
       - name: Notify deployment result
         if: always()
@@ -267,27 +267,27 @@ jobs:
         env:
           API_BASE_URL: https://echowright.com
         run: |
-        # Run a subset of critical integration tests
+          # Run a subset of critical integration tests
           python -m pytest tests/integration/test_api_integration.py::TestAPIIntegration::test_health_endpoints -v --api-url=$API_BASE_URL
           python -m pytest tests/integration/test_api_integration.py::TestAPIIntegration::test_llm_chat_completion -v --api-url=$API_BASE_URL
     
       - name: Performance baseline check
         run: |
           echo "📈 Running performance baseline check..."
-        
-        # Basic response time check
+          
+          # Basic response time check
           PROD_URL="https://echowright.com"
-        
+          
           START_TIME=$(date +%s%N)
           curl -f -s "$PROD_URL/health" > /dev/null
           END_TIME=$(date +%s%N)
-        
+          
           DURATION=$(( (END_TIME - START_TIME) / 1000000 ))  # Convert to milliseconds
-        
+          
           echo "Health endpoint response time: ${DURATION}ms"
-        
+          
           if [ $DURATION -gt 1000 ]; then
-          echo "⚠️  Response time is above 1000ms threshold"
-        else
-          echo "✅ Response time is acceptable"
-        fi
+            echo "⚠️  Response time is above 1000ms threshold"
+          else
+            echo "✅ Response time is acceptable"
+          fi

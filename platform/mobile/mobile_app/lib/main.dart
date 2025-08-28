@@ -18,6 +18,7 @@
  * - Handles audiobook playback and voice interaction
  */
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
@@ -36,8 +37,49 @@ import 'theme/echowright_theme.dart';
 
 /// Entry point for the EchoWright application
 /// Initializes the app and sets up the root widget
-void main() {
-  LogService.init(isDebugMode: true);
+void main() async {
+  // Ensure Flutter binding is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set up global error handling
+  FlutterError.onError = (FlutterErrorDetails details) {
+    LogService.error(
+      'Flutter Error: ${details.exception}',
+      'main',
+      details.exception,
+    );
+    
+    // In development, also print to console
+    FlutterError.presentError(details);
+  };
+  
+  // Catch errors not caught by Flutter
+  PlatformDispatcher.instance.onError = (error, stack) {
+    LogService.error(
+      'Uncaught Error: $error',
+      'main', 
+      error,
+    );
+    return true;
+  };
+  
+  // Initialize logging
+  bool isDebugMode = true;
+  try {
+    // Check if we're in debug mode
+    assert(() {
+      isDebugMode = true;
+      return true;
+    }());
+    isDebugMode = false; // If assert is disabled, we're in release mode
+  } catch (e) {
+    // Fallback
+    isDebugMode = true;
+  }
+  
+  LogService.init(isDebugMode: isDebugMode);
+  LogService.info('EchoWright app starting...', 'main');
+  
   runApp(const EchoWrightApp());
 }
 

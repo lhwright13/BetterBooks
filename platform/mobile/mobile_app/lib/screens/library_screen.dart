@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../providers/auth_provider.dart';
 import '../models/book.dart';
 import '../theme/echowright_theme.dart';
+import '../widgets/smart_cover_image.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -49,7 +51,12 @@ class _LibraryBodyState extends State<LibraryBody> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AppState>().loadPurchasedBooks();
+      // Get user ID from auth provider - in production this should come from actual authentication
+      final authProvider = context.read<AuthProvider>();
+      final userId = authProvider.isAuthenticated 
+          ? authProvider.currentUser?.id ?? 'anonymous'
+          : 'anonymous';
+      context.read<AppState>().loadPurchasedBooks(userId);
     });
   }
 
@@ -97,7 +104,13 @@ class _LibraryBodyState extends State<LibraryBody> {
                   ),
                   SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => appState.loadPurchasedBooks(),
+                    onPressed: () {
+                      final authProvider = context.read<AuthProvider>();
+                      final userId = authProvider.isAuthenticated 
+                          ? authProvider.currentUser?.id ?? 'anonymous'
+                          : 'anonymous';
+                      appState.loadPurchasedBooks(userId);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: EchoWrightTheme.primaryTurquoise,
                       foregroundColor: Colors.white,
@@ -157,7 +170,13 @@ class _LibraryBodyState extends State<LibraryBody> {
         }
 
         return RefreshIndicator(
-          onRefresh: () => appState.loadPurchasedBooks(),
+          onRefresh: () {
+            final authProvider = context.read<AuthProvider>();
+            final userId = authProvider.isAuthenticated 
+                ? authProvider.currentUser?.id ?? 'anonymous'
+                : 'anonymous';
+            return appState.loadPurchasedBooks(userId);
+          },
           color: EchoWrightTheme.primaryTurquoise,
           child: ListView.builder(
             padding: EdgeInsets.all(16),
@@ -212,10 +231,23 @@ class BookCard extends StatelessWidget {
                       width: 1,
                     ),
                   ),
-                  child: Icon(
-                    book.hasChapters ? Icons.menu_book_rounded : Icons.headphones_rounded,
-                    color: EchoWrightTheme.primaryTurquoise,
-                    size: 28,
+                  child: SmartCoverImageHelpers.fromBook(
+                    book: book,
+                    width: 64,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(8),
+                    placeholder: Center(
+                      child: CircularProgressIndicator(
+                        color: EchoWrightTheme.primaryTurquoise,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                    errorWidget: Icon(
+                      book.hasChapters ? Icons.menu_book_rounded : Icons.headphones_rounded,
+                      color: EchoWrightTheme.primaryTurquoise,
+                      size: 28,
+                    ),
                   ),
                 ),
                 SizedBox(width: 20),

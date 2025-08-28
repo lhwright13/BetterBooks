@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-service
+  namespace: {{ .Values.global.namespace | default "betterbooks" }}
+  labels:
+    app: tts-service
+    version: {{ .Values.global.imageTag | default "latest" }}
+spec:
+  replicas: {{ .Values.ttsService.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: tts-service
+  template:
+    metadata:
+      labels:
+        app: tts-service
+        version: {{ .Values.global.imageTag | default "latest" }}
+    spec:
+      containers:
+      - name: tts-service
+        image: {{ .Values.global.registry }}/{{ .Values.global.imageRepository }}/tts_service:{{ .Values.global.imageTag | default "latest" }}
+        ports:
+        - containerPort: 8003
+          name: http
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.global.environment | default "production" }}
+        - name: REDIS_HOST
+          value: {{ .Values.redis.host | default "redis" }}
+        - name: REDIS_PORT
+          value: {{ .Values.redis.port | default "6379" | quote }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: {{ .Values.ttsService.resources.requests.memory | default "1Gi" }}
+            cpu: {{ .Values.ttsService.resources.requests.cpu | default "500m" }}
+          limits:
+            memory: {{ .Values.ttsService.resources.limits.memory | default "2Gi" }}
+            cpu: {{ .Values.ttsService.resources.limits.cpu | default "1" }}
