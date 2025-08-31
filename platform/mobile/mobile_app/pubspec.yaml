@@ -1,7 +1,7 @@
 name: echowright
 description: EchoWright - AI-powered audiobook companion with interactive personas
 publish_to: 'none'
-version: 1.0.0+3
+version: 1.0.0+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

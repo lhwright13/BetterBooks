@@ -1,0 +1,10 @@
+# Ignore large audio files but keep covers
+book_files/**/*.mp3
+!book_files/**/GatsbyCover.jpg
+!book_files/**/Moby_Dick_1002.jpg
+
+# Standard ignores
+node_modules
+.git
+*.log
+.DS_Store

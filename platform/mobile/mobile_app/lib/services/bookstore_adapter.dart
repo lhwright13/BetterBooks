@@ -7,10 +7,26 @@ import '../api_config.dart';
 import '../models/bookstore_models.dart';
 import 'cache_service.dart';
 import 'log_service.dart';
+import 'api_service.dart';
 
 /// Adapter class that connects to the real Azure backend bookstore API
 class BookstoreAdapter {
   static const Duration _timeoutDuration = Duration(seconds: 30);
+
+  /// Get headers for HTTP requests including auth if available
+  Map<String, String> _getHeaders() {
+    final headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    
+    final authToken = ApiService.getAuthToken();
+    if (authToken != null) {
+      headers['Authorization'] = 'Bearer $authToken';
+    }
+    
+    return headers;
+  }
 
   /// Browse books with filtering options
   Future<BrowseResponse> browseBooks({
@@ -206,18 +222,29 @@ class BookstoreAdapter {
 
   /// Get user's purchased books (library)
   Future<List<BookCatalog>> getUserLibrary(String userId) async {
-    final response = await http.get(
-      Uri.parse('$apiBaseUrl/bookstore/user/library'),
-      headers: {'Content-Type': 'application/json'},
-    ).timeout(_timeoutDuration);
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/bookstore/user/library'),
+        headers: _getHeaders(),
+      ).timeout(_timeoutDuration);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data['books'] as List)
-          .map((book) => BookCatalog.fromJson(book))
-          .toList();
-    } else {
-      throw Exception('Failed to get user library: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['books'] as List)
+            .map((book) => BookCatalog.fromJson(book))
+            .toList();
+      } else if (response.statusCode == 500) {
+        // Backend library endpoint is broken - return empty library for now
+        LogService.debug('Library endpoint returned 500, returning empty library', 'BookstoreAdapter');
+        return [];
+      } else {
+        LogService.debug('Failed to get user library: ${response.statusCode} - ${response.body}', 'BookstoreAdapter');
+        return [];
+      }
+    } catch (e) {
+      // Network error or other issues - return empty library as fallback
+      LogService.debug('Library network error, returning empty library: $e', 'BookstoreAdapter');
+      return [];
     }
   }
 

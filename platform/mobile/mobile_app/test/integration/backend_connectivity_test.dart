@@ -5,7 +5,7 @@ import 'dart:convert';
 /// Integration test to verify frontend can connect to all backend endpoints
 void main() {
   group('Backend Connectivity Tests', () {
-    const String baseUrl = 'http://52.255.222.174:8000';
+    const String baseUrl = 'http://128.203.92.141:8000';
     const Duration timeout = Duration(seconds: 10);
 
     test('should connect to health endpoint', () async {

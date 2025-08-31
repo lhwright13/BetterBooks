@@ -28,7 +28,7 @@
 - **ADDED**: Graceful fallbacks when backend endpoints are unavailable
 
 ### Production Configuration
-- **CONFIGURED**: API base URL pointing to Azure backend: `http://52.255.222.174:8000`
+- **CONFIGURED**: API base URL pointing to Azure backend: `http://128.203.92.141:8000`
 - **VERIFIED**: Core endpoints are functional and returning real data
 - **ADDED**: Integration tests to verify backend connectivity
 
@@ -98,7 +98,7 @@ Each book includes:
 ### Priority 1: Fix Cover Images (Only remaining issue)
 ```bash
 # Debug cover image endpoint
-curl http://52.255.222.174:8000/books/cover/The%20Great%20Gatsby/GatsbyCover.jpg
+curl http://128.203.92.141:8000/books/cover/The%20Great%20Gatsby/GatsbyCover.jpg
 # Currently returns 500 - Internal Server Error
 ```
 

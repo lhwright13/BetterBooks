@@ -30,14 +30,16 @@ RUN chown -R appuser:appuser /home/appuser/.local
 COPY --chown=appuser:appuser platform/backend/services/api_gateway/ ./
 COPY --chown=appuser:appuser core/ ./core/
 
-# Make sure scripts in .local are usable:
-ENV PATH=/home/appuser/.local/bin:$PATH
+# Copy book files (covers only due to .dockerignore)
+COPY --chown=appuser:appuser book_files/ ./book_files/
 
-# Create minimal test book files structure for testing
-RUN mkdir -p ./book_files/The\ Great\ Gatsby && \
-    echo "placeholder audio content" > "./book_files/The Great Gatsby/Chapter 1.mp3" && \
+# Create placeholder audio files for testing
+RUN echo "placeholder audio content" > "./book_files/The Great Gatsby/Chapter 1.mp3" && \
     echo "placeholder audio content" > "./book_files/The Great Gatsby/Chapter 2.mp3" && \
     echo "placeholder audio content" > "./book_files/single_book.mp3"
+
+# Make sure scripts in .local are usable:
+ENV PATH=/home/appuser/.local/bin:$PATH
 
 # Set Python path to include core modules
 ENV PYTHONPATH="/app/core:/app"

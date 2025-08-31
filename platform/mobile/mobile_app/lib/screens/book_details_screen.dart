@@ -10,6 +10,7 @@ import '../services/bookstore_adapter.dart';
 import '../services/api_service.dart';
 import '../theme/echowright_theme.dart';
 import '../widgets/smart_cover_image.dart';
+import 'mvp_player_screen.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final BookCatalog book;
@@ -361,14 +362,31 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             Expanded(
               child: _isPurchased
                   ? ElevatedButton.icon(
-                      onPressed: () {
-                        // Navigate to player screen
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Opening player...')),
-                        );
+                      onPressed: () async {
+                        // Navigate to player screen with book data
+                        try {
+                          // Load book details including chapters
+                          final bookstoreAdapter = BookstoreAdapter();
+                          final bookDetails = await bookstoreAdapter.getBookDetails(widget.book.id);
+                          
+                          // Navigate to MVP Player Screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MVPPlayerScreen(),
+                            ),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error opening player: $e'),
+                              backgroundColor: EchoWrightTheme.errorColor,
+                            ),
+                          );
+                        }
                       },
-                      icon: const Icon(Icons.play_arrow, color: Colors.white),
-                      label: const Text('Play', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(Icons.headset, color: Colors.white),
+                      label: const Text('Listen Now', style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: EchoWrightTheme.successColor,
                         padding: const EdgeInsets.symmetric(vertical: 12),

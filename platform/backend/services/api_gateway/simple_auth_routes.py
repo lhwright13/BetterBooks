@@ -18,13 +18,13 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 
 # Import existing auth functionality
 from core.auth.auth import (
-    create_access_token, create_refresh_token, verify_token, 
+    create_access_token, create_refresh_token, verify_token,
     create_user, authenticate_user, create_or_update_oauth_user,
     get_current_user, UserRole, User, UserRegistration, USERS_DB
 )
@@ -316,6 +316,71 @@ async def request_password_reset(request: PasswordResetRequest):
     except Exception as e:
         logger.error(f"Password reset request failed: {e}")
         return {"message": "If an account with this email exists, a password reset link has been sent"}
+
+# =====================================================
+# USER PROFILE
+# =====================================================
+
+@router.get("/auth/me", response_model=dict)
+async def get_current_user_info(authorization: str = Header(None)):
+    """Get current user information"""
+    try:
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Missing or invalid authorization header"
+            )
+        
+        token = authorization.split(" ")[1]
+        
+        # Verify the token and get user info
+        user_data = verify_token(token, "access")
+        if not user_data:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired token"
+            )
+        
+        # Look up the user in the USERS_DB (in-memory database)
+        user_email = user_data.get("email") or user_data.get("sub")
+        if not user_email:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token payload"
+            )
+        
+        # Find user in the in-memory database
+        user = None
+        for stored_user in USERS_DB.values():
+            if stored_user.email == user_email:
+                user = stored_user
+                break
+        
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+        
+        return {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "is_verified": getattr(user, 'is_verified', True),
+            "created_at": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
+            "role": getattr(user, 'role', 'user'),
+            "subscription_status": getattr(user, 'subscription_status', 'free'),
+            "avatar_url": getattr(user, 'avatar_url', None)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user info: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error"
+        )
 
 # =====================================================
 # HEALTH CHECK

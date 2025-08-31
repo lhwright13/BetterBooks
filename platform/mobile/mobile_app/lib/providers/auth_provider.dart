@@ -63,12 +63,18 @@ class AuthProvider extends ChangeNotifier {
       final isAuth = await AuthService.isAuthenticated();
       
       if (isAuth) {
-        // Get user data from secure storage
-        final user = await AuthService.getCurrentUser();
-        if (user != null) {
-          _setAuthenticatedUser(user);
+        // Try to fetch fresh user data from server first
+        final freshUser = await AuthService.fetchCurrentUser();
+        if (freshUser != null) {
+          _setAuthenticatedUser(freshUser);
         } else {
-          _setUnauthenticated();
+          // Fallback to stored user data
+          final user = await AuthService.getCurrentUser();
+          if (user != null) {
+            _setAuthenticatedUser(user);
+          } else {
+            _setUnauthenticated();
+          }
         }
       } else {
         _setUnauthenticated();
@@ -112,6 +118,10 @@ class AuthProvider extends ChangeNotifier {
       
       if (result.success && result.user != null) {
         _setAuthenticatedUser(result.user!);
+        
+        // Fetch fresh user data from server to ensure we have latest info
+        _fetchFreshUserData();
+        
         return true;
       } else {
         _setError(result.error ?? 'Email signup failed');
@@ -141,6 +151,10 @@ class AuthProvider extends ChangeNotifier {
       
       if (result.success && result.user != null) {
         _setAuthenticatedUser(result.user!);
+        
+        // Fetch fresh user data from server to ensure we have latest info
+        _fetchFreshUserData();
+        
         return true;
       } else {
         _setError(result.error ?? 'Email signin failed');
@@ -372,6 +386,44 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       LogService.debug('Error checking book ownership: $e');
       return false;
+    }
+  }
+
+  /// Fetch fresh user data from server in background
+  void _fetchFreshUserData() async {
+    try {
+      final freshUser = await AuthService.fetchCurrentUser();
+      if (freshUser != null && _isAuthenticated) {
+        _currentUser = freshUser;
+        notifyListeners();
+        LogService.debug('User data refreshed from server');
+      }
+    } catch (e) {
+      LogService.debug('Failed to refresh user data: $e');
+      // Don't show error to user - this is a background refresh
+    }
+  }
+
+  /// Manually refresh user data from server
+  Future<bool> refreshUserData() async {
+    if (!_isAuthenticated) return false;
+    
+    _setLoading(true);
+    
+    try {
+      final freshUser = await AuthService.fetchCurrentUser();
+      if (freshUser != null) {
+        _currentUser = freshUser;
+        notifyListeners();
+        LogService.debug('User data refreshed manually');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      LogService.debug('Failed to refresh user data: $e');
+      return false;
+    } finally {
+      _setLoading(false);
     }
   }
 

@@ -1,6 +1,6 @@
 image:
   repository: betterbooksacr.azurecr.io/api_gateway
-  tag: auth-fix
+  tag: auth-fix-2
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8000

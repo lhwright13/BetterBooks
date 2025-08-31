@@ -176,6 +176,8 @@ class AudioVisualizerPainter extends CustomPainter {
   }
 
   void _drawWaveform(Canvas canvas, Size size, Paint paint, Paint fillPaint) {
+    if (size.width <= 0 || size.height <= 0 || audioLevels.isEmpty) return;
+    
     final path = Path();
     final centerY = size.height / 2;
     
@@ -201,6 +203,8 @@ class AudioVisualizerPainter extends CustomPainter {
   }
 
   void _drawPulsingCircles(Canvas canvas, Size size, Paint paint) {
+    if (size.width <= 0 || size.height <= 0) return;
+    
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = math.min(size.width, size.height) / 3;
     
@@ -215,6 +219,8 @@ class AudioVisualizerPainter extends CustomPainter {
   }
 
   void _drawSpeechBars(Canvas canvas, Size size, Paint paint, Paint fillPaint) {
+    if (size.width <= 0 || size.height <= 0 || audioLevels.isEmpty) return;
+    
     final barCount = 12;
     final barWidth = size.width / (barCount * 2);
     final spacing = barWidth;

@@ -5,6 +5,7 @@ import 'dart:io' show Platform;
 import '../providers/app_state.dart';
 import '../providers/auth_provider.dart';
 import '../models/user.dart';
+import '../config/feature_flags.dart';
 import 'user_settings_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -283,6 +284,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       Divider(height: 1),
                       ListTile(
+                        leading: Icon(Icons.refresh),
+                        title: Text('Refresh Profile'),
+                        subtitle: Text('Update your profile data from server'),
+                        trailing: authProvider.isLoading 
+                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Icon(Icons.chevron_right),
+                        onTap: authProvider.isLoading ? null : () async {
+                          final success = await authProvider.refreshUserData();
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Profile updated successfully!')),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to refresh profile. Please try again.')),
+                            );
+                          }
+                        },
+                      ),
+                      Divider(height: 1),
+                      ListTile(
                         leading: Icon(Icons.help_outline),
                         title: Text('Help & Support'),
                         subtitle: Text('Get help using BetterBooks'),
@@ -307,15 +329,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       
                       Divider(height: 1),
-                      ListTile(
-                        leading: Icon(Icons.subscriptions),
-                        title: Text('Manage Subscription'),
-                        subtitle: Text('View and manage your subscription'),
-                        trailing: Icon(Icons.open_in_new),
-                        onTap: () {
-                          _openSubscriptionManagement();
-                        },
-                      ),
+                      if (FeatureFlags.enableSubscriptions)
+                        ListTile(
+                          leading: Icon(Icons.subscriptions),
+                          title: Text('Manage Subscription'),
+                          subtitle: Text('View and manage your subscription'),
+                          trailing: Icon(Icons.open_in_new),
+                          onTap: () {
+                            _openSubscriptionManagement();
+                          },
+                        ),
                       
                       // External purchase link (US storefront only)
                       if (_isUSStorefront())

@@ -103,7 +103,7 @@ app.include_router(auth_router)
 
 
 # Database-backed user endpoints
-from db_utils import get_user_credits as db_get_user_credits, get_user_library as db_get_user_library, get_browse_books as db_get_browse_books, test_database_connection
+from db_utils import get_user_credits as db_get_user_credits, get_user_library as db_get_user_library, get_browse_books as db_get_browse_books, get_book_details as db_get_book_details, test_database_connection
 
 class CreditBalanceResponse(BaseModel):
     total_credits: int
@@ -129,15 +129,64 @@ class BrowseBook(BaseModel):
     cover_image_url: str
     price_usd: float = 9.99
     credit_price: int = 1
+    formatted_price: str = ""
+    formatted_duration: str = "Unknown length"
+    language: str = "en"
     is_featured: bool = False
     is_bestseller: bool = False
     is_new_release: bool = False
+    created_at: str = "2025-01-01T00:00:00Z"
+    updated_at: str = "2025-01-01T00:00:00Z"
 
 class BrowseResponse(BaseModel):
     books: List[BrowseBook]
-    total_books: int
+    total_count: int  # Match mobile app expectation
     page: int = 1
     page_size: int = 20
+    has_next_page: bool = False
+
+class PurchaseRequest(BaseModel):
+    book_id: str
+    credits_to_use: int = 1
+
+class PurchaseResponse(BaseModel):
+    success: bool
+    message: str
+    remaining_credits: int
+
+class Chapter(BaseModel):
+    id: str
+    title: str
+    audio_url: str
+    chapter_number: int
+    duration: Optional[int] = None
+
+class DetailedBook(BaseModel):
+    id: str
+    title: str
+    author: str
+    description: Optional[str] = None
+    cover_image_url: str
+    price_usd: float = 9.99
+    credit_price: int = 1
+    is_featured: bool = False
+    is_bestseller: bool = False
+    is_new_release: bool = False
+    chapters: List[Chapter] = []
+    total_duration: Optional[int] = None
+
+class BookCategory(BaseModel):
+    id: str
+    name: str
+    description: str
+    image_url: Optional[str] = None
+    display_order: int
+    is_active: bool = True
+    created_at: str
+    updated_at: str
+
+class CategoriesResponse(BaseModel):
+    categories: List[BookCategory]
 
 @app.get("/bookstore/user/credits", response_model=CreditBalanceResponse)
 async def get_user_credits():
@@ -146,6 +195,16 @@ async def get_user_credits():
     demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
     
     credits_data = db_get_user_credits(demo_user_id)
+    
+    # Update used credits based on in-memory purchases
+    if demo_user_id in purchased_books:
+        used_credits = len(purchased_books[demo_user_id])
+        total_credits = credits_data.get('total_credits', 5)
+        credits_data.update({
+            'used_credits': used_credits,
+            'available_credits': max(0, total_credits - used_credits)
+        })
+    
     return CreditBalanceResponse(**credits_data)
 
 @app.get("/bookstore/user/library", response_model=UserLibraryResponse) 
@@ -154,7 +213,32 @@ async def get_user_library():
     # Using demo user ID for now - in production this would come from auth  
     demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
     
+    # First try database
     library_data = db_get_user_library(demo_user_id)
+    
+    # If database returns empty but user has purchased books in-memory, use those
+    if library_data['total_books'] == 0 and demo_user_id in purchased_books:
+        # Get book details for purchased books
+        browse_data = db_get_browse_books(limit=100, offset=0)
+        available_books = {book['id']: book for book in browse_data['books']}
+        
+        purchased_book_details = []
+        for book_id in purchased_books[demo_user_id]:
+            if book_id in available_books:
+                book_info = available_books[book_id]
+                purchased_book_details.append({
+                    'id': book_id,
+                    'title': book_info['title'],
+                    'author': book_info['author'],
+                    'cover_image_url': book_info['cover_image_url'],
+                    'progress': 0.0,
+                    'purchased_at': '2025-01-20T10:00:00Z'
+                })
+        
+        library_data = {
+            'books': purchased_book_details,
+            'total_books': len(purchased_book_details)
+        }
     
     # Convert to response format
     books = [
@@ -164,7 +248,7 @@ async def get_user_library():
             author=book['author'] or 'Unknown Author',
             cover_image_url=book.get('cover_image_url', ''),
             progress=float(book.get('progress', 0.0)),
-            purchased_at=book.get('purchased_at').isoformat() if book.get('purchased_at') else None
+            purchased_at=book.get('purchased_at') if isinstance(book.get('purchased_at'), str) else None
         )
         for book in library_data['books']
     ]
@@ -199,19 +283,161 @@ async def browse_books(
             cover_image_url=book.get('cover_image_url', ''),
             price_usd=float(book.get('price_usd', 9.99)),
             credit_price=int(book.get('credit_price', 1)),
+            formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
+            formatted_duration="Unknown length",
+            language="en",
             is_featured=bool(book.get('is_featured', False)),
             is_bestseller=bool(book.get('is_bestseller', False)),
-            is_new_release=bool(book.get('is_new_release', False))
+            is_new_release=bool(book.get('is_new_release', False)),
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z"
         )
         for book in browse_data['books']
     ]
     
     return BrowseResponse(
         books=books,
-        total_books=browse_data['total_books'],
+        total_count=browse_data['total_books'],  # Map total_books to total_count
         page=page,
-        page_size=limit
+        page_size=limit,
+        has_next_page=(page * limit) < browse_data['total_books']
     )
+
+@app.get("/bookstore/categories", response_model=CategoriesResponse)
+async def get_book_categories():
+    """Get book categories for bookstore browsing"""
+    # Return hardcoded categories for now - in production this would come from database
+    categories = [
+        BookCategory(
+            id="classics",
+            name="Classics",
+            description="Timeless literary works that have shaped culture and thought",
+            image_url=None,
+            display_order=1,
+            is_active=True,
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z"
+        ),
+        BookCategory(
+            id="fiction",
+            name="Fiction",
+            description="Imaginative literature that tells compelling stories",
+            image_url=None,
+            display_order=2,
+            is_active=True,
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z"
+        ),
+        BookCategory(
+            id="adventure",
+            name="Adventure",
+            description="Thrilling tales of exploration, danger, and discovery",
+            image_url=None,
+            display_order=3,
+            is_active=True,
+            created_at="2025-01-01T00:00:00Z",
+            updated_at="2025-01-01T00:00:00Z"
+        )
+    ]
+    
+    return CategoriesResponse(categories=categories)
+
+@app.get("/bookstore/books/{book_id}", response_model=DetailedBook)
+async def get_book_details(book_id: str):
+    """Get detailed book information including chapters"""
+    try:
+        book_data = db_get_book_details(book_id)
+        if not book_data:
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        # Convert chapters data to Chapter objects
+        chapters = []
+        if book_data.get('chapters'):
+            for chapter_data in book_data['chapters']:
+                chapters.append(Chapter(
+                    id=chapter_data['id'],
+                    title=chapter_data['title'],
+                    audio_url=chapter_data['audio_url'],
+                    chapter_number=chapter_data['chapter_number'],
+                    duration=chapter_data.get('duration')
+                ))
+        
+        return DetailedBook(
+            id=book_data['id'],
+            title=book_data['title'],
+            author=book_data['author'],
+            description=book_data.get('description'),
+            cover_image_url=book_data['cover_image_url'],
+            price_usd=float(book_data.get('price_usd', 9.99)),
+            credit_price=int(book_data.get('credit_price', 1)),
+            is_featured=bool(book_data.get('is_featured', False)),
+            is_bestseller=bool(book_data.get('is_bestseller', False)),
+            is_new_release=bool(book_data.get('is_new_release', False)),
+            chapters=chapters,
+            total_duration=book_data.get('total_duration')
+        )
+    except Exception as e:
+        logger.error(f"Error getting book details for {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+# In-memory purchase tracking (for MVP without database)
+purchased_books = {}  # user_id -> [book_ids]
+
+@app.post("/bookstore/purchase", response_model=PurchaseResponse)
+async def purchase_book(request: PurchaseRequest):
+    """Purchase a book using credits"""
+    try:
+        # Using demo user ID for now - in production this would come from auth
+        demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
+        
+        # Get current credits
+        credits_data = db_get_user_credits(demo_user_id)
+        available_credits = credits_data.get('available_credits', 5)
+        
+        # Check if user has enough credits
+        if available_credits < request.credits_to_use:
+            return PurchaseResponse(
+                success=False,
+                message="Insufficient credits",
+                remaining_credits=available_credits
+            )
+        
+        # Check if book exists (from browse books)
+        browse_data = db_get_browse_books(limit=100, offset=0)
+        available_books = {book['id']: book for book in browse_data['books']}
+        
+        if request.book_id not in available_books:
+            return PurchaseResponse(
+                success=False,
+                message="Book not found",
+                remaining_credits=available_credits
+            )
+        
+        # Add book to user's purchased books (in-memory for MVP)
+        if demo_user_id not in purchased_books:
+            purchased_books[demo_user_id] = []
+        
+        if request.book_id not in purchased_books[demo_user_id]:
+            purchased_books[demo_user_id].append(request.book_id)
+            remaining_credits = available_credits - request.credits_to_use
+            
+            logger.info(f"Book {request.book_id} purchased by user {demo_user_id}")
+            
+            return PurchaseResponse(
+                success=True,
+                message=f"Successfully purchased {available_books[request.book_id]['title']}",
+                remaining_credits=remaining_credits
+            )
+        else:
+            return PurchaseResponse(
+                success=False,
+                message="Book already owned",
+                remaining_credits=available_credits
+            )
+            
+    except Exception as e:
+        logger.error(f"Error purchasing book {request.book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Purchase failed")
 
 @app.get("/database/test")
 async def test_database():

@@ -147,6 +147,8 @@ class CSSRipplePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = math.max(size.width, size.height) * 0.7;
     

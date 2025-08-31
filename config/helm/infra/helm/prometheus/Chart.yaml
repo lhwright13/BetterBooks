@@ -1,0 +1,13 @@
+apiVersion: v2
+name: prometheus
+description: Prometheus monitoring for EchoWright services
+type: application
+version: 0.1.0
+appVersion: "latest"
+keywords:
+  - prometheus
+  - monitoring
+  - metrics
+home: https://prometheus.io/
+maintainers:
+  - name: EchoWright Team

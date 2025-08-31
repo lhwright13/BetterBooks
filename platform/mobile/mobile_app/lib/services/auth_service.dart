@@ -296,11 +296,11 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store tokens and user data
+        // Store tokens and user data  
         await _storeAuthData(
           accessToken: data['access_token'],
           refreshToken: data['refresh_token'],
-          expiresAt: data['expires_in'],
+          expiresAt: data['expires_at'],
           userData: data['user'],
         );
 
@@ -335,16 +335,26 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // Store tokens and user data
-        await _storeAuthData(
-          accessToken: data['access_token'],
-          refreshToken: data['refresh_token'],
-          expiresAt: data['expires_in'],
-          userData: data['user'],
-        );
+        // Set auth token for subsequent requests
+        ApiService.setAuthToken(data['access_token']);
+        
+        // Use user data from login response (it's already included)
+        final userData = data['user'];
+        if (userData != null) {
+          // Store tokens and user data
+          await _storeAuthData(
+            accessToken: data['access_token'],
+            refreshToken: data['refresh_token'],
+            expiresAt: data['expires_at'], // Note: this is expires_at not expires_in
+            userData: userData,
+          );
 
-        LogService.debug('Email sign-in successful: ${data['user']['email']}');
-        return AuthResult.success(User.fromJson(data['user']));
+          LogService.auth('Email sign-in successful: ${userData['email']}');
+          return AuthResult.success(User.fromJson(userData));
+        } else {
+          LogService.auth('No user data in login response', isError: true);
+          return AuthResult.error('Login successful but failed to fetch user data');
+        }
       } else {
         final error = jsonDecode(response.body);
         LogService.auth('Email sign-in error: ${error['detail']}', isError: true);
@@ -385,6 +395,56 @@ class AuthService {
     } catch (e) {
       LogService.error('Password reset request error: $e', 'AuthService');
       return false;
+    }
+  }
+
+  /// Fetch current user data from server
+  static Future<User?> fetchCurrentUser() async {
+    try {
+      final accessToken = await _secureStorage.read(key: _accessTokenKey);
+      if (accessToken == null) return null;
+
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/auth/me'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      ).timeout(_timeoutDuration);
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        final user = User.fromJson(userData);
+        
+        // Update stored user data
+        await _secureStorage.write(
+          key: _userDataKey, 
+          value: jsonEncode(userData),
+        );
+        
+        LogService.auth('User data fetched successfully: ${user.email}');
+        return user;
+      } else if (response.statusCode == 401) {
+        // Token expired, try to refresh
+        final refreshed = await _refreshAccessToken();
+        if (refreshed) {
+          // Retry the request
+          return await fetchCurrentUser();
+        }
+        return null;
+      } else if (response.statusCode == 404) {
+        // /auth/me endpoint doesn't exist on this backend version
+        LogService.auth('/auth/me endpoint not available, using stored user data');
+        return await getCurrentUser();
+      } else {
+        LogService.auth('Failed to fetch user data: ${response.statusCode}', isError: true);
+        // Fallback to stored user data
+        return await getCurrentUser();
+      }
+    } catch (e) {
+      LogService.auth('Error fetching user data: $e, using fallback', isError: true);
+      // Fallback to stored user data  
+      return await getCurrentUser();
     }
   }
 

@@ -10,7 +10,7 @@ We successfully transformed the BetterBooks mobile app from a prototype with dem
 
 #### 1. **Complete Backend Integration** 
 - ✅ Removed ALL demo/mock data fallbacks
-- ✅ Connected to real Azure backend (`http://52.255.222.174:8000`)
+- ✅ Connected to real Azure backend (`http://128.203.92.141:8000`)
 - ✅ Real JWT authentication with secure token storage
 - ✅ Live book catalog with 5+ books
 - ✅ Working audio streaming

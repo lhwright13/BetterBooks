@@ -40,10 +40,22 @@ class User {
 
   /// Create User from API JSON response
   factory User.fromJson(Map<String, dynamic> json) {
+    // Handle both display_name (old format) and first_name/last_name (new format)
+    String? displayName;
+    if (json['display_name'] != null) {
+      displayName = json['display_name'] as String?;
+    } else {
+      final firstName = json['first_name'] as String? ?? '';
+      final lastName = json['last_name'] as String? ?? '';
+      if (firstName.isNotEmpty || lastName.isNotEmpty) {
+        displayName = '${firstName} ${lastName}'.trim();
+      }
+    }
+    
     return User(
       id: (json['id'] ?? json['user_id'] ?? 'unknown') as String,
       email: json['email'] as String?,
-      displayName: json['display_name'] as String?,
+      displayName: displayName,
       avatarUrl: json['avatar_url'] as String?,
       emailVerified: json['email_verified'] as bool? ?? true,  // Default to verified since email service is not configured
       isActive: json['is_active'] as bool? ?? true,

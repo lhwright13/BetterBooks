@@ -11,8 +11,8 @@ echo "🚀 Building EchoWright for TestFlight..."
 cd "$(dirname "$0")/.."
 
 # Set production API endpoint - DIRECT AZURE CLOUD ACCESS
-PRODUCTION_API="http://52.255.222.174:8000"
-echo "🌐 Using production API: $PRODUCTION_API (Direct Azure Cloud)"
+PRODUCTION_API="http://128.203.92.141:8000"
+echo "🌐 Using production API: $PRODUCTION_API (Direct Azure Cloud - Updated IP)"
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
@@ -27,7 +27,7 @@ cd ios && pod install --repo-update && cd ..
 echo "📱 Building iOS release version for TestFlight..."
 flutter build ios --release \
   --build-name=1.0.0 \
-  --build-number=3 \
+  --build-number=4 \
   --dart-define=API_BASE_URL="$PRODUCTION_API" \
   --no-codesign
 
@@ -65,7 +65,7 @@ echo ""
 echo "📱 App Configuration:"
 echo "   App Name: EchoWright"
 echo "   Bundle ID: com.betterbooks.app"
-echo "   Version: 1.0.0 (Build 2)"
+echo "   Version: 1.0.0 (Build 4)"
 echo "   API Endpoint: $PRODUCTION_API"
 echo "   Configuration: Release"
 echo ""

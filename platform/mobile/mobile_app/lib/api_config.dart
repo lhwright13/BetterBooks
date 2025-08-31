@@ -35,5 +35,5 @@
 // NOW POINTING DIRECTLY TO AZURE CLOUD BACKEND - NO LOCALHOST REQUIRED!
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL', 
-  defaultValue: 'http://52.255.222.174:8000' // Azure backend DIRECT cloud access
+  defaultValue: 'http://128.203.92.141:8000' // Azure backend DIRECT cloud access (updated IP)
 );

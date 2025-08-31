@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prometheus.fullname" . }}-config
+  labels:
+    {{- include "prometheus.labels" . | nindent 4 }}
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: {{ .Values.config.scrapeInterval }}
+      evaluation_interval: {{ .Values.config.evaluationInterval }}
+      scrape_timeout: 10s
+
+    # Scrape configurations for EchoWright services
+    scrape_configs:
+      # API Gateway metrics
+      - job_name: 'api_gateway'
+        static_configs:
+          - targets: ['api-gateway:8000']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      # LLM Gateway metrics  
+      - job_name: 'llm_gateway'
+        static_configs:
+          - targets: ['llm-gateway:8002']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      # Context Service metrics
+      - job_name: 'context_service'
+        static_configs:
+          - targets: ['context-service:8001']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      # TTS Service metrics
+      - job_name: 'tts_service'
+        static_configs:
+          - targets: ['tts-service:8003']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      # Kubernetes API server metrics (optional)
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+        - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+
+      # Kubernetes node metrics (optional)
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+        - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+    # Alerting rules (if enabled)
+    {{- if .Values.alerting.enabled }}
+    rule_files:
+      - "alert_rules.yml"
+      
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              {{- if .Values.alerting.alertmanagerUrl }}
+              - {{ .Values.alerting.alertmanagerUrl }}
+              {{- end }}
+    {{- end }}

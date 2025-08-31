@@ -384,17 +384,30 @@ class _EchoWrightLogoState extends State<EchoWrightLogo>
   @override
   Widget build(BuildContext context) {
     if (!widget.animate) {
-      return SvgPicture.asset(
-        'assets/images/EchoWright.svg',
-        width: widget.size,
-        height: widget.size * 0.6, // Maintain aspect ratio
-      );
+      return _buildSvgWithFallback(context);
     }
     
+    return _buildSvgWithFallback(context);
+  }
+
+  Widget _buildSvgWithFallback(BuildContext context) {
     return SvgPicture.asset(
       'assets/images/EchoWright.svg',
       width: widget.size,
       height: widget.size * 0.6, // Maintain aspect ratio
+      placeholderBuilder: (BuildContext context) => Container(
+        width: widget.size,
+        height: widget.size * 0.6,
+        decoration: BoxDecoration(
+          color: EchoWrightTheme.primaryCoral.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.spatial_audio_off,
+          size: widget.size * 0.3,
+          color: EchoWrightTheme.primaryCoral,
+        ),
+      ),
     );
   }
 }
@@ -407,6 +420,8 @@ class LogoPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
+    
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width * 0.4;
 

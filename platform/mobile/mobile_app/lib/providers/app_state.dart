@@ -34,6 +34,7 @@ import '../models/chat_message.dart';
 import '../services/api_service.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/log_service.dart';
+import '../services/llm_direct_service.dart';
 
 /// Global application state manager using Provider pattern for reactive UI updates
 /// Coordinates audiobook playback, AI interactions, and backend communication
@@ -134,15 +135,18 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadPersonas() async {
     try {
-      _personas = await ApiService.getPersonas();
+      // Load personas from LLM Gateway
+      _personas = await LlmDirectService.getPersonas();
       if (_personas.isNotEmpty && _selectedPersona == null) {
         _selectedPersona = _personas.first;
       }
       _error = null;
       notifyListeners();
+      LogService.debug('Loaded ${_personas.length} personas via direct LLM Gateway');
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+      LogService.debug('Failed to load personas: $e');
     }
   }
 
@@ -321,8 +325,8 @@ class AppState extends ChangeNotifier {
         LogService.debug('DEBUG: No book playing, sending message without context');
       }
 
-      // Get AI response
-      final response = await ApiService.sendMessage(
+      // Get AI response via LLM Gateway
+      final response = await LlmDirectService.sendMessage(
         contextualMessage,
         _selectedPersona!.name,
       );
@@ -360,8 +364,8 @@ class AppState extends ChangeNotifier {
         LogService.debug('DEBUG: No book playing for voice message, sending without context');
       }
 
-      // Get AI response
-      final response = await ApiService.sendMessage(
+      // Get AI response via LLM Gateway
+      final response = await LlmDirectService.sendMessage(
         contextualMessage,
         _selectedPersona!.name,
       );

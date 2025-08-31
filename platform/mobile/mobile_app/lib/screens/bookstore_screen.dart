@@ -107,6 +107,96 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
     }
   }
 
+  Future<void> _purchaseBook(BookCatalog book) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please sign in to purchase books')),
+      );
+      return;
+    }
+
+    // Check if user has enough credits
+    if (_creditBalance == null || _creditBalance!.availableCredits < book.creditPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Insufficient credits. You need ${book.creditPrice} credits to purchase this book.')),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Purchase Book'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Purchase "${book.title}" for ${book.creditPrice} credit${book.creditPrice != 1 ? 's' : ''}?'),
+            SizedBox(height: 8),
+            Text(
+              'Available Credits: ${_creditBalance!.availableCredits}',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Purchase'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirmed) return;
+
+    try {
+      final response = await _bookstoreService.purchaseBook(
+        bookId: book.id,
+        paymentMethod: PurchaseType.credit,
+        creditsToUse: book.creditPrice,
+      );
+
+      if (response.success) {
+        // Update credit balance
+        final newCreditBalance = await _bookstoreService.getCreditBalance();
+        setState(() {
+          _creditBalance = newCreditBalance;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ Successfully purchased "${book.title}"!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        
+        // Navigate to book details to show "Listen Now"
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BookDetailsScreen(book: book),
+          ),
+        );
+      } else {
+        throw Exception('Purchase failed');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Purchase failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -353,18 +443,18 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Cover Image
+              // Cover Image - Square
               Container(
-                width: 72,
-                height: 108,
+                width: 100,
+                height: 100,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 ),
                 child: SmartCoverImageHelpers.fromBookCatalog(
                   book: book,
-                  width: 72,
-                  height: 108,
+                  width: 100,
+                  height: 100,
                   fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(12),
                   errorWidget: Icon(
@@ -434,9 +524,10 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                     
                     SizedBox(height: 8),
                     
-                    // Price and Badges
+                    // Price and Purchase Button
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
                           child: Column(
@@ -457,39 +548,62 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
+                              
+                              // Status badges
+                              if (book.isFeatured || book.isBestseller || book.isNewRelease) ...[
+                                SizedBox(height: 8),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: book.isFeatured
+                                        ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                                        : book.isBestseller
+                                            ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
+                                            : Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    book.isFeatured
+                                        ? 'Featured'
+                                        : book.isBestseller
+                                            ? 'Bestseller'
+                                            : 'New',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: book.isFeatured
+                                          ? Theme.of(context).colorScheme.primary
+                                          : book.isBestseller
+                                              ? Theme.of(context).colorScheme.secondary
+                                              : Theme.of(context).colorScheme.tertiary,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
                         
-                        // Status badges
-                        if (book.isFeatured || book.isBestseller || book.isNewRelease)
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: book.isFeatured
-                                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-                                  : book.isBestseller
-                                      ? Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1)
-                                      : Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              book.isFeatured
-                                  ? 'Featured'
-                                  : book.isBestseller
-                                      ? 'Bestseller'
-                                      : 'New',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: book.isFeatured
-                                    ? Theme.of(context).colorScheme.primary
-                                    : book.isBestseller
-                                        ? Theme.of(context).colorScheme.secondary
-                                        : Theme.of(context).colorScheme.tertiary,
-                              ),
-                            ),
+                        SizedBox(width: 16),
+                        
+                        // Purchase Button
+                        ElevatedButton.icon(
+                          onPressed: () => _purchaseBook(book),
+                          icon: Icon(Icons.monetization_on, size: 16),
+                          label: Text(
+                            'Buy for ${book.creditPrice}',
+                            style: TextStyle(fontSize: 12),
                           ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            minimumSize: Size(0, 36),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -853,10 +967,17 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                               flex: 2,
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  // Purchase book
+                                  // Navigate back to bookstore for purchase
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Go to the bookstore to purchase this book'),
+                                      duration: Duration(seconds: 2),
+                                    ),
+                                  );
                                 },
-                                icon: Icon(Icons.shopping_cart),
-                                label: Text('Add to Cart'),
+                                icon: Icon(Icons.monetization_on),
+                                label: Text('Buy for ${widget.book.creditPrice} Credit${widget.book.creditPrice != 1 ? 's' : ''}'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Theme.of(context).colorScheme.primary,
                                   foregroundColor: Colors.white,

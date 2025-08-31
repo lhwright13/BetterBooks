@@ -27,7 +27,7 @@
 ## Current Configuration
 
 ### Mobile App Settings
-- **API Base URL**: `http://52.255.222.174:8000` (Direct Azure cloud)
+- **API Base URL**: `http://128.203.92.141:8000` (Direct Azure cloud)
 - **Cover Images**: OpenLibrary API (`https://covers.openlibrary.org/`)
 - **Audio URLs**: Backend paths (`/books/{title}/Chapter 1.mp3`)
 - **Authentication**: Mock mode with local user creation

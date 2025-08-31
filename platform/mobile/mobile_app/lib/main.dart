@@ -176,6 +176,19 @@ class SplashScreen extends StatelessWidget {
               'assets/images/login_logo.svg',
               width: 350,
               height: 200,
+              placeholderBuilder: (BuildContext context) => Container(
+                width: 350,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: EchoWrightTheme.primaryCoral.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.audiotrack,
+                  size: 80,
+                  color: EchoWrightTheme.primaryCoral,
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             const SizedBox(height: 32),
@@ -290,6 +303,19 @@ class _AuthScreenState extends State<AuthScreen> {
                       'assets/images/login_logo.svg',
                       width: 350,
                       height: 220,
+                      placeholderBuilder: (BuildContext context) => Container(
+                        width: 350,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: EchoWrightTheme.primaryCoral.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.audiotrack,
+                          size: 80,
+                          color: EchoWrightTheme.primaryCoral,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

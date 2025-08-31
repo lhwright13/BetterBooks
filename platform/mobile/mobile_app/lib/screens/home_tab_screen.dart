@@ -8,6 +8,7 @@ import '../models/bookstore_models.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/log_service.dart';
 import '../widgets/smart_cover_image.dart';
+import '../config/feature_flags.dart';
 import 'bookstore_screen.dart';
 
 class HomeTabScreen extends StatefulWidget {
@@ -105,6 +106,10 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Beta warning banner
+                  if (FeatureFlags.showBetaWarnings)
+                    _buildBetaBanner(),
+                  
                   // EchoWright Logo Header
                   Transform.translate(
                     offset: Offset(0, -35),
@@ -151,6 +156,19 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
         width: 300,
         height: 170,
         fit: BoxFit.contain,
+        placeholderBuilder: (BuildContext context) => Container(
+          width: 300,
+          height: 170,
+          decoration: BoxDecoration(
+            color: EchoWrightTheme.primaryCoral.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            Icons.spatial_audio_off,
+            size: 60,
+            color: EchoWrightTheme.primaryCoral,
+          ),
+        ),
       ),
     );
   }
@@ -609,6 +627,52 @@ class _HomeTabScreenState extends State<HomeTabScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBetaBanner() {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.science,
+            color: Colors.orange,
+            size: 20,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Beta Testing',
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Help us improve! Report any issues you encounter.',
+                  style: TextStyle(
+                    color: Colors.orange.withOpacity(0.8),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -200,3 +200,37 @@
 - can I do it lvl
 - role difficulty
 - versitily
+
+### Claude tips:
+I run large software projects on Claude. I agree with most things that you say but I go deeper with the management of some things. I'll explain a bit of my system in case you can pick up anything from it.
+
+So each project (is a Claude Project) has a written objective, some frameworks (rules we work to) and some project specific info. But in particular it has a number of AI "jobs" - typically 20 or more. The jobs are just like you would have in a traditional Dev world. I am doing one software project that I expect will take a year and I ultimately expect 100 or so AI jobs in it. I expect similar output that I would get from a 100 dev team in a fraction of my time.
+
+The boss I call COO. He works with me to specify things and to keep the others in line. I have specialist jobs for things such as specification, testing, quality, database, front end, installations etc etc. You mentioned MCP. I have an MCP manager.
+
+If I want to get a Job to do something substantial, I talk to the COO about it. He will spec it and set standards for completion quality. He will expect a report back. Once that activity is done to COO's satisfaction, another will be scheduled for that Job.
+
+One thing that I believe could be of practical help to you is optimizing things around types of knowledge. This is important because you will generate a lot of knowledge and tokens have to be managed optimally. Think about the types of knowledge you need (and I give you some examples from my world):
+
+Knowledge Shared across Projects (those frameworks I mentioned). These are in every Project Library.
+
+Project knowledge that an AI job MUST know (what you are doing and why, project plan, the AI Jobs in the Project etc etc. These are in the Project Library.
+
+Project Documents that an AI MIGHT need. These are in an index in 2) and the Job can access them on demand in the local file system via MCP.
+
+Documents only of interest to the Job Type. These are stored locally per job type. In my world each job has its own folder and in this folder are identical subfolders
+
+/context current.txt - Current state, priorities, decisions, issues
+/history - Archived context files (timestamped)
+/inbox - Messages/requests from other jobs - Format: YYYYMMDD_HHMM-[SenderJobID]-[Topic].txt
+/outbox - Copies of sent messages - Format: YYYYMMDD_HHMM-to-[RecipientJobID]-[Topic].txt
+/tech - Technical documentation specific to this job - Implementation details - Design documents - Working drafts
+/control objectives.txt - Current job objectives and goals decisions.txt - Log of key decisions with rationale dependencies.txt- Dependencies on other jobs index.txt - Optional index of job's files/folders
+
+You will see that jobs can "talk" to each other. How the Job maintains docs in here is dealt with in instructions in 2).
+
+Once you start working like this you can do things to the highest standards and astonishingly rapidly. All docs to do with control are written by the COO.
+
+One last thing. Each thread is initialized identically. "I want you to be COO (or whatever) in our project". At the end of the thread the job updates all its own knowledge files and maybe sends messages to COO or Doc Manager if there are wider issues. It then produces what we call a Park Document (about 10 pages of highly specified info about what happened in the thread). This Park document is for the Job Type and is Dated. Next time the same Job Type starts in a new thread it is instructed to read the previous Park doc for that type. That way continuity is maintained.
+
+Good luck with everything.
