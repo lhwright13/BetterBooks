@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-# import httpx  # Disabled until dependencies resolved
+import httpx
 from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, RedirectResponse
@@ -555,11 +555,26 @@ async def complete_text(request: CompletionRequest):
             )
             response.raise_for_status()
             return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error completing text: {e}")
-        raise HTTPException(status_code=500, detail="Text completion failed")
+    except Exception as llm_error:
+        logger.warning(f"LLM service unavailable, providing fallback response: {llm_error}")
+        
+        # Provide a persona-appropriate fallback response
+        persona = getattr(request, 'config', None) or 'default'
+        fallback_responses = {
+            'Nick Carraway': "I'm afraid I'm having some difficulty connecting to my usual thoughts just now. Perhaps we could try this conversation again in a moment? The green light seems dimmer than usual tonight.",
+            'English Teacher': "I apologize, but I'm experiencing some technical difficulties at the moment. Could you please repeat your question? I'd be happy to help you analyze this text once my connection is restored.",
+            'Language Tutor': "Pardon me, I seem to be having connection issues. Could you try asking your question again? I'm here to help you learn!",
+            'Omniscient Helper': "I'm experiencing some temporary difficulties accessing my full knowledge. Please try your question again in a moment."
+        }
+        
+        fallback_text = fallback_responses.get(persona, "I'm having some technical difficulties. Please try your question again.")
+        
+        return {
+            "text": fallback_text,
+            "model": "fallback",
+            "usage": {"prompt_tokens": len(request.prompt.split()), "completion_tokens": len(fallback_text.split())},
+            "fallback": True
+        }
 
 class TTSRequest(BaseModel):
     text: str
@@ -595,15 +610,60 @@ async def text_to_speech(request: TTSRequest):
 async def list_configs():
     """Proxy request to list available AI persona configurations"""
     try:
+        # Try to proxy to LLM service first
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(f"{LLM_URL}/configs")
             response.raise_for_status()
             return response.json()
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error listing configs: {e}")
-        raise HTTPException(status_code=500, detail="Failed to list configurations")
+    except Exception as llm_error:
+        logger.warning(f"LLM service unavailable, falling back to local configs: {llm_error}")
+        
+        # Fallback: serve persona configurations directly from JSON files
+        try:
+            import json
+            config_dir = Path("/app/llm_configs")
+            if not config_dir.exists():
+                # Try repository structure
+                repo_root = Path(__file__).resolve().parents[3]
+                config_dir = repo_root / "config" / "production" / "llm_configs"
+            
+            personas = []
+            if config_dir.exists():
+                for config_file in config_dir.glob("*.json"):
+                    try:
+                        with open(config_file, 'r') as f:
+                            config_data = json.load(f)
+                            persona_name = config_file.stem
+                            personas.append({
+                                "name": persona_name,
+                                "display_name": persona_name,
+                                "description": _extract_description_from_preprompt(config_data.get("base_preprompt", "")),
+                                "voice": config_data.get("tts_config", {}).get("voice", {}).get("name", "en-US-Neural2-C"),
+                                "voice_config": config_data.get("tts_config", {})
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to load config {config_file}: {e}")
+                        continue
+            
+            return {"configs": personas}
+            
+        except Exception as fallback_error:
+            logger.error(f"Fallback config loading failed: {fallback_error}")
+            raise HTTPException(status_code=500, detail="Failed to list configurations")
+
+def _extract_description_from_preprompt(preprompt: str) -> str:
+    """Extract a short description from the base preprompt"""
+    if not preprompt:
+        return "AI Assistant"
+    
+    # Extract first sentence or first 100 characters
+    sentences = preprompt.split('.')
+    if sentences:
+        desc = sentences[0].strip()
+        if len(desc) > 100:
+            desc = desc[:97] + "..."
+        return desc
+    return "AI Assistant"
 
 @app.get("/context")
 async def get_context(query: str, book_id: Optional[str] = None):
