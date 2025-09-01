@@ -1,282 +1,131 @@
-# EchoWright
+# EchoWright - Audiobooks with AI Chat
 
-EchoWright is an AI-powered audiobook companion platform that transforms the listening experience through intelligent features like chapter detection, personalized summaries, and educational question generation.
-
-[![Build Status](https://github.com/username/echowright/workflows/CI/badge.svg)](https://github.com/username/echowright/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## ✨ Features
-
-### Core AI Features
-- **🧠 AI-Powered Chapter Detection** - Automatically segments audiobooks with intelligent boundary detection
-- **📚 Smart Summaries** - Multiple summary styles (brief, detailed, themes, key points, Q&A)
-- **🤔 Personalized Questions** - Educational questions tailored to reading context and difficulty
-- **🎭 AI Personas** - Configurable AI companions (Teacher, Tutor, Character-based)
-- **🔍 Semantic Search** - Find content across books using natural language
-- **🎤 Speech Transcription** - Azure Speech Service powered audio transcription with language detection
-
-### E-commerce Platform
-- **📚 Digital Bookstore** - Complete audiobook catalog with purchases, credits, and gift cards
-- **💳 Payment Processing** - Stripe, PayPal, and Apple Pay integration with subscription tiers
-- **⭐ Reviews & Ratings** - User reviews, ratings, and social book discovery
-- **🤖 AI Recommendations** - Machine learning powered book suggestions and personalized collections
-- **📱 User Libraries** - Personal collections, wishlists, and download management
-
-### Authentication & Security
-- **🔐 JWT Authentication** - Secure user authentication with email/password and OAuth support
-- **👤 User Management** - Registration, login, profile management, and session handling
-- **🔒 Role-Based Access** - Admin, moderator, premium, and standard user permissions
-- **🛡️ Rate Limiting** - Subscription-tiered API limits and fraud protection
-
-### Platform Features
-- **📱 Cross-Platform** - Web demo and Flutter mobile app with full authentication integration
-- **🔧 Production-Ready** - Comprehensive monitoring, logging, and deployment tools
-- **🎵 Audio Streaming** - WebSocket-based real-time audio streaming and TTS synthesis
-- **📊 Analytics** - Real-time usage analytics and educational insights
+An MVP audiobook platform that combines traditional audiobook listening with AI-powered chat companions - like "Audible with an AI chatbot".
 
 ## 🚀 Quick Start
 
 ### Prerequisites
+- **Docker & Docker Compose**
+- **Flutter 3.0+** (for mobile app)
 
-- **Docker & Docker Compose** - For running the full stack
-- **Python 3.11+** - For development and testing
-- **Node.js 18+** - For web application
-- **Flutter 3.0+** - For mobile development
-
-### Installation
-
-1. **Clone the repository:**
+### Setup
+1. **Clone and start:**
    ```bash
    git clone https://github.com/username/echowright.git
    cd echowright
-   ```
-
-2. **Set up environment configuration:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys (see Security Setup below)
-   ```
-
-3. **Start the platform:**
-   ```bash
+   export GEMINI_API_KEY=your-key
    docker-compose up --build
    ```
 
-   Or use the helper script:
-   ```bash
-   ./scripts/run_app.sh
-   ```
-
-4. **Access the services:**
-   - **Web Demo:** http://localhost:8080
+2. **Access the platform:**
    - **API Gateway:** http://localhost:8000
-   - **Grafana Dashboard:** http://localhost:3000 (admin/admin)
-   - **Prometheus Metrics:** http://localhost:9090
+   - **Mobile App:** `cd platform/mobile/mobile_app && flutter run`
 
-## 🏗️ Project Structure
+## ✨ Current MVP Features
 
-```
-echowright/
-├── core/                          # Core functionality modules
-│   ├── ai/                       # AI-powered features (personas, summaries)
-│   ├── auth/                     # Authentication and authorization
-│   ├── bookstore/                # E-commerce and catalog management
-│   ├── database/                 # Database management and migrations
-│   ├── infrastructure/           # Logging, metrics, health checks
-│   └── shared/                   # Common utilities and models
-├── platform/
-│   ├── backend/services/         # Microservices
-│   │   ├── api_gateway/         # Central API gateway (port 8000)
-│   │   ├── context_service/     # Vector embeddings (port 8001)
-│   │   ├── llm_gateway/         # AI persona management (port 8002)
-│   │   ├── tts_service/         # Text-to-speech (port 8003)
-│   │   └── transcription_service/ # Chapter detection (port 8004)
-│   ├── frontend/web_app/        # Web demo interface
-│   └── mobile/mobile_app/       # Flutter mobile application
-├── config/                      # Configuration files
-│   ├── docker/                  # Docker Compose configs
-│   ├── local/                   # Development settings
-│   ├── production/              # Production configs and LLM personas
-│   └── helm/                    # Kubernetes deployment
-├── docs/                        # Documentation
-└── tests/                       # Test suites (unit, integration, performance)
+### Core Platform
+- **📚 Book Library** - Browse and manage audiobooks
+- **🎵 Audio Playback** - Stream audiobooks with standard controls
+- **👤 User Accounts** - Email/password authentication
+- **💳 Credits System** - Purchase books with credits
+
+### AI Features
+- **🤖 AI Chat Companions** - Chat with AI personas while listening
+- **🎭 Multiple Personas** - English Teacher, Language Tutor, General Helper
+- **💬 Context-Aware** - AI knows what book you're listening to
+- **🔤 Text & Voice** - Chat via text or voice interaction
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    A[Mobile App] --> B[API Gateway :8000]
+    B --> C[LLM Gateway :8002]
+    B --> D[PostgreSQL Database]
+    C --> E[Google Gemini API]
+    B --> F[Audio Files Storage]
 ```
 
-## Documentation
+### Services
+- **API Gateway** (port 8000) - Main backend API
+- **LLM Gateway** (port 8002) - AI persona management
+- **PostgreSQL** - User data, books, libraries
+- **Mobile App** - Flutter iOS/Android app
 
-### Getting Started
-- [Security Setup Guide](docs/setup/SECURITY_SETUP.md) - API keys and security configuration
-- [Local Development Guide](docs/setup/LOCAL_BACKEND_GUIDE.md) - Development environment setup
-- [Deployment Guide](docs/setup/AZURE_DEPLOYMENT_GUIDE.md) - Production deployment
+## 📱 Mobile App
 
-### Service Documentation
-- [API Gateway](platform/backend/services/api_gateway/README.md) - Central API gateway with authentication
-- [Transcription Service](platform/backend/services/transcription_service/README.md) - Azure Speech Service integration
-- [Core Auth Module](core/auth/README.md) - JWT authentication and user management
-- [Bookstore Module](core/bookstore/README.md) - E-commerce platform with payments and recommendations
-- [Mobile App](platform/mobile/mobile_app/README.md) - Flutter app with full authentication integration
-
-### Architecture & Design
-- [System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md) - High-level system design
-- [AI Features](docs/features/AI_FEATURES.md) - AI capabilities and implementation
-- [Logging & Monitoring](docs/architecture/LOGGING_AND_MONITORING.md) - Observability implementation
-- [Architecture Decision Records](docs/architecture/adr/README.md) - Key design decisions
-
-### API & Integration
-- [API Documentation](docs/api/README.md) - Complete API reference
-- [Authentication Guide](docs/api/AUTHENTICATION_GUIDE.md) - JWT authentication and user management
-- [Authentication Testing](test_mobile_auth_integration.py) - Comprehensive auth integration tests
-- [Customization Guide](docs/architecture/CUSTOMIZATION_GUIDE.md) - Extending the platform
-
-### Operations & Deployment
-- [Deployment Runbooks](docs/operations/runbooks/README.md) - Operational procedures
-- [GitHub Actions Setup](docs/GITHUB_ACTIONS_SETUP.md) - CI/CD pipeline
-- [Production Auth Setup](docs/PRODUCTION_AUTH_SETUP.md) - Production security
-
-## Configuration
-
-### Environment Variables
-
-Key configuration variables (see `.env.example`):
+The main user interface is a Flutter mobile app with:
+- **Home Screen** - Browse books and continue listening
+- **Player Screen** - Audio controls + AI chat interface
+- **Library Screen** - Your purchased books
+- **Chat Screen** - Full conversation history with AI personas
 
 ```bash
-# AI Services
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/echowright
-REDIS_URL=redis://localhost:6379
-
-# Authentication & Security
-JWT_SECRET_KEY=your_secure_random_key
-DEFAULT_ADMIN_PASSWORD=secure_admin_password_here
-API_RATE_LIMIT=100
-
-# Monitoring
-ENABLE_METRICS=true
-JAEGER_ENDPOINT=http://localhost:14268/api/traces
+cd platform/mobile/mobile_app
+flutter pub get
+flutter run
 ```
 
-### LLM Personas
+## 🛠️ Development
 
-AI personas are configured via JSON files in `config/production/llm_configs/`:
-- `English Teacher.json` - Educational focus with literary analysis
-- `Language Tutor.json` - Language learning and vocabulary
-- `Omniscient Helper.json` - General audiobook assistance
-
-## 🧪 Development
-
-### Running Tests
-
-**All tests:**
+### Local Backend
 ```bash
-./scripts/run_tests.sh
-```
+# Start all services
+docker-compose up --build
 
-**Unit tests only:**
-```bash
+# Run tests
 pytest tests/unit/ -v
 ```
 
-**Integration tests:**
-```bash
-pytest tests/integration/ -v
-```
+### Key Files
+- `platform/backend/services/api_gateway/` - Main backend API
+- `platform/backend/services/llm_gateway/` - AI chat functionality  
+- `platform/mobile/mobile_app/` - Flutter mobile app
+- `config/helm/` - Kubernetes deployment
 
-**Performance testing:**
-```bash
-cd tests/performance/
-locust -f locustfile.py --host=http://localhost:8000
-```
+## 📋 Current Status
 
-See [Testing Documentation](tests/README.md) for detailed test information.
+### ✅ Working
+- Basic authentication (email/password)
+- Book catalog and library management
+- Audio playback functionality
+- AI personas and chat system
+- Flutter mobile app UI
 
-### Mobile App Development
+### 🚧 In Progress
+- Real database connections for all services
+- Azure blob storage for audio files
+- Email verification system
+- Real payment integration
 
-```bash
-cd platform/mobile/mobile_app/
-flutter pub get
-flutter run
-flutter test
-```
+### 🔧 Known Issues
+See [backLog.md](backLog.md) and [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) for current bugs and technical debt.
 
-See [Mobile App README](platform/mobile/mobile_app/README.md) for detailed setup.
+## 🚀 Deployment
 
-### Database Management
-
-```bash
-# Apply migrations
-python -c "from core.database import DatabaseMigrationManager; import asyncio; asyncio.run(DatabaseMigrationManager().apply_migrations())"
-
-# Check migration status
-python -c "from core.database import DatabaseMigrationManager; import asyncio; print(asyncio.run(DatabaseMigrationManager().get_migration_status()))"
-```
-
-See [Database Documentation](core/database/README.md) for detailed information.
-
-## Deployment
-
-### Docker Compose (Development)
+### Local Development
 ```bash
 docker-compose up --build
 ```
 
-### Kubernetes (Production)
-```bash
-# Using Helm charts
-helm install echowright config/helm/infra/helm/
-```
+### Production (Azure)
+See [azure_progress.md](azure_progress.md) for current Azure deployment status.
 
-### Azure Cloud
-See [Azure Deployment Guide](docs/setup/AZURE_DEPLOYMENT_GUIDE.md) for complete production setup.
+## 📖 Documentation
 
-## Monitoring
+- [CLAUDE.md](CLAUDE.md) - Development commands and architecture
+- [completeFeatures.md](completeFeatures.md) - Long-term feature vision
+- [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) - Current technical debt and priorities
+- [backLog.md](backLog.md) - Bug reports and feature requests
 
-### Health Checks
-- Basic: `/health`
-- Detailed: `/health/detailed` (includes system metrics)
-- Readiness: `/health/ready` (Kubernetes readiness probe)
-- Liveness: `/health/live` (Kubernetes liveness probe)
+## 🎯 Vision
 
-### Observability Stack
-- **Prometheus** (http://localhost:9090) - Metrics collection
-- **Grafana** (http://localhost:3000) - Dashboards and visualization
-- **Jaeger** (http://localhost:16686) - Distributed tracing
-
-## 🔮 Roadmap
-
-See our [Development Roadmap](docs/project/DEVELOPMENT_ROADMAP.md) for planned features and enhancements.
-
-**Current Focus:**
-- Enhanced AI context management
-- Advanced caching strategies
-- Multi-modal AI interactions
-- Cross-book intelligence
-
-**Future Features:**
-- Real-time voice conversations
-- Advanced persona systems
-- Multi-language support
-- Offline capabilities
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Documentation**: Browse the [docs/](docs/) directory
-- **Issues**: [GitHub Issues](https://github.com/username/echowright/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/username/echowright/discussions)
-
-## Acknowledgments
-
-- **Google Gemini** - AI language model
-- **Coqui TTS** - Text-to-speech synthesis
-- **pgvector** - Vector similarity search
-- **FastAPI** - Web framework
-- **Flutter** - Mobile development
+The goal is to create an audiobook platform where:
+1. Users browse and purchase audiobooks (like Audible)
+2. While listening, they can chat with AI personas about the content
+3. AI provides educational insights, answers questions, and enhances comprehension
+4. Different personas offer different perspectives (teacher, tutor, character analysis)
 
 ---
 
-Built with ❤️ for audiobook enthusiasts and AI technology exploration.
+**Current Focus:** Getting the MVP to production-ready state with working authentication, real book data, and stable AI chat functionality.
