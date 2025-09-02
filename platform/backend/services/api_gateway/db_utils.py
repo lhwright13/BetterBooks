@@ -9,25 +9,49 @@ import psycopg2
 import psycopg2.extras
 import logging
 from typing import Dict, List, Any, Optional
+from azure_storage_helper import AzureStorageHelper
 
 logger = logging.getLogger(__name__)
 
+# Initialize Azure Storage helper
+azure_storage = AzureStorageHelper()
+
 def get_db_connection():
-    """Get database connection using environment variables"""
+    """Get database connection using environment variables with smart fallbacks"""
     # Try to get database URL from environment first
     db_url = os.getenv('DATABASE_URL')
-    if not db_url:
-        # Fallback to local Docker connection for development
-        db_url = "postgresql://betterbooks:testpassword123@postgres_primary:5432/betterbooks"
     
-    logger.info(f"Connecting to database: {db_url.split('@')[1] if '@' in db_url else 'local'}")
-    return psycopg2.connect(db_url)
+    if not db_url:
+        # Determine if we're running in Docker or local development
+        # In Docker, use postgres_primary, locally use localhost
+        if os.path.exists('/.dockerenv') or os.getenv('DOCKER_ENV'):
+            # Running in Docker container
+            db_url = "postgresql://betterbooks:testpassword123@postgres_primary:5432/betterbooks"
+        else:
+            # Running locally - use localhost
+            db_url = "postgresql://betterbooks:testpassword123@localhost:5432/betterbooks"
+    
+    # Mask password in logs
+    log_url = db_url.split('@')[1] if '@' in db_url else 'local'
+    logger.info(f"Connecting to database: {log_url}")
+    
+    try:
+        return psycopg2.connect(db_url)
+    except psycopg2.Error as e:
+        logger.error(f"Database connection failed: {e}")
+        # Try fallback to localhost if Docker connection fails
+        if 'postgres_primary' in db_url:
+            fallback_url = db_url.replace('postgres_primary', 'localhost')
+            logger.info("Trying localhost fallback...")
+            return psycopg2.connect(fallback_url)
+        raise
 
 def get_user_credits(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user credit information from database"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # First try to get existing credits
                 cursor.execute("""
                     SELECT 
                         total_credits,
@@ -41,38 +65,50 @@ def get_user_credits(user_id: str) -> Optional[Dict[str, Any]]:
                 if result:
                     return dict(result)
                 else:
-                    # Return default credits for new users
-                    return {
-                        'total_credits': 5,
-                        'used_credits': 0,
-                        'available_credits': 5
-                    }
-    except Exception as e:
+                    # Initialize new user with 2 free credits
+                    cursor.execute("""
+                        INSERT INTO user_credits (user_id, total_credits, used_credits)
+                        VALUES (%s, 2, 0)
+                        RETURNING total_credits, used_credits, (total_credits - used_credits) as available_credits
+                    """, (user_id,))
+                    
+                    new_result = cursor.fetchone()
+                    conn.commit()
+                    logger.info(f"Initialized new user {user_id} with 2 credits")
+                    return dict(new_result) if new_result else None
+                    
+    except psycopg2.Error as e:
         logger.error(f"Database error getting user credits: {e}")
-        # Fallback to mock data on database error
+        # Return fallback for database connection issues
         return {
-            'total_credits': 5,
+            'total_credits': 2,
             'used_credits': 0,
-            'available_credits': 5
+            'available_credits': 2
         }
+    except Exception as e:
+        logger.error(f"Unexpected error getting user credits: {e}")
+        # Return None for other errors (like programming errors)
+        return None
 
 def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
-    """Get user's library from database"""
+    """Get user's library from database based on actual purchases"""
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Get library from user_purchases joined with books
                 cursor.execute("""
                     SELECT 
                         b.id,
                         b.title,
                         b.author,
                         b.cover_image_url,
-                        ROUND(ul.last_position_seconds::numeric / COALESCE(NULLIF(b.duration_minutes * 60, 0), 1), 2) as progress,
-                        ul.acquired_at as purchased_at
-                    FROM user_library ul
-                    JOIN books b ON ul.book_id::uuid = b.id
-                    WHERE ul.user_id = %s
-                    ORDER BY ul.acquired_at DESC
+                        COALESCE(ul.last_position_seconds::numeric / NULLIF(b.duration_minutes * 60, 0), 0.0) as progress,
+                        up.purchase_date as purchased_at
+                    FROM user_purchases up
+                    JOIN books b ON up.book_id::uuid = b.id
+                    LEFT JOIN user_library ul ON ul.user_id = up.user_id AND ul.book_id = b.id::text
+                    WHERE up.user_id = %s
+                    ORDER BY up.purchase_date DESC
                     LIMIT %s OFFSET %s
                 """, (user_id, limit, offset))
                 
@@ -81,7 +117,7 @@ def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str
                 # Get total count
                 cursor.execute("""
                     SELECT COUNT(*) 
-                    FROM user_library 
+                    FROM user_purchases 
                     WHERE user_id = %s
                 """, (user_id,))
                 
@@ -91,9 +127,15 @@ def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str
                     'books': books,
                     'total_books': total_count
                 }
-    except Exception as e:
+    except psycopg2.Error as e:
         logger.error(f"Database error getting user library: {e}")
-        # Start with empty library - user needs to purchase books
+        # Return empty library for database errors
+        return {
+            'books': [],
+            'total_books': 0
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error getting user library: {e}")
         return {
             'books': [],
             'total_books': 0
@@ -127,6 +169,96 @@ def create_user(email: str, name: str = "") -> Optional[str]:
         logger.error(f"Database error creating user: {e}")
         return None
 
+def create_purchase(user_id: str, book_id: str, credits_used: int = 1, purchase_type: str = "credit") -> bool:
+    """Create a book purchase record and update user credits"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Start transaction
+                cursor.execute("BEGIN")
+                
+                # Check if user already owns the book
+                cursor.execute("""
+                    SELECT id FROM user_purchases 
+                    WHERE user_id = %s AND book_id = %s
+                """, (user_id, book_id))
+                
+                if cursor.fetchone():
+                    cursor.execute("ROLLBACK")
+                    logger.warning(f"User {user_id} already owns book {book_id}")
+                    return False
+                
+                # Verify user has enough credits
+                cursor.execute("""
+                    SELECT total_credits - used_credits as available_credits
+                    FROM user_credits 
+                    WHERE user_id = %s
+                """, (user_id,))
+                
+                credit_result = cursor.fetchone()
+                if not credit_result or credit_result['available_credits'] < credits_used:
+                    cursor.execute("ROLLBACK")
+                    logger.warning(f"User {user_id} has insufficient credits")
+                    return False
+                
+                # Get book price for record keeping
+                cursor.execute("""
+                    SELECT price_usd FROM books WHERE id = %s
+                """, (book_id,))
+                
+                book_result = cursor.fetchone()
+                if not book_result:
+                    cursor.execute("ROLLBACK")
+                    logger.error(f"Book {book_id} not found")
+                    return False
+                
+                # Create purchase record
+                cursor.execute("""
+                    INSERT INTO user_purchases (user_id, book_id, purchase_type, credits_used, price_paid)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (user_id, book_id, purchase_type, credits_used, book_result['price_usd']))
+                
+                # Update user credits
+                cursor.execute("""
+                    UPDATE user_credits 
+                    SET used_credits = used_credits + %s, 
+                        last_updated = NOW()
+                    WHERE user_id = %s
+                """, (credits_used, user_id))
+                
+                # Add book to user library (map credit purchase to purchase access type)
+                access_type = "purchase" if purchase_type == "credit" else purchase_type
+                cursor.execute("""
+                    INSERT INTO user_library (user_id, book_id, acquired_at, access_type)
+                    VALUES (%s, %s, NOW(), %s)
+                    ON CONFLICT (user_id, book_id) DO NOTHING
+                """, (user_id, book_id, access_type))
+                
+                # Commit transaction
+                cursor.execute("COMMIT")
+                logger.info(f"Successfully created purchase: user {user_id}, book {book_id}, credits {credits_used}")
+                return True
+                
+    except Exception as e:
+        logger.error(f"Error creating purchase: {e}")
+        return False
+
+def check_user_owns_book(user_id: str, book_id: str) -> bool:
+    """Check if user owns a specific book"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT 1 FROM user_purchases 
+                    WHERE user_id = %s AND book_id = %s
+                    LIMIT 1
+                """, (user_id, book_id))
+                
+                return cursor.fetchone() is not None
+    except Exception as e:
+        logger.error(f"Error checking book ownership: {e}")
+        return False
+
 def get_browse_books(limit: int = 20, offset: int = 0, featured_only: bool = False) -> Dict[str, Any]:
     """Get books for browsing from database"""
     try:
@@ -149,7 +281,10 @@ def get_browse_books(limit: int = 20, offset: int = 0, featured_only: bool = Fal
                         COALESCE(is_new_release, false) as is_new_release
                     FROM books
                     {where_clause}
-                    ORDER BY created_at DESC
+                    ORDER BY 
+                        CASE WHEN is_featured THEN 0 ELSE 1 END,
+                        CASE WHEN is_bestseller THEN 0 ELSE 1 END,
+                        created_at DESC
                     LIMIT %s OFFSET %s
                 """, (limit, offset))
                 
@@ -170,40 +305,10 @@ def get_browse_books(limit: int = 20, offset: int = 0, featured_only: bool = Fal
                 }
     except Exception as e:
         logger.error(f"Database error getting browse books: {e}")
-        # Fallback to hardcoded book data when database is unavailable
-        fallback_books = [
-            {
-                'id': 'gatsby-001',
-                'title': 'The Great Gatsby',
-                'author': 'F. Scott Fitzgerald',
-                'cover_image_url': '/books/cover/The Great Gatsby/GatsbyCover.jpg',
-                'price_usd': 14.95,
-                'credit_price': 1,
-                'is_featured': True,
-                'is_bestseller': True,
-                'is_new_release': False
-            },
-            {
-                'id': 'mobydick-001', 
-                'title': 'Moby Dick',
-                'author': 'Herman Melville',
-                'cover_image_url': '/books/cover/Moby Dick/Moby_Dick_1002.jpg',
-                'price_usd': 14.95,
-                'credit_price': 1,
-                'is_featured': True,
-                'is_bestseller': False,
-                'is_new_release': False
-            }
-        ]
-        
-        # Apply filters if any
-        filtered_books = fallback_books
-        if featured_only:
-            filtered_books = [book for book in fallback_books if book['is_featured']]
-            
+        # Return empty result on database error - no hardcoded fallback
         return {
-            'books': filtered_books,
-            'total_books': len(filtered_books)
+            'books': [],
+            'total_books': 0
         }
 
 def test_database_connection() -> bool:
@@ -264,19 +369,34 @@ def get_book_details(book_id: str) -> Optional[Dict[str, Any]]:
                 chapters = []
                 
                 for chapter in chapters_data:
-                    # Extract folder and filename from file_path
+                    # Handle different file_path formats
                     if chapter['file_path']:
-                        # file_path format: "The Great Gatsby/Chapter 1.mp3"
                         file_path = chapter['file_path']
-                        # Create proper audio URL using the existing file serving endpoint
-                        audio_url = f"/books/{file_path}"
+                        
+                        # Check if it's already a full URL (LibriVox, etc.)
+                        if file_path.startswith(('http://', 'https://')):
+                            # Use LibriVox or other external URL directly
+                            audio_url = file_path
+                        else:
+                            # Legacy local file path - try Azure storage first
+                            audio_url = None
+                            if '/' in file_path:
+                                book_folder, filename = file_path.split('/', 1)
+                                azure_url = azure_storage.generate_audio_url(book_folder, filename)
+                                if azure_url:
+                                    audio_url = azure_url
+                            
+                            # Fallback to local file serving endpoint if Azure not available
+                            if not audio_url:
+                                audio_url = f"/books/{file_path}"
                         
                         chapters.append({
                             'id': str(chapter['id']),
                             'title': chapter['title'],
                             'audio_url': audio_url,
                             'chapter_number': chapter['chapter_number'],
-                            'duration': chapter.get('duration')
+                            'duration': chapter.get('duration'),
+                            'file_path': file_path  # Keep for download functionality
                         })
                 
                 result['chapters'] = chapters
@@ -289,81 +409,205 @@ def get_book_details(book_id: str) -> Optional[Dict[str, Any]]:
                 
     except Exception as e:
         logger.error(f"Database error getting book details for {book_id}: {e}")
-        
-        # Fallback data for both books
-        if book_id == "gatsby-001":
-            chapters = []
-            for i in range(1, 10):  # 9 chapters
-                chapters.append({
-                    'id': f'gatsby-ch-{i}',
-                    'title': f'Chapter {i}',
-                    'audio_url': f'/books/The Great Gatsby/Chapter {i}.mp3',
-                    'chapter_number': i,
-                    'duration': 1800  # 30 minutes estimate
-                })
-            
-            return {
-                'id': book_id,
-                'title': 'The Great Gatsby',
-                'author': 'F. Scott Fitzgerald',
-                'description': 'A classic American novel set in the Jazz Age, exploring themes of wealth, love, idealism and moral decay.',
-                'cover_image_url': '/books/cover/The Great Gatsby/GatsbyCover.jpg',
-                'price_usd': 14.95,
-                'credit_price': 1,
-                'is_featured': True,
-                'is_bestseller': True,
-                'is_new_release': False,
-                'chapters': chapters,
-                'total_duration': 16200  # 4.5 hours estimate
-            }
-        elif book_id == "mobydick-001":
-            # Moby Dick chapters based on actual files
-            moby_chapters = [
-                {'file': 'mobydick_000_melville_64kb.mp3', 'title': 'Introduction'},
-                {'file': 'mobydick_001_002_melville_64kb.mp3', 'title': 'Chapters 1-2'},
-                {'file': 'mobydick_003_melville_64kb.mp3', 'title': 'Chapter 3'},
-                {'file': 'mobydick_004_007_melville_64kb.mp3', 'title': 'Chapters 4-7'},
-                {'file': 'mobydick_008_009_melville_64kb.mp3', 'title': 'Chapters 8-9'},
-                {'file': 'mobydick_010_012_melville_64kb.mp3', 'title': 'Chapters 10-12'},
-                {'file': 'mobydick_013_015_melville_64kb.mp3', 'title': 'Chapters 13-15'},
-                {'file': 'mobydick_016_melville_64kb.mp3', 'title': 'Chapter 16'},
-                {'file': 'mobydick_017_021_melville_64kb.mp3', 'title': 'Chapters 17-21'},
-                {'file': 'mobydick_022_025_melville_64kb.mp3', 'title': 'Chapters 22-25'},
-                {'file': 'mobydick_026_027_melville_64kb.mp3', 'title': 'Chapters 26-27'},
-                {'file': 'mobydick_028_031_melville_64kb.mp3', 'title': 'Chapters 28-31'},
-                {'file': 'mobydick_032_melville_64kb.mp3', 'title': 'Chapter 32'},
-                {'file': 'mobydick_033_035_melville_64kb.mp3', 'title': 'Chapters 33-35'},
-                {'file': 'mobydick_036_040_melville_64kb.mp3', 'title': 'Chapters 36-40'},
-                {'file': 'mobydick_041_melville_64kb.mp3', 'title': 'Chapter 41'},
-                {'file': 'mobydick_042_044_melville_64kb.mp3', 'title': 'Chapters 42-44'},
-                {'file': 'mobydick_045_047_melville_64kb.mp3', 'title': 'Chapters 45-47'},
-                {'file': 'mobydick_048_050_melville_64kb.mp3', 'title': 'Chapters 48-50'},
-                {'file': 'mobydick_051_053_melville_64kb.mp3', 'title': 'Chapters 51-53'},
-            ]
-            
-            chapters = []
-            for i, chapter_info in enumerate(moby_chapters[:20], 1):  # First 20 parts
-                chapters.append({
-                    'id': f'moby-ch-{i}',
-                    'title': chapter_info['title'],
-                    'audio_url': f'/books/Moby Dick/{chapter_info["file"]}',
-                    'chapter_number': i,
-                    'duration': 1200  # 20 minutes estimate per part
-                })
-            
-            return {
-                'id': book_id,
-                'title': 'Moby Dick',
-                'author': 'Herman Melville',
-                'description': 'The epic tale of Captain Ahab\'s obsessive quest to kill the white whale that took his leg. A masterpiece of American literature exploring themes of fate, nature, and the human condition.',
-                'cover_image_url': '/books/cover/Moby Dick/Moby_Dick_1002.jpg',
-                'price_usd': 14.95,
-                'credit_price': 1,
-                'is_featured': True,
-                'is_bestseller': False,
-                'is_new_release': False,
-                'chapters': chapters,
-                'total_duration': 24000  # 400 minutes estimate
-            }
-        
         return None
+
+
+def get_book_personas(book_id: str) -> Optional[Dict[str, Any]]:
+    """Get all personas associated with a book"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Get book title
+                cursor.execute("SELECT title FROM books WHERE id = %s", (book_id,))
+                book = cursor.fetchone()
+                if not book:
+                    return None
+                
+                # Get personas for this book
+                cursor.execute("""
+                    SELECT 
+                        bp.id,
+                        bp.persona_id,
+                        p.name as persona_name,
+                        p.display_name as persona_display_name,
+                        p.description as persona_description,
+                        bp.is_default,
+                        bp.custom_prompt,
+                        bp.sort_order
+                    FROM book_personas bp
+                    JOIN personas p ON bp.persona_id = p.id
+                    WHERE bp.book_id = %s
+                    ORDER BY bp.sort_order ASC, p.display_name ASC
+                """, (book_id,))
+                
+                personas = cursor.fetchall()
+                
+                return {
+                    'book_id': book_id,
+                    'book_title': book['title'],
+                    'personas': personas
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error getting personas for book {book_id}: {e}")
+        return None
+
+
+def get_persona_details(persona_id: str) -> Optional[Dict[str, Any]]:
+    """Get detailed persona information"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT 
+                        id, name, display_name, description, base_prompt,
+                        voice_config, generation_config, tts_config, is_global,
+                        created_at, updated_at
+                    FROM personas 
+                    WHERE id = %s
+                """, (persona_id,))
+                
+                return cursor.fetchone()
+                
+    except Exception as e:
+        logger.error(f"Database error getting persona {persona_id}: {e}")
+        return None
+
+
+def get_all_personas() -> List[Dict[str, Any]]:
+    """Get all available personas"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT 
+                        id, name, display_name, description, 
+                        is_global, created_at, updated_at
+                    FROM personas 
+                    ORDER BY is_global DESC, display_name ASC
+                """)
+                
+                return cursor.fetchall()
+                
+    except Exception as e:
+        logger.error(f"Database error getting all personas: {e}")
+        return []
+
+
+def create_persona(persona_data: Dict[str, Any]) -> Optional[str]:
+    """Create a new persona and return its ID"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    INSERT INTO personas 
+                    (name, display_name, description, base_prompt, voice_config, 
+                     generation_config, tts_config, is_global)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    persona_data['name'],
+                    persona_data['display_name'],
+                    persona_data.get('description', ''),
+                    persona_data['base_prompt'],
+                    persona_data.get('voice_config', {}),
+                    persona_data.get('generation_config', {}),
+                    persona_data.get('tts_config', {}),
+                    persona_data.get('is_global', False)
+                ))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                return str(result['id'])
+                
+    except Exception as e:
+        logger.error(f"Database error creating persona: {e}")
+        return None
+
+
+def update_persona(persona_id: str, persona_data: Dict[str, Any]) -> bool:
+    """Update an existing persona"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE personas SET
+                        display_name = %s,
+                        description = %s,
+                        base_prompt = %s,
+                        voice_config = %s,
+                        generation_config = %s,
+                        tts_config = %s,
+                        is_global = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (
+                    persona_data['display_name'],
+                    persona_data.get('description', ''),
+                    persona_data['base_prompt'],
+                    persona_data.get('voice_config', {}),
+                    persona_data.get('generation_config', {}),
+                    persona_data.get('tts_config', {}),
+                    persona_data.get('is_global', False),
+                    persona_id
+                ))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+    except Exception as e:
+        logger.error(f"Database error updating persona {persona_id}: {e}")
+        return False
+
+
+def delete_persona(persona_id: str) -> bool:
+    """Delete a persona (also removes book-persona relationships)"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("DELETE FROM personas WHERE id = %s", (persona_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+                
+    except Exception as e:
+        logger.error(f"Database error deleting persona {persona_id}: {e}")
+        return False
+
+
+def add_persona_to_book(book_id: str, persona_id: str, is_default: bool = False, sort_order: int = 0) -> bool:
+    """Add a persona to a book"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO book_personas (book_id, persona_id, is_default, sort_order)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (book_id, persona_id) DO UPDATE SET
+                        is_default = EXCLUDED.is_default,
+                        sort_order = EXCLUDED.sort_order
+                """, (book_id, persona_id, is_default, sort_order))
+                
+                conn.commit()
+                return True
+                
+    except Exception as e:
+        logger.error(f"Database error adding persona {persona_id} to book {book_id}: {e}")
+        return False
+
+
+def remove_persona_from_book(book_id: str, persona_id: str) -> bool:
+    """Remove a persona from a book"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM book_personas 
+                    WHERE book_id = %s AND persona_id = %s
+                """, (book_id, persona_id))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+    except Exception as e:
+        logger.error(f"Database error removing persona {persona_id} from book {book_id}: {e}")
+        return False

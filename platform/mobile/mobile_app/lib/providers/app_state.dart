@@ -35,6 +35,7 @@ import '../services/api_service.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/log_service.dart';
 import '../services/llm_direct_service.dart';
+import '../services/optimized_api_service.dart';
 
 /// Global application state manager using Provider pattern for reactive UI updates
 /// Coordinates audiobook playback, AI interactions, and backend communication
@@ -135,18 +136,48 @@ class AppState extends ChangeNotifier {
 
   Future<void> loadPersonas() async {
     try {
-      // Load personas from LLM Gateway
-      _personas = await LlmDirectService.getPersonas();
-      if (_personas.isNotEmpty && _selectedPersona == null) {
-        _selectedPersona = _personas.first;
+      // Load book-specific personas if we have a current book
+      if (_currentBook != null && _currentBook!.id.isNotEmpty) {
+        LogService.debug('Loading personas for book: ${_currentBook!.title}');
+        _personas = await OptimizedApiService.getBookPersonas(_currentBook!.id);
+      } else {
+        // Load all available personas if no specific book
+        LogService.debug('Loading all available personas');
+        _personas = await OptimizedApiService.getAllPersonas();
       }
+      
+      // Select default persona if available, otherwise first persona
+      if (_personas.isNotEmpty) {
+        final defaultPersona = _personas.firstWhere(
+          (p) => p.isDefault,
+          orElse: () => _personas.first,
+        );
+        if (_selectedPersona == null) {
+          _selectedPersona = defaultPersona;
+        }
+      }
+      
       _error = null;
       notifyListeners();
-      LogService.debug('Loaded ${_personas.length} personas via direct LLM Gateway');
+      LogService.debug('Loaded ${_personas.length} personas from API Gateway');
     } catch (e) {
       _error = e.toString();
       notifyListeners();
       LogService.debug('Failed to load personas: $e');
+      
+      // Fallback to direct LLM Gateway if API Gateway fails
+      try {
+        LogService.debug('Falling back to direct LLM Gateway');
+        _personas = await LlmDirectService.getPersonas();
+        if (_personas.isNotEmpty && _selectedPersona == null) {
+          _selectedPersona = _personas.first;
+        }
+        _error = null;
+        notifyListeners();
+        LogService.debug('Loaded ${_personas.length} personas via fallback LLM Gateway');
+      } catch (fallbackError) {
+        LogService.debug('Fallback also failed: $fallbackError');
+      }
     }
   }
 
@@ -155,11 +186,26 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reload personas for the current book (useful after book changes)
+  Future<void> reloadPersonasForCurrentBook() async {
+    if (_currentBook != null) {
+      LogService.debug('Reloading personas for current book: ${_currentBook!.title}');
+      await loadPersonas();
+    }
+  }
+
   Future<void> playBook(Book book, [Chapter? chapter]) async {
     String? audioUrl;
     try {
+      final bookChanged = _currentBook?.id != book.id;
       _currentBook = book;
       _currentChapter = chapter;
+      
+      // Load book-specific personas when switching to a new book
+      if (bookChanged) {
+        LogService.debug('Book changed, loading personas for: ${book.title}');
+        loadPersonas(); // Don't await to avoid blocking audio playback
+      }
       
       if (chapter != null) {
         audioUrl = chapter.audioUrl;

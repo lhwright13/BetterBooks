@@ -204,6 +204,129 @@ class OptimizedApiService {
     return optimized;
   }
   
+  /// Get book-specific personas from API Gateway
+  static Future<List<Persona>> getBookPersonas(String bookId) async {
+    try {
+      print('DEBUG: Fetching personas for book: $bookId');
+      final response = await _client.get(
+        Uri.parse('$apiBaseUrl/bookstore/books/$bookId/personas'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(_shortTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final personasList = data['personas'] as List;
+        
+        final personas = personasList.map((personaData) {
+          return Persona.fromJson(personaData);
+        }).toList();
+        
+        // Sort by sort_order and then by display name
+        personas.sort((a, b) {
+          if (a.sortOrder != b.sortOrder) {
+            return a.sortOrder.compareTo(b.sortOrder);
+          }
+          return a.displayName.compareTo(b.displayName);
+        });
+        
+        print('DEBUG: Loaded ${personas.length} personas for ${data['book_title']}');
+        return personas;
+      } else if (response.statusCode == 404) {
+        print('DEBUG: Book not found or no personas available');
+        return [];
+      } else {
+        throw Exception('Failed to load book personas: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('DEBUG: Error loading book personas: $e');
+      // Return fallback personas for MVP
+      return _getFallbackPersonas();
+    }
+  }
+
+  /// Get all available personas (global and book-specific)
+  static Future<List<Persona>> getAllPersonas() async {
+    try {
+      print('DEBUG: Fetching all personas');
+      final response = await _client.get(
+        Uri.parse('$apiBaseUrl/personas'),
+        headers: {'Accept': 'application/json'},
+      ).timeout(_shortTimeout);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final personasList = data['personas'] as List;
+        
+        final personas = personasList.map((personaData) {
+          return Persona.fromJson(personaData);
+        }).toList();
+        
+        print('DEBUG: Loaded ${personas.length} total personas');
+        return personas;
+      } else {
+        throw Exception('Failed to load personas: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('DEBUG: Error loading personas: $e');
+      // Return fallback personas for MVP
+      return _getFallbackPersonas();
+    }
+  }
+
+  /// Fallback personas for offline/error scenarios
+  static List<Persona> _getFallbackPersonas() {
+    return [
+      Persona(
+        id: 'fallback-nick',
+        name: 'Nick Carraway',
+        displayName: 'Nick Carraway',
+        description: 'The narrator of The Great Gatsby - observant and literary',
+        voice: 'en-US-Neural2-J',
+        voiceConfig: {},
+        generationConfig: {},
+        ttsConfig: {},
+        isGlobal: false,
+        isDefault: true,
+      ),
+      Persona(
+        id: 'fallback-teacher',
+        name: 'English Teacher',
+        displayName: 'English Teacher',
+        description: 'Encouraging guide for literary analysis and discussion',
+        voice: 'en-US-Neural2-C',
+        voiceConfig: {},
+        generationConfig: {},
+        ttsConfig: {},
+        isGlobal: true,
+        isDefault: false,
+      ),
+      Persona(
+        id: 'fallback-tutor',
+        name: 'Language Tutor',
+        displayName: 'Language Tutor',
+        description: 'Patient instructor for language learning and practice',
+        voice: 'en-US-Neural2-F',
+        voiceConfig: {},
+        generationConfig: {},
+        ttsConfig: {},
+        isGlobal: true,
+        isDefault: false,
+      ),
+      Persona(
+        id: 'fallback-helper',
+        name: 'Omniscient Helper',
+        displayName: 'Omniscient Helper',
+        description: 'Knowledgeable assistant for general questions and guidance',
+        voice: 'en-US-Neural2-A',
+        voiceConfig: {},
+        generationConfig: {},
+        ttsConfig: {},
+        isGlobal: true,
+        isDefault: false,
+      ),
+    ];
+  }
+
   /// Get connection health with quick timeout
   static Future<bool> isHealthy() async {
     try {

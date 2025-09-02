@@ -100,11 +100,22 @@ class ConfigManager:
         
     def _validate_required_config(self):
         """Validate that required configuration is present"""
-        required_vars = ["GEMINI_API_KEY", "JWT_SECRET_KEY"]
+        required_vars = []
+        optional_vars = ["GEMINI_API_KEY", "JWT_SECRET_KEY"]
         
         if self.environment == Environment.PRODUCTION:
-            required_vars.extend(["DATABASE_URL", "REDIS_URL"])
+            # In production, these are truly required
+            required_vars.extend(["JWT_SECRET_KEY", "GEMINI_API_KEY", "DATABASE_URL"])
+        elif self.environment == Environment.DEVELOPMENT:
+            # In development, provide defaults if missing
+            if not os.getenv("JWT_SECRET_KEY"):
+                os.environ["JWT_SECRET_KEY"] = "dev-secret-key-not-for-production-use"
+                logger.warning("Using default JWT_SECRET_KEY for development - not secure for production!")
             
+            if not os.getenv("GEMINI_API_KEY"):
+                os.environ["GEMINI_API_KEY"] = "test-api-key"
+                logger.warning("Using test GEMINI_API_KEY for development - AI features may not work")
+                
         missing_vars = []
         for var in required_vars:
             if not os.getenv(var):
@@ -112,6 +123,11 @@ class ConfigManager:
                 
         if missing_vars:
             raise ValueError(f"Missing required environment variables: {missing_vars}")
+        
+        # Log optional variables that are missing
+        missing_optional = [var for var in optional_vars if not os.getenv(var)]
+        if missing_optional and self.environment == Environment.DEVELOPMENT:
+            logger.info(f"Optional environment variables not set: {missing_optional} (using defaults)")
     
     def get_security_config(self) -> SecurityConfig:
         """Get security configuration"""
@@ -233,15 +249,42 @@ class ConfigManager:
     
     def get_service_url(self, service: str) -> str:
         """Get URL for internal service communication"""
-        service_urls = {
-            "api_gateway": f"http://api_gateway:{os.getenv('API_GATEWAY_PORT', '8000')}",
-            "context_service": f"http://context_service:{os.getenv('CONTEXT_SERVICE_PORT', '8000')}",
-            "llm_gateway": f"http://llm_gateway:{os.getenv('LLM_GATEWAY_PORT', '8000')}",
-            "tts_service": f"http://tts_service:{os.getenv('TTS_SERVICE_PORT', '8000')}",
-            "transcription_service": f"http://transcription_service:{os.getenv('TRANSCRIPTION_SERVICE_PORT', '8003')}",
+        # Check for explicit service URL environment variables first
+        service_env_vars = {
+            "api_gateway": "API_GATEWAY_URL",
+            "context_service": "CONTEXT_SERVICE_URL", 
+            "llm_gateway": "LLM_GATEWAY_URL",
+            "tts_service": "TTS_SERVICE_URL",
+            "transcription_service": "TRANSCRIPTION_SERVICE_URL"
         }
         
-        return service_urls.get(service, f"http://{service}:8000")
+        # Use explicit URL if provided
+        env_var = service_env_vars.get(service)
+        if env_var and os.getenv(env_var):
+            url = os.getenv(env_var)
+            logger.debug(f"Using explicit URL for {service}: {url}")
+            return url
+        
+        # Determine base host based on environment
+        if self.environment == Environment.DEVELOPMENT and os.getenv("RUNNING_OUTSIDE_DOCKER"):
+            base_host = "localhost"
+        else:
+            base_host = service  # Docker service name
+            
+        # Default port mappings
+        default_ports = {
+            "api_gateway": "8000",
+            "context_service": "8001", 
+            "llm_gateway": "8002",
+            "tts_service": "8003",
+            "transcription_service": "8004",
+        }
+        
+        port = os.getenv(f"{service.upper()}_PORT", default_ports.get(service, "8000"))
+        url = f"http://{base_host}:{port}"
+        
+        logger.debug(f"Generated service URL for {service}: {url}")
+        return url
     
     def get_config_summary(self) -> Dict[str, Any]:
         """Get configuration summary for debugging (without secrets)"""

@@ -34,6 +34,9 @@ dependencies:
   # speech_to_text: ^6.6.0  # Temporarily disabled for build issue
   # Database for offline support
   sqflite: ^2.3.0
+  # File system and download packages
+  path_provider: ^2.1.1
+  dio: ^5.3.4
 
 dev_dependencies:
   flutter_test:

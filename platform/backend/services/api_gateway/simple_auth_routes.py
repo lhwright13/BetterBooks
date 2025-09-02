@@ -352,7 +352,7 @@ async def get_current_user_info(authorization: str = Header(None)):
         # Find user in the in-memory database
         user = None
         for stored_user in USERS_DB.values():
-            if stored_user.email == user_email:
+            if stored_user["email"] == user_email:
                 user = stored_user
                 break
         
@@ -363,14 +363,14 @@ async def get_current_user_info(authorization: str = Header(None)):
             )
         
         return {
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-            "is_verified": getattr(user, 'is_verified', True),
-            "created_at": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
-            "role": getattr(user, 'role', 'user'),
-            "subscription_status": getattr(user, 'subscription_status', 'free'),
-            "avatar_url": getattr(user, 'avatar_url', None)
+            "id": user["id"],
+            "email": user["email"],
+            "display_name": user.get("display_name", user["email"].split('@')[0]),
+            "is_verified": user.get('email_verified', True),
+            "created_at": user["created_at"].isoformat() if user.get("created_at") else None,
+            "role": user.get('role', 'user'),
+            "subscription_status": user.get('subscription_status', 'free'),
+            "avatar_url": user.get('avatar_url', None)
         }
         
     except HTTPException:

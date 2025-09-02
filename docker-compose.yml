@@ -187,6 +187,7 @@ services:
       TRANSCRIPTION_SERVICE_URL: http://transcription_service:8000
       DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
       REDIS_URL: redis://redis:6379/2
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     depends_on:
       - context_service
       - llm_gateway

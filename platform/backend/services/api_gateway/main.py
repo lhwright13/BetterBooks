@@ -18,6 +18,7 @@ Key responsibilities:
 
 import os
 import logging
+import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
@@ -70,6 +71,16 @@ logger.info(f"API Gateway starting with configuration: {app_config.get_config_su
 from azure_storage_helper import AzureStorageHelper
 azure_storage = AzureStorageHelper()
 
+def _format_datetime(dt):
+    """Helper function to safely format datetime objects"""
+    if dt is None:
+        return None
+    if isinstance(dt, str):
+        return dt
+    if hasattr(dt, 'isoformat'):
+        return dt.isoformat()
+    return str(dt)
+
 # Create FastAPI app
 app = FastAPI(
     title="EchoWright API Gateway",
@@ -78,6 +89,27 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Startup validation
+@app.on_event("startup")
+async def startup_validation():
+    """Run startup validation checks"""
+    try:
+        from startup_check import StartupValidator
+        validator = StartupValidator()
+        passed, results = await validator.run_all_validations()
+        
+        if not passed:
+            logger.error("🛑 API Gateway startup validation failed - some critical checks failed")
+            # Don't exit in production, just log warnings
+            if app_config.is_development():
+                logger.error("Continuing startup in development mode despite validation failures")
+        else:
+            logger.info("🎉 API Gateway startup validation completed successfully")
+            
+    except Exception as e:
+        logger.warning(f"Startup validation encountered an error: {e}")
+        logger.warning("Continuing startup without validation checks")
 
 # Add CORS middleware with centralized configuration
 security_config = app_config.get_security_config()
@@ -103,7 +135,28 @@ app.include_router(auth_router)
 
 
 # Database-backed user endpoints
-from db_utils import get_user_credits as db_get_user_credits, get_user_library as db_get_user_library, get_browse_books as db_get_browse_books, get_book_details as db_get_book_details, test_database_connection
+from db_utils import (
+    get_user_credits as db_get_user_credits, 
+    get_user_library as db_get_user_library, 
+    get_browse_books as db_get_browse_books, 
+    get_book_details as db_get_book_details, 
+    test_database_connection,
+    create_purchase,
+    check_user_owns_book,
+    get_book_personas,
+    get_persona_details,
+    get_all_personas,
+    create_persona,
+    update_persona,
+    delete_persona,
+    add_persona_to_book,
+    remove_persona_from_book
+)
+from azure_storage_helper import AzureStorageHelper
+from user_context import get_current_user_id, require_authenticated_user
+
+# Initialize Azure Storage helper
+azure_storage = AzureStorageHelper()
 
 class CreditBalanceResponse(BaseModel):
     total_credits: int
@@ -154,6 +207,19 @@ class PurchaseResponse(BaseModel):
     message: str
     remaining_credits: int
 
+class DownloadFile(BaseModel):
+    file_path: str
+    download_url: str
+    chapter_id: str
+    chapter_title: str
+    duration: Optional[int] = None
+
+class BookDownloadResponse(BaseModel):
+    book_id: str
+    book_title: str
+    files: List[DownloadFile]
+    expires_at: str
+
 class Chapter(BaseModel):
     id: str
     title: str
@@ -188,75 +254,89 @@ class BookCategory(BaseModel):
 class CategoriesResponse(BaseModel):
     categories: List[BookCategory]
 
+# Persona-related models
+class Persona(BaseModel):
+    id: str
+    name: str
+    display_name: str
+    description: str
+    base_prompt: str
+    voice_config: dict = {}
+    generation_config: dict = {}
+    tts_config: dict = {}
+    is_global: bool = False
+    created_at: str
+    updated_at: str
+
+class BookPersona(BaseModel):
+    id: str
+    persona_id: str
+    persona_name: str
+    persona_display_name: str
+    persona_description: str
+    is_default: bool = False
+    custom_prompt: Optional[str] = None
+    sort_order: int = 0
+
+class PersonaResponse(BaseModel):
+    persona: Persona
+
+class BookPersonasResponse(BaseModel):
+    personas: List[BookPersona]
+    book_id: str
+    book_title: str
+
 @app.get("/bookstore/user/credits", response_model=CreditBalanceResponse)
-async def get_user_credits():
+async def get_user_credits(user_id: str = Depends(get_current_user_id)):
     """Get user credit balance from database"""
-    # Using demo user ID for now - in production this would come from auth
-    demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
-    
-    credits_data = db_get_user_credits(demo_user_id)
-    
-    # Update used credits based on in-memory purchases
-    if demo_user_id in purchased_books:
-        used_credits = len(purchased_books[demo_user_id])
-        total_credits = credits_data.get('total_credits', 5)
-        credits_data.update({
-            'used_credits': used_credits,
-            'available_credits': max(0, total_credits - used_credits)
-        })
-    
-    return CreditBalanceResponse(**credits_data)
+    try:
+        credits_data = db_get_user_credits(user_id)
+        
+        if credits_data:
+            return CreditBalanceResponse(**credits_data)
+        else:
+            logger.warning(f"No credit data found for user {user_id}, using defaults")
+            return CreditBalanceResponse(
+                total_credits=2,
+                used_credits=0,
+                available_credits=2
+            )
+    except Exception as e:
+        logger.error(f"Error getting user credits: {e}")
+        # Fallback response if database is unavailable
+        return CreditBalanceResponse(
+            total_credits=2,
+            used_credits=0,
+            available_credits=2
+        )
 
 @app.get("/bookstore/user/library", response_model=UserLibraryResponse) 
-async def get_user_library():
+async def get_user_library(user_id: str = Depends(get_current_user_id)):
     """Get user library from database"""
-    # Using demo user ID for now - in production this would come from auth  
-    demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
-    
-    # First try database
-    library_data = db_get_user_library(demo_user_id)
-    
-    # If database returns empty but user has purchased books in-memory, use those
-    if library_data['total_books'] == 0 and demo_user_id in purchased_books:
-        # Get book details for purchased books
-        browse_data = db_get_browse_books(limit=100, offset=0)
-        available_books = {book['id']: book for book in browse_data['books']}
+    try:
+        library_data = db_get_user_library(user_id)
         
-        purchased_book_details = []
-        for book_id in purchased_books[demo_user_id]:
-            if book_id in available_books:
-                book_info = available_books[book_id]
-                purchased_book_details.append({
-                    'id': book_id,
-                    'title': book_info['title'],
-                    'author': book_info['author'],
-                    'cover_image_url': book_info['cover_image_url'],
-                    'progress': 0.0,
-                    'purchased_at': '2025-01-20T10:00:00Z'
-                })
+        # Convert to response format
+        books = [
+            LibraryBook(
+                id=str(book['id']),  # Convert UUID to string
+                title=book['title'],
+                author=book['author'] or 'Unknown Author',
+                cover_image_url=book.get('cover_image_url', ''),
+                progress=float(book.get('progress', 0.0)),
+                purchased_at=_format_datetime(book.get('purchased_at'))
+            )
+            for book in library_data['books']
+        ]
         
-        library_data = {
-            'books': purchased_book_details,
-            'total_books': len(purchased_book_details)
-        }
-    
-    # Convert to response format
-    books = [
-        LibraryBook(
-            id=str(book['id']),  # Convert UUID to string
-            title=book['title'],
-            author=book['author'] or 'Unknown Author',
-            cover_image_url=book.get('cover_image_url', ''),
-            progress=float(book.get('progress', 0.0)),
-            purchased_at=book.get('purchased_at') if isinstance(book.get('purchased_at'), str) else None
+        return UserLibraryResponse(
+            books=books,
+            total_books=library_data['total_books']
         )
-        for book in library_data['books']
-    ]
-    
-    return UserLibraryResponse(
-        books=books,
-        total_books=library_data['total_books']
-    )
+    except Exception as e:
+        logger.error(f"Error getting user library: {e}")
+        # Return empty library on error
+        return UserLibraryResponse(books=[], total_books=0)
 
 @app.get("/bookstore/browse", response_model=BrowseResponse)
 async def browse_books(
@@ -267,41 +347,51 @@ async def browse_books(
     limit: int = 20
 ):
     """Browse books in the bookstore with database-backed data"""
-    
-    # Calculate offset for pagination
-    offset = (page - 1) * limit
-    
-    # For now, just handle featured filter - can extend for bestsellers/new_releases
-    browse_data = db_get_browse_books(limit=limit, offset=offset, featured_only=featured)
-    
-    # Convert to response format
-    books = [
-        BrowseBook(
-            id=str(book['id']),  # Convert UUID to string
-            title=book['title'],
-            author=book['author'] or 'Unknown Author',
-            cover_image_url=book.get('cover_image_url', ''),
-            price_usd=float(book.get('price_usd', 9.99)),
-            credit_price=int(book.get('credit_price', 1)),
-            formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
-            formatted_duration="Unknown length",
-            language="en",
-            is_featured=bool(book.get('is_featured', False)),
-            is_bestseller=bool(book.get('is_bestseller', False)),
-            is_new_release=bool(book.get('is_new_release', False)),
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z"
+    try:
+        # Calculate offset for pagination
+        offset = (page - 1) * limit
+        
+        # For now, just handle featured filter - can extend for bestsellers/new_releases
+        browse_data = db_get_browse_books(limit=limit, offset=offset, featured_only=featured)
+        
+        # Convert to response format
+        books = [
+            BrowseBook(
+                id=str(book['id']),  # Convert UUID to string
+                title=book['title'],
+                author=book['author'] or 'Unknown Author',
+                cover_image_url=book.get('cover_image_url', ''),
+                price_usd=float(book.get('price_usd', 9.99)),
+                credit_price=int(book.get('credit_price', 1)),
+                formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
+                formatted_duration="Unknown length",
+                language="en",
+                is_featured=bool(book.get('is_featured', False)),
+                is_bestseller=bool(book.get('is_bestseller', False)),
+                is_new_release=bool(book.get('is_new_release', False)),
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            )
+            for book in browse_data['books']
+        ]
+        
+        return BrowseResponse(
+            books=books,
+            total_count=browse_data['total_books'],  # Map total_books to total_count
+            page=page,
+            page_size=limit,
+            has_next_page=(page * limit) < browse_data['total_books']
         )
-        for book in browse_data['books']
-    ]
-    
-    return BrowseResponse(
-        books=books,
-        total_count=browse_data['total_books'],  # Map total_books to total_count
-        page=page,
-        page_size=limit,
-        has_next_page=(page * limit) < browse_data['total_books']
-    )
+    except Exception as e:
+        logger.error(f"Error browsing books: {e}")
+        # Return empty results on error
+        return BrowseResponse(
+            books=[],
+            total_count=0,
+            page=page,
+            page_size=limit,
+            has_next_page=False
+        )
 
 @app.get("/bookstore/categories", response_model=CategoriesResponse)
 async def get_book_categories():
@@ -380,19 +470,29 @@ async def get_book_details(book_id: str):
         logger.error(f"Error getting book details for {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-# In-memory purchase tracking (for MVP without database)
-purchased_books = {}  # user_id -> [book_ids]
-
 @app.post("/bookstore/purchase", response_model=PurchaseResponse)
-async def purchase_book(request: PurchaseRequest):
-    """Purchase a book using credits"""
+async def purchase_book(request: PurchaseRequest, user_id: str = Depends(get_current_user_id)):
+    """Purchase a book using credits with database persistence"""
     try:
-        # Using demo user ID for now - in production this would come from auth
-        demo_user_id = "550e8400-e29b-41d4-a716-446655440000"
+        # Check if user already owns the book
+        if check_user_owns_book(user_id, request.book_id):
+            credits_data = db_get_user_credits(user_id)
+            return PurchaseResponse(
+                success=False,
+                message="Book already owned",
+                remaining_credits=credits_data.get('available_credits', 0) if credits_data else 0
+            )
         
-        # Get current credits
-        credits_data = db_get_user_credits(demo_user_id)
-        available_credits = credits_data.get('available_credits', 5)
+        # Get current credits before purchase
+        credits_data = db_get_user_credits(user_id)
+        if not credits_data:
+            return PurchaseResponse(
+                success=False,
+                message="Unable to retrieve credit balance",
+                remaining_credits=0
+            )
+        
+        available_credits = credits_data.get('available_credits', 0)
         
         # Check if user has enough credits
         if available_credits < request.credits_to_use:
@@ -402,42 +502,194 @@ async def purchase_book(request: PurchaseRequest):
                 remaining_credits=available_credits
             )
         
-        # Check if book exists (from browse books)
-        browse_data = db_get_browse_books(limit=100, offset=0)
-        available_books = {book['id']: book for book in browse_data['books']}
+        # Attempt to create the purchase in database
+        purchase_success = create_purchase(
+            user_id=user_id,
+            book_id=request.book_id,
+            credits_used=request.credits_to_use,
+            purchase_type="credit"
+        )
         
-        if request.book_id not in available_books:
-            return PurchaseResponse(
-                success=False,
-                message="Book not found",
-                remaining_credits=available_credits
-            )
-        
-        # Add book to user's purchased books (in-memory for MVP)
-        if demo_user_id not in purchased_books:
-            purchased_books[demo_user_id] = []
-        
-        if request.book_id not in purchased_books[demo_user_id]:
-            purchased_books[demo_user_id].append(request.book_id)
-            remaining_credits = available_credits - request.credits_to_use
+        if purchase_success:
+            # Get book title for response
+            book_details = db_get_book_details(request.book_id)
+            book_title = book_details['title'] if book_details else "Unknown Book"
             
-            logger.info(f"Book {request.book_id} purchased by user {demo_user_id}")
+            # Get updated credit balance
+            updated_credits = db_get_user_credits(user_id)
+            remaining_credits = updated_credits.get('available_credits', 0) if updated_credits else 0
+            
+            logger.info(f"Book {request.book_id} purchased by user {user_id}")
             
             return PurchaseResponse(
                 success=True,
-                message=f"Successfully purchased {available_books[request.book_id]['title']}",
+                message=f"Successfully purchased {book_title}",
                 remaining_credits=remaining_credits
             )
         else:
             return PurchaseResponse(
                 success=False,
-                message="Book already owned",
+                message="Purchase failed - please try again",
                 remaining_credits=available_credits
             )
             
     except Exception as e:
         logger.error(f"Error purchasing book {request.book_id}: {e}")
         raise HTTPException(status_code=500, detail="Purchase failed")
+
+# Persona endpoints
+@app.get("/bookstore/books/{book_id}/personas", response_model=BookPersonasResponse)
+async def get_book_personas_endpoint(book_id: str):
+    """Get all personas available for a specific book"""
+    try:
+        personas_data = get_book_personas(book_id)
+        if not personas_data:
+            raise HTTPException(status_code=404, detail="Book not found")
+        
+        personas = [
+            BookPersona(
+                id=str(persona['id']),
+                persona_id=str(persona['persona_id']),
+                persona_name=persona['persona_name'],
+                persona_display_name=persona['persona_display_name'],
+                persona_description=persona['persona_description'],
+                is_default=persona['is_default'],
+                custom_prompt=persona.get('custom_prompt'),
+                sort_order=persona['sort_order']
+            )
+            for persona in personas_data['personas']
+        ]
+        
+        return BookPersonasResponse(
+            personas=personas,
+            book_id=personas_data['book_id'],
+            book_title=personas_data['book_title']
+        )
+    except Exception as e:
+        logger.error(f"Error getting personas for book {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get book personas")
+
+@app.get("/personas/{persona_id}", response_model=PersonaResponse)
+async def get_persona_endpoint(persona_id: str):
+    """Get detailed information about a specific persona"""
+    try:
+        persona_data = get_persona_details(persona_id)
+        if not persona_data:
+            raise HTTPException(status_code=404, detail="Persona not found")
+        
+        persona = Persona(
+            id=str(persona_data['id']),
+            name=persona_data['name'],
+            display_name=persona_data['display_name'],
+            description=persona_data.get('description', ''),
+            base_prompt=persona_data['base_prompt'],
+            voice_config=persona_data.get('voice_config', {}),
+            generation_config=persona_data.get('generation_config', {}),
+            tts_config=persona_data.get('tts_config', {}),
+            is_global=persona_data['is_global'],
+            created_at=_format_datetime(persona_data['created_at']),
+            updated_at=_format_datetime(persona_data['updated_at'])
+        )
+        
+        return PersonaResponse(persona=persona)
+    except Exception as e:
+        logger.error(f"Error getting persona {persona_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get persona details")
+
+@app.get("/personas")
+async def list_personas_endpoint():
+    """List all available personas"""
+    try:
+        personas_data = get_all_personas()
+        
+        personas = [
+            {
+                "id": str(persona['id']),
+                "name": persona['name'],
+                "display_name": persona['display_name'],
+                "description": persona.get('description', ''),
+                "is_global": persona['is_global'],
+                "created_at": _format_datetime(persona['created_at']),
+                "updated_at": _format_datetime(persona['updated_at'])
+            }
+            for persona in personas_data
+        ]
+        
+        return {"personas": personas}
+    except Exception as e:
+        logger.error(f"Error listing personas: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list personas")
+
+@app.get("/bookstore/books/{book_id}/download", response_model=BookDownloadResponse)
+async def get_book_download_links(book_id: str, user_id: str = Depends(get_current_user_id)):
+    """Get download links for all chapters of a purchased book"""
+    try:
+        # Verify user owns this book
+        user_owns_book = check_user_owns_book(user_id, book_id)
+        if not user_owns_book:
+            raise HTTPException(status_code=403, detail="Book not purchased by user")
+        
+        # Get book details with chapters
+        book_data = db_get_book_details(book_id)
+        if not book_data:
+            raise HTTPException(status_code=404, detail="Book not found")
+            
+        # Extract file paths for download URL generation
+        file_paths = []
+        chapter_info = {}
+        
+        for chapter in book_data.get('chapters', []):
+            if chapter.get('file_path'):
+                file_path = chapter['file_path']
+                file_paths.append(file_path)
+                chapter_info[file_path] = {
+                    'id': chapter['id'],
+                    'title': chapter['title'],
+                    'duration': chapter.get('duration')
+                }
+        
+        if not file_paths:
+            raise HTTPException(status_code=404, detail="No audio files found for this book")
+        
+        # Generate download URLs with 24-hour expiry
+        download_urls = azure_storage.generate_download_urls(file_paths, expiry_hours=24)
+        
+        if not download_urls:
+            # Fallback to local file URLs if Azure not available
+            download_urls = {fp: f"/books/{fp}" for fp in file_paths}
+        
+        # Build response
+        download_files = []
+        for file_path, download_url in download_urls.items():
+            chapter = chapter_info[file_path]
+            download_files.append(DownloadFile(
+                file_path=file_path,
+                download_url=download_url,
+                chapter_id=chapter['id'],
+                chapter_title=chapter['title'],
+                duration=chapter['duration']
+            ))
+        
+        # Sort by chapter number for consistent ordering
+        download_files.sort(key=lambda x: int(x.chapter_id) if x.chapter_id.isdigit() else 0)
+        
+        expires_at = datetime.utcnow().isoformat() + "Z"
+        if azure_storage.enabled:
+            from datetime import timedelta
+            expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat() + "Z"
+        
+        return BookDownloadResponse(
+            book_id=book_id,
+            book_title=book_data.get('title', 'Unknown Book'),
+            files=download_files,
+            expires_at=expires_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting download links for book {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate download links")
 
 @app.get("/database/test")
 async def test_database():

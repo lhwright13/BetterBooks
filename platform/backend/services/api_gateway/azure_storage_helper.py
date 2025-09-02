@@ -103,3 +103,54 @@ class AzureStorageHelper:
         except Exception as e:
             logger.error(f"Failed to generate cover URL for {book_folder}/{filename}: {e}")
             return None
+    
+    def generate_download_urls(self, file_paths: list[str], expiry_hours: int = 24) -> dict[str, str]:
+        """Generate download URLs for multiple files with longer expiry for downloaded content"""
+        if not self.enabled:
+            return {}
+            
+        urls = {}
+        try:
+            container_name = "audiobooks"
+            expiry_time = datetime.utcnow() + timedelta(hours=expiry_hours)
+            
+            for file_path in file_paths:
+                # file_path format: "The Great Gatsby/Chapter 1.mp3"
+                blob_name = file_path
+                
+                sas_token = generate_blob_sas(
+                    account_name=self.account_name,
+                    container_name=container_name,
+                    blob_name=blob_name,
+                    account_key=self.account_key,
+                    permission=BlobSasPermissions(read=True),
+                    expiry=expiry_time
+                )
+                
+                if self.cdn_endpoint:
+                    url = f"{self.cdn_endpoint}/{container_name}/{blob_name}?{sas_token}"
+                else:
+                    url = f"https://{self.account_name}.blob.core.windows.net/{container_name}/{blob_name}?{sas_token}"
+                
+                urls[file_path] = url
+                
+        except Exception as e:
+            logger.error(f"Failed to generate download URLs: {e}")
+            
+        return urls
+    
+    def check_blob_exists(self, file_path: str) -> bool:
+        """Check if a blob exists in Azure Storage"""
+        if not self.enabled:
+            return False
+            
+        try:
+            container_name = "audiobooks"
+            blob_client = self.blob_service_client.get_blob_client(
+                container=container_name, 
+                blob=file_path
+            )
+            return blob_client.exists()
+        except Exception as e:
+            logger.error(f"Failed to check if blob exists for {file_path}: {e}")
+            return False
