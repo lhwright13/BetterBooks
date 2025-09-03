@@ -240,34 +240,41 @@ USERS_DB: Dict[str, Dict[str, Any]] = {}
 try:
     from ..database.database_manager import DatabaseManager
     from .user_manager import UserManager
+    # Initialize DatabaseManager without pools initially
     db_manager = DatabaseManager()
     user_manager = UserManager(db_manager)
-    logger.info("Database user management initialized")
+    logger.info("Database user management configured (pools will initialize on first use)")
 except Exception as e:
     logger.warning(f"Failed to initialize database user management: {e}")
     # Use in-memory fallback for development
     db_manager = None
     user_manager = None
 
-def create_user(user_data: UserRegistration) -> User:
+async def ensure_database_initialized():
+    """Ensure database pools are initialized"""
+    if db_manager and not db_manager.primary_pool:
+        logger.info("Initializing database connection pools...")
+        success = await db_manager.initialize()
+        if not success:
+            logger.error("Failed to initialize database pools")
+            raise HTTPException(status_code=500, detail="Database initialization failed")
+
+async def create_user(user_data: UserRegistration) -> User:
     """Create new user account"""
     if user_manager:
-        # Use database-backed user management
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Ensure database is initialized
+        await ensure_database_initialized()
         
+        # Use database-backed user management
         try:
             # Hash password
             hashed_password = hash_password(user_data.password)
             
-            user_dict = loop.run_until_complete(
-                user_manager.create_user_from_email(
-                    email=user_data.email,
-                    username=user_data.username,
-                    hashed_password=hashed_password,
-                    role=user_data.role
-                )
+            user_dict = await user_manager.create_user_from_email(
+                email=user_data.email,
+                username=user_data.username,
+                hashed_password=hashed_password,
+                role=user_data.role
             )
             
             return User(
@@ -297,8 +304,6 @@ def create_user(user_data: UserRegistration) -> User:
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to create user"
             )
-        finally:
-            loop.close()
     else:
         # Fallback to in-memory storage
         # Check if user already exists
@@ -346,18 +351,15 @@ def create_user(user_data: UserRegistration) -> User:
             created_at=user_record["created_at"]
         )
 
-def authenticate_user(email: str, password: str) -> Optional[User]:
+async def authenticate_user(email: str, password: str) -> Optional[User]:
     """Authenticate user with email and password"""
     if user_manager:
-        # Use database-backed authentication
-        import asyncio
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        # Ensure database is initialized
+        await ensure_database_initialized()
         
+        # Use database-backed authentication
         try:
-            user_dict = loop.run_until_complete(
-                user_manager.authenticate_user(email, password)
-            )
+            user_dict = await user_manager.authenticate_user(email, password)
             
             if user_dict:
                 return User(
@@ -375,8 +377,6 @@ def authenticate_user(email: str, password: str) -> Optional[User]:
         except Exception as e:
             logger.error(f"Database authentication failed: {e}")
             return None
-        finally:
-            loop.close()
     else:
         # Fallback to in-memory authentication
         for user_record in USERS_DB.values():

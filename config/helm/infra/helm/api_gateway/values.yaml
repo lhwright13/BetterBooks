@@ -1,6 +1,6 @@
 image:
   repository: betterbooksacr.azurecr.io/api_gateway
-  tag: auth-fix-2
+  tag: login-fixed
 service:
   type: LoadBalancer
   port: 8000

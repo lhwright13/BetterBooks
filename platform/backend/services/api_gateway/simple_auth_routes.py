@@ -141,7 +141,7 @@ async def email_sign_up(request: EmailSignUpRequest):
             password=request.password,
             role=UserRole.USER
         )
-        user = create_user(user_registration)
+        user = await create_user(user_registration)
         
         # Send verification email
         try:
@@ -182,7 +182,7 @@ async def email_sign_in(request: EmailSignInRequest):
     """Email/password sign in"""
     try:
         # Authenticate user
-        user = authenticate_user(request.email, request.password)
+        user = await authenticate_user(request.email, request.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

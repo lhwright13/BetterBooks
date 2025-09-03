@@ -71,34 +71,34 @@ class UserManager:
                 # Insert user
                 user_query = """
                     INSERT INTO users (id, email, display_name, avatar_url)
-                    VALUES ($1, $2, $3, $4)
+                    VALUES (%s, %s, %s, %s)
                     RETURNING id, email, display_name, avatar_url, created_at
                 """
                 
-                user_result = await self.db.fetch_one(user_query, [
+                user_result = await self.db.execute_query(user_query, (
                     str(user_id), email, display_name, avatar_url
-                ])
+                ), fetch_one=True)
                 
                 # Create identity record
                 identity_query = """
-                    INSERT INTO identities (user_id, provider, provider_user_id, email_at_auth, verified)
-                    VALUES ($1, $2, $3, $4, $5)
+                    INSERT INTO identities (user_id, provider, provider_id, provider_email, is_verified)
+                    VALUES (%s, %s, %s, %s, %s)
                 """
                 
-                await self.db.execute_query(identity_query, [
+                await self.db.execute_query(identity_query, (
                     str(user_id), provider, provider_id, email, True
-                ])
+                ), fetch_all=False)
                 
                 # Initialize user preferences
                 preferences_query = """
                     INSERT INTO user_preferences (user_id)
-                    VALUES ($1)
+                    VALUES (%s)
                 """
                 
-                await self.db.execute_query(preferences_query, [str(user_id)])
+                await self.db.execute_query(preferences_query, (str(user_id),), fetch_all=False)
                 
-                # Initialize credits (starting with 0 as per requirement)
-                await self._initialize_user_credits(user_id)
+                # Initialize credits (starting with 0 as per requirement) - TODO: Implement when user_credits table is created
+                # await self._initialize_user_credits(user_id)
                 
                 logger.info(f"Created new user {user_id} via {provider} OAuth")
                 
@@ -151,34 +151,45 @@ class UserManager:
                 
                 user_query = """
                     INSERT INTO users (id, email, display_name)
-                    VALUES ($1, $2, $3)
+                    VALUES (%s, %s, %s)
                     RETURNING id, email, display_name, created_at
                 """
                 
-                user_result = await self.db.fetch_one(user_query, [
+                user_result = await self.db.execute_query(user_query, (
                     str(user_id), email, username
-                ])
+                ), fetch_one=True)
                 
                 # Create email identity
                 identity_query = """
-                    INSERT INTO identities (user_id, provider, provider_user_id, email_at_auth, verified)
-                    VALUES ($1, $2, $3, $4, $5)
+                    INSERT INTO identities (user_id, provider, provider_id, provider_email, is_verified)
+                    VALUES (%s, %s, %s, %s, %s)
                 """
                 
-                await self.db.execute_query(identity_query, [
+                await self.db.execute_query(identity_query, (
                     str(user_id), 'email', email, email, True
-                ])
+                ), fetch_all=False)
+                
+                # Store password credentials
+                password_query = """
+                    INSERT INTO password_credentials (user_id, password_hash, salt)
+                    VALUES (%s, %s, %s)
+                """
+                
+                # For bcrypt, salt is included in hash, so we store a placeholder
+                await self.db.execute_query(password_query, (
+                    str(user_id), hashed_password, 'bcrypt'
+                ), fetch_all=False)
                 
                 # Initialize preferences
                 preferences_query = """
                     INSERT INTO user_preferences (user_id)
-                    VALUES ($1)
+                    VALUES (%s)
                 """
                 
-                await self.db.execute_query(preferences_query, [str(user_id)])
+                await self.db.execute_query(preferences_query, (str(user_id),), fetch_all=False)
                 
-                # Initialize credits
-                await self._initialize_user_credits(user_id)
+                # Initialize credits - TODO: Implement when user_credits table is created
+                # await self._initialize_user_credits(user_id)
                 
                 logger.info(f"Created new email user {user_id}")
                 
@@ -210,12 +221,12 @@ class UserManager:
                 LEFT JOIN identities i ON u.id = i.user_id
                 LEFT JOIN user_credits uc ON u.id = uc.user_id
                 LEFT JOIN user_purchases up ON u.id = up.user_id
-                WHERE u.id = $1 AND u.deleted_at IS NULL
+                WHERE u.id = %s AND u.deleted_at IS NULL
                 GROUP BY u.id, i.provider, i.provider_user_id, i.verified, 
                          uc.credits_available, uc.credits_used, uc.monthly_credits
             """
             
-            result = await self.db.fetch_one(query, [user_id])
+            result = await self.db.execute_query(query, (user_id,), fetch_one=True)
             
             if result:
                 return {
@@ -247,11 +258,11 @@ class UserManager:
         try:
             query = """
                 SELECT u.id FROM users u
-                WHERE u.email = $1 AND u.deleted_at IS NULL
+                WHERE u.email = %s AND u.deleted_at IS NULL
                 LIMIT 1
             """
             
-            result = await self.db.fetch_one(query, [email])
+            result = await self.db.execute_query(query, [email])
             
             if result:
                 return await self.get_user_by_id(result['id'])
@@ -265,21 +276,51 @@ class UserManager:
     async def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """
         Authenticate user with email and password
-        Note: This is a placeholder - actual password verification would be needed
         """
         try:
-            # For now, just check if user exists
-            # In production, you'd verify the hashed password here
-            user = await self.get_user_by_email(email)
+            # Get user and password credentials
+            query = """
+                SELECT u.*, pc.password_hash
+                FROM users u
+                JOIN password_credentials pc ON u.id = pc.user_id  
+                WHERE u.email = %s AND u.deleted_at IS NULL
+            """
             
-            if user and user.get('is_active'):
-                # Log the sign-in
+            result = await self.db.execute_query(query, (email,), fetch_one=True)
+            
+            if not result:
+                return None
+                
+            # Verify password using bcrypt
+            import bcrypt
+            
+            # Handle password_hash encoding - it might already be bytes or string
+            password_bytes = password.encode('utf-8')
+            if isinstance(result['password_hash'], str):
+                hash_bytes = result['password_hash'].encode('utf-8')
+            else:
+                hash_bytes = result['password_hash']
+                
+            if bcrypt.checkpw(password_bytes, hash_bytes):
+                # Password is correct, log the sign-in
                 await self._log_user_activity(
-                    UUID(user['id']), 
+                    result['id'], 
                     'sign_in', 
                     {'method': 'email', 'email': email}
                 )
-                return user
+                
+                # Return user data (without password_hash)
+                user_data = {
+                    'id': str(result['id']),  # Convert UUID to string
+                    'email': result['email'], 
+                    'username': result.get('username') or result['email'],  # Use email as fallback for username
+                    'display_name': result.get('display_name') or result['email'],  # Use email as fallback for display_name
+                    'role': result.get('role', 'user'),
+                    'is_active': result['is_active'],
+                    'email_verified': result.get('email_verified', False),
+                    'created_at': result['created_at'].isoformat() if result['created_at'] else None  # Convert datetime to ISO string
+                }
+                return user_data
             
             return None
             
@@ -302,10 +343,10 @@ class UserManager:
                     total_spent,
                     updated_at
                 FROM user_credits 
-                WHERE user_id = $1
+                WHERE user_id = %s
             """
             
-            result = await self.db.fetch_one(query, [user_id])
+            result = await self.db.execute_query(query, (user_id,), fetch_one=True)
             
             if result:
                 return {
@@ -361,9 +402,9 @@ class UserManager:
                 FROM user_purchases up
                 LEFT JOIN books b ON up.book_id = b.id
                 LEFT JOIN user_library ul ON up.user_id = ul.user_id AND up.book_id = ul.book_id
-                WHERE up.user_id = $1
+                WHERE up.user_id = %s
                 ORDER BY up.purchase_date DESC
-                LIMIT $2 OFFSET $3
+                LIMIT %s OFFSET %s
             """
             
             books = await self.db.fetch_all(query, [user_id, limit, offset])
@@ -372,10 +413,10 @@ class UserManager:
             count_query = """
                 SELECT COUNT(*) as total
                 FROM user_purchases
-                WHERE user_id = $1
+                WHERE user_id = %s
             """
             
-            count_result = await self.db.fetch_one(count_query, [user_id])
+            count_result = await self.db.execute_query(count_query, [user_id])
             
             book_list = []
             for book in books:
@@ -427,37 +468,37 @@ class UserManager:
                 # Check if user already owns the book
                 existing_query = """
                     SELECT id FROM user_purchases
-                    WHERE user_id = $1 AND book_id = $2
+                    WHERE user_id = %s AND book_id = %s
                 """
                 
-                existing = await self.db.fetch_one(existing_query, [user_id, book_id])
+                existing = await self.db.execute_query(existing_query, [user_id, book_id])
                 if existing:
                     raise ValueError("User already owns this book")
                 
                 # Check if book exists
-                book_query = "SELECT title FROM books WHERE id = $1"
-                book = await self.db.fetch_one(book_query, [book_id])
+                book_query = "SELECT title FROM books WHERE id = %s"
+                book = await self.db.execute_query(book_query, [book_id])
                 if not book:
                     raise ValueError("Book not found")
                 
                 # Create purchase record (0 credits used)
                 purchase_query = """
                     INSERT INTO user_purchases (user_id, book_id, purchase_type, credits_used, price_paid)
-                    VALUES ($1, $2, $3, $4, $5)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING id, purchase_date
                 """
                 
-                purchase = await self.db.fetch_one(purchase_query, [
+                purchase = await self.db.execute_query(purchase_query, (
                     user_id, book_id, purchase_type, 0, Decimal('0.00')
-                ])
+                ), fetch_one=True)
                 
                 # Create library entry for progress tracking
                 library_query = """
                     INSERT INTO user_library (user_id, book_id, access_type)
-                    VALUES ($1, $2, $3)
+                    VALUES (%s, %s, %s)
                 """
                 
-                await self.db.execute_query(library_query, [user_id, book_id, purchase_type])
+                await self.db.execute_query(library_query, (user_id, book_id, purchase_type), fetch_all=False)
                 
                 # Log the activity
                 await self._log_user_activity(
@@ -492,11 +533,11 @@ class UserManager:
         try:
             query = """
                 SELECT 1 FROM user_purchases
-                WHERE user_id = $1 AND book_id = $2
+                WHERE user_id = %s AND book_id = %s
                 LIMIT 1
             """
             
-            result = await self.db.fetch_one(query, [user_id, book_id])
+            result = await self.db.execute_query(query, [user_id, book_id])
             return result is not None
             
         except Exception as e:
@@ -562,7 +603,7 @@ class UserManager:
                 {where_clause}
             """
             
-            count_result = await self.db.fetch_one(count_query, count_params)
+            count_result = await self.db.execute_query(count_query, count_params)
             
             user_list = []
             for user in users:
@@ -598,7 +639,7 @@ class UserManager:
         try:
             query = """
                 INSERT INTO user_credits (id, user_id, credits_available, credits_used, monthly_credits)
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES (%s, %s, %s, %s, %s)
                 ON CONFLICT (user_id) DO NOTHING
             """
             
@@ -614,13 +655,13 @@ class UserManager:
         """Check if user with email or username already exists"""
         try:
             query = """
-                SELECT 'email' as type FROM users WHERE email = $1 AND deleted_at IS NULL
+                SELECT 'email' as type FROM users WHERE email = %s AND deleted_at IS NULL
                 UNION
-                SELECT 'username' as type FROM users WHERE display_name = $2 AND deleted_at IS NULL
+                SELECT 'username' as type FROM users WHERE display_name = %s AND deleted_at IS NULL
                 LIMIT 1
             """
             
-            result = await self.db.fetch_one(query, [email, username])
+            result = await self.db.execute_query(query, (email, username), fetch_one=True)
             return result['type'] if result else None
             
         except Exception as e:
@@ -639,25 +680,25 @@ class UserManager:
             # Update user avatar if provided
             if avatar_url:
                 update_query = """
-                    UPDATE users SET avatar_url = $1, updated_at = NOW()
-                    WHERE id = $2
+                    UPDATE users SET avatar_url = %s, updated_at = NOW()
+                    WHERE id = %s
                 """
-                await self.db.execute_query(update_query, [avatar_url, user_id])
+                await self.db.execute_query(update_query, (avatar_url, user_id), fetch_all=False)
             
             # Add or update identity
             identity_query = """
-                INSERT INTO identities (user_id, provider, provider_user_id, verified)
-                VALUES ($1, $2, $3, $4)
+                INSERT INTO identities (user_id, provider, provider_id, is_verified)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (user_id, provider) 
                 DO UPDATE SET 
-                    provider_user_id = $3,
-                    verified = $4,
+                    provider_id = %s,
+                    is_verified = %s,
                     updated_at = NOW()
             """
             
-            await self.db.execute_query(identity_query, [
-                user_id, provider, provider_id, True
-            ])
+            await self.db.execute_query(identity_query, (
+                user_id, provider, provider_id, True, provider_id, True
+            ), fetch_all=False)
             
             return await self.get_user_by_id(user_id)
             

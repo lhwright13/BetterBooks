@@ -34,7 +34,6 @@ import '../models/chat_message.dart';
 import '../services/api_service.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/log_service.dart';
-import '../services/llm_direct_service.dart';
 import '../services/optimized_api_service.dart';
 
 /// Global application state manager using Provider pattern for reactive UI updates
@@ -165,16 +164,29 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       LogService.debug('Failed to load personas: $e');
       
-      // Fallback to direct LLM Gateway if API Gateway fails
+      // Use basic fallback personas if API Gateway fails
       try {
-        LogService.debug('Falling back to direct LLM Gateway');
-        _personas = await LlmDirectService.getPersonas();
+        LogService.debug('Using fallback personas');
+        _personas = [
+          Persona(
+            id: 'fallback-teacher',
+            name: 'English Teacher',
+            displayName: 'English Teacher',
+            description: 'Encouraging guide for literary analysis and discussion',
+            voice: 'en-US-Neural2-C',
+            voiceConfig: {},
+            generationConfig: {},
+            ttsConfig: {},
+            isGlobal: true,
+            isDefault: true,
+          ),
+        ];
         if (_personas.isNotEmpty && _selectedPersona == null) {
           _selectedPersona = _personas.first;
         }
         _error = null;
         notifyListeners();
-        LogService.debug('Loaded ${_personas.length} personas via fallback LLM Gateway');
+        LogService.debug('Loaded ${_personas.length} fallback personas');
       } catch (fallbackError) {
         LogService.debug('Fallback also failed: $fallbackError');
       }
@@ -371,8 +383,8 @@ class AppState extends ChangeNotifier {
         LogService.debug('DEBUG: No book playing, sending message without context');
       }
 
-      // Get AI response via LLM Gateway
-      final response = await LlmDirectService.sendMessage(
+      // Get AI response via API Gateway
+      final response = await ApiService.sendMessage(
         contextualMessage,
         _selectedPersona!.name,
       );
@@ -410,8 +422,8 @@ class AppState extends ChangeNotifier {
         LogService.debug('DEBUG: No book playing for voice message, sending without context');
       }
 
-      // Get AI response via LLM Gateway
-      final response = await LlmDirectService.sendMessage(
+      // Get AI response via API Gateway
+      final response = await ApiService.sendMessage(
         contextualMessage,
         _selectedPersona!.name,
       );

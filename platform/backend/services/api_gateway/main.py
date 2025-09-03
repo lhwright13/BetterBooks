@@ -791,7 +791,7 @@ async def serve_cover_image(book_folder: str, filename: str):
 # Proxy endpoints for other services
 class CompletionRequest(BaseModel):
     prompt: str
-    config_name: Optional[str] = None
+    config: Optional[str] = None  # Changed from config_name to config to match LLM Gateway
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     use_cache: Optional[bool] = True
@@ -800,10 +800,20 @@ class CompletionRequest(BaseModel):
 async def complete_text(request: CompletionRequest):
     """Proxy text completion requests to LLM Gateway"""
     try:
+        # Create LLM Gateway compatible request
+        llm_request = {
+            "prompt": request.prompt,
+            "max_tokens": request.max_tokens or 4000
+        }
+        
+        # Only include config if it's provided and not empty
+        if request.config:
+            llm_request["config"] = request.config
+        
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 f"{LLM_URL}/complete",
-                json=request.dict()
+                json=llm_request
             )
             response.raise_for_status()
             return response.json()
@@ -811,7 +821,7 @@ async def complete_text(request: CompletionRequest):
         logger.warning(f"LLM service unavailable, providing fallback response: {llm_error}")
         
         # Provide a persona-appropriate fallback response
-        persona = getattr(request, 'config', None) or 'default'
+        persona = request.config or 'default'
         fallback_responses = {
             'Nick Carraway': "I'm afraid I'm having some difficulty connecting to my usual thoughts just now. Perhaps we could try this conversation again in a moment? The green light seems dimmer than usual tonight.",
             'English Teacher': "I apologize, but I'm experiencing some technical difficulties at the moment. Could you please repeat your question? I'd be happy to help you analyze this text once my connection is restored.",
@@ -917,6 +927,11 @@ def _extract_description_from_preprompt(preprompt: str) -> str:
         return desc
     return "AI Assistant"
 
+class ContextRequest(BaseModel):
+    book_name: str
+    chapter_name: Optional[str] = None
+    current_position: float  # Position in seconds
+
 @app.get("/context")
 async def get_context(query: str, book_id: Optional[str] = None):
     """Proxy context retrieval requests to Context Service"""
@@ -933,6 +948,39 @@ async def get_context(query: str, book_id: Optional[str] = None):
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
         logger.error(f"Error retrieving context: {e}")
+        raise HTTPException(status_code=500, detail="Context retrieval failed")
+
+@app.post("/context")
+async def get_positional_context(request: ContextRequest):
+    """Get context for specific playback position in audiobook"""
+    try:
+        # Format position info for context
+        position_minutes = int(request.current_position // 60)
+        position_seconds = int(request.current_position % 60)
+        
+        context_parts = []
+        context_parts.append(f"Book: {request.book_name}")
+        
+        if request.chapter_name:
+            context_parts.append(f"Chapter: {request.chapter_name}")
+            
+        context_parts.append(f"Position: {position_minutes}:{position_seconds:02d}")
+        
+        # Create a simple context response
+        # TODO: In the future, this could query the Context Service for actual book text
+        context_text = f"Currently listening to {request.book_name}"
+        if request.chapter_name:
+            context_text += f" - {request.chapter_name}"
+        context_text += f" at {position_minutes}:{position_seconds:02d}"
+        
+        return {
+            "context_text": context_text,
+            "book_name": request.book_name,
+            "chapter_name": request.chapter_name,
+            "position": request.current_position
+        }
+    except Exception as e:
+        logger.error(f"Error getting positional context: {e}")
         raise HTTPException(status_code=500, detail="Context retrieval failed")
 
 if __name__ == "__main__":

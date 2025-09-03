@@ -160,10 +160,9 @@ class DatabaseManager:
         """
         try:
             logger.info(
-                "Initializing database connection pools",
-                min_connections=self.config.min_connections,
-                max_connections=self.config.max_connections,
-                enable_read_replica=self.config.enable_read_replica
+                f"Initializing database connection pools "
+                f"(min={self.config.min_connections}, max={self.config.max_connections}, "
+                f"replica={self.config.enable_read_replica})"
             )
             
             # Initialize primary pool (for writes) using modern async pattern
@@ -192,7 +191,8 @@ class DatabaseManager:
                         max_size=max(5, self.config.max_connections // 2),
                         timeout=self.config.connection_timeout,
                         max_idle=self.config.max_idle_time,
-                        open=False  # Don't open in constructor
+                        open=False,  # Don't open in constructor
+                        configure=lambda conn: conn.__setattr__('row_factory', dict_row) or None
                     )
                     await self.replica_pool.open()  # Open explicitly
                     
@@ -277,6 +277,8 @@ class DatabaseManager:
         try:
             # Get connection from appropriate pool
             async with pool.connection() as conn:
+                # Configure row factory for dictionary access
+                conn.row_factory = dict_row
                 # Set command timeout
                 await conn.execute(f"SET statement_timeout = {int(self.config.command_timeout * 1000)}")
                 logger.debug(f"Using {pool_name} database connection")
@@ -295,6 +297,21 @@ class DatabaseManager:
             duration = time.time() - start_time
             if duration > 0.1:  # Only log significant wait times
                 logger.debug(f"{pool_name.title()} connection acquired in {duration:.3f}s")
+    
+    @asynccontextmanager
+    async def transaction(self):
+        """
+        Get a database transaction context manager.
+        
+        Usage:
+            async with db_manager.transaction() as conn:
+                await conn.execute("INSERT INTO table VALUES (%s)", (value,))
+                await conn.execute("UPDATE table SET col = %s", (value,))
+                # Transaction automatically committed on success, rolled back on exception
+        """
+        async with self.get_connection() as conn:
+            async with conn.transaction():
+                yield conn
     
     async def execute_query(
         self,

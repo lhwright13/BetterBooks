@@ -213,6 +213,7 @@ class ApiService {
         final data = jsonDecode(response.body);
         return (data['configs'] as List)
             .map((configName) => Persona(
+              id: 'legacy-${configName.toString()}',
               name: configName.toString(),
               displayName: configName.toString(),
               description: 'AI assistant persona: $configName',

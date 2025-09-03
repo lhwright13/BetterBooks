@@ -65,7 +65,7 @@ class Persona {
         displayName: json['persona_display_name'] ?? json['persona_name'] ?? '',
         description: json['persona_description'] ?? '',
         basePrompt: json['custom_prompt'], // Book-specific custom prompt
-        voice: _extractVoiceFromTtsConfig(json['tts_config']),
+        voice: _extractVoiceFromTtsConfig(json['tts_config']) ?? 'en-US-Neural2-C',
         voiceConfig: json['voice_config'] ?? {},
         generationConfig: json['generation_config'] ?? {},
         ttsConfig: json['tts_config'] ?? {},
