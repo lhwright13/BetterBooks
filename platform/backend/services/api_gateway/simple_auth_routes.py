@@ -269,31 +269,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 # EMAIL VERIFICATION ENDPOINTS
 # =====================================================
 
-@router.post("/email/send-verification")
-async def send_verification_email(request: EmailVerificationRequest):
-    """Send email verification"""
-    try:
-        email_service = get_email_service()
-        success = await email_service.send_verification_email(
-            email=request.email,
-            verification_token="dummy-token",  # TODO: Generate proper token
-            user_name="User"
-        )
-        
-        if success:
-            return {"message": "Verification email sent successfully"}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to send verification email"
-            )
-            
-    except Exception as e:
-        logger.error(f"Send verification email failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send verification email"
-        )
+# Email verification endpoint removed - using unverified emails
 
 @router.post("/password/reset")
 async def request_password_reset(request: PasswordResetRequest):

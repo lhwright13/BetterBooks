@@ -86,3 +86,20 @@ spec:
                 secretKeyRef:
                   name: auth-secrets
                   key: apple-oauth-key-id
+            # Azure Storage Configuration
+            - name: AZURE_STORAGE_ACCOUNT_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: azure-storage-secrets
+                  key: AZURE_STORAGE_ACCOUNT_NAME
+            - name: AZURE_STORAGE_ACCOUNT_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: azure-storage-secrets
+                  key: AZURE_STORAGE_ACCOUNT_KEY
+            # Database Configuration
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: database-url

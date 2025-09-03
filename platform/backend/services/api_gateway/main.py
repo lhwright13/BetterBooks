@@ -81,6 +81,36 @@ def _format_datetime(dt):
         return dt.isoformat()
     return str(dt)
 
+def _generate_sample_audio_url_for_title(book_title: str) -> Optional[str]:
+    """Generate sample audio URL based on book title for iOS compatibility"""
+    # Map book titles to first audio file names
+    audio_files = {
+        "Alice's Adventures in Wonderland": "alices_adventures_01_carroll_64kb.mp3",
+        "Moby Dick": "mobydick_001_002_melville_64kb.mp3", 
+        "The Great Gatsby": "gatsby_chapter_01.mp3",
+        "War and Peace": "warandpeace_001_tolstoy_64kb.mp3"
+    }
+    
+    # Get first audio file for this book
+    filename = audio_files.get(book_title, "")
+    if filename:
+        # Return the API endpoint that serves from Azure Storage
+        return f"/books/{book_title}/{filename}"
+    
+    return None
+
+def _get_book_duration_for_title(book_title: str) -> Optional[int]:
+    """Get estimated book duration in seconds for iOS compatibility"""
+    # Approximate durations based on typical audiobook lengths
+    durations = {
+        "Alice's Adventures in Wonderland": 4800,  # ~1.3 hours
+        "Moby Dick": 86400,  # ~24 hours
+        "The Great Gatsby": 18000,  # ~5 hours  
+        "War and Peace": 216000  # ~60 hours
+    }
+    
+    return durations.get(book_title, 3600)  # Default 1 hour
+
 # Create FastAPI app
 app = FastAPI(
     title="EchoWright API Gateway",
@@ -170,6 +200,8 @@ class LibraryBook(BaseModel):
     cover_image_url: str
     progress: float = 0.0
     purchased_at: Optional[str] = None
+    sample_audio_url: Optional[str] = None
+    duration_seconds: Optional[int] = None
 
 class UserLibraryResponse(BaseModel):
     books: List[LibraryBook]
@@ -324,7 +356,9 @@ async def get_user_library(user_id: str = Depends(get_current_user_id)):
                 author=book['author'] or 'Unknown Author',
                 cover_image_url=book.get('cover_image_url', ''),
                 progress=float(book.get('progress', 0.0)),
-                purchased_at=_format_datetime(book.get('purchased_at'))
+                purchased_at=_format_datetime(book.get('purchased_at')),
+                sample_audio_url=_generate_sample_audio_url_for_title(book['title']),
+                duration_seconds=_get_book_duration_for_title(book['title'])
             )
             for book in library_data['books']
         ]

@@ -31,7 +31,7 @@ import 'screens/library_screen.dart';
 import 'screens/enhanced_player_screen.dart';
 import 'screens/chat_screen.dart';
 import 'screens/user_settings_screen.dart';
-import 'screens/email_verification_screen.dart';
+// Email verification screen removed
 import 'screens/bookstore_screen.dart';
 import 'theme/echowright_theme.dart';
 
@@ -113,7 +113,7 @@ class EchoWrightApp extends StatelessWidget {
           '/player': (context) => EnhancedPlayerScreen(),
           '/chat': (context) => ChatScreen(),
           '/settings': (context) => UserSettingsScreen(),
-          '/verify-email': (context) => EmailVerificationScreen(email: ''),
+          // Email verification route removed
           '/store': (context) => BookstoreScreen(),
         },
       ),
@@ -142,14 +142,8 @@ class AuthWrapper extends StatelessWidget {
           return const SplashScreen();
         }
 
-        // Show main app if user is authenticated and verified
+        // Show main app if user is authenticated (email verification removed)
         if (authProvider.isAuthenticated) {
-          // Check if email verification is needed
-          if (authProvider.needsEmailVerification) {
-            return EmailVerificationScreen(
-              email: authProvider.currentUser?.email ?? '',
-            );
-          }
           return MainHomeScreen();
         }
 

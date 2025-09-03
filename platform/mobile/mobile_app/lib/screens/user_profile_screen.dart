@@ -235,17 +235,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Card(
                   child: Column(
                     children: [
-                      // Email verification action (only show if email not verified)
-                      if (user?.email != null && !user!.emailVerified) ...[
-                        ListTile(
-                          leading: Icon(Icons.email_outlined, color: Colors.orange[700]),
-                          title: Text('Verify Email', style: TextStyle(color: Colors.orange[700])),
-                          subtitle: Text('Tap to resend verification email'),
-                          trailing: Icon(Icons.chevron_right, color: Colors.orange[700]),
-                          onTap: () => _resendEmailVerification(context),
-                        ),
-                        Divider(height: 1),
-                      ],
+                      // Email verification removed - using unverified emails
                       ListTile(
                         leading: Icon(Icons.settings),
                         title: Text('User Settings'),
@@ -291,13 +281,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : Icon(Icons.chevron_right),
                         onTap: authProvider.isLoading ? null : () async {
+                          final scaffoldMessenger = ScaffoldMessenger.of(context);
                           final success = await authProvider.refreshUserData();
                           if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               SnackBar(content: Text('Profile updated successfully!')),
                             );
                           } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               SnackBar(content: Text('Failed to refresh profile. Please try again.')),
                             );
                           }
@@ -420,7 +411,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                final navigator = Navigator.of(context);
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                
+                navigator.pop();
                 
                 // Show loading indicator
                 showDialog(
@@ -432,14 +426,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 );
                 
                 // Sign out
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
                 await authProvider.signOut();
                 
-                // Close loading dialog
-                Navigator.of(context).pop();
-                
-                // Navigate to authentication screen
-                Navigator.of(context).pushReplacementNamed('/');
+                // Close loading dialog and navigate
+                if (mounted) {
+                  navigator.pop();
+                  navigator.pushReplacementNamed('/');
+                }
               },
               child: Text('Sign Out'),
             ),
@@ -449,59 +442,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  void _resendEmailVerification(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
-    
-    if (user?.email == null) return;
-    
-    // Show loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text('Sending Verification Email'),
-        content: Row(
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('Please wait...')
-          ],
-        ),
-      ),
-    );
-    
-    try {
-      final success = await authProvider.sendEmailVerification(user!.email!);
-      
-      Navigator.of(context).pop(); // Close loading dialog
-      
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verification email sent to ${user.email}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send verification email'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      Navigator.of(context).pop(); // Close loading dialog
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending verification email: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
+  // Email verification function removed
 
   // Apple Guideline Compliance Methods
   
@@ -526,10 +467,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     
     // Simulate restore purchases (would call StoreKit)
     Future.delayed(Duration(seconds: 2), () {
-      Navigator.of(context).pop(); // Close loading dialog
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Purchases restored successfully!')),
-      );
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Purchases restored successfully!')),
+        );
+      }
     });
   }
   
@@ -658,14 +601,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       // TODO: Call actual account deletion API when backend is ready
       // For now, simulate the deletion with sign out
-      await Future.delayed(Duration(seconds: 2));
       
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.signOut();
       
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       
       // Show success and navigate to welcome screen
+      if (!mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -687,8 +631,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         },
       );
     } catch (e) {
+      if (!mounted) return;
       Navigator.of(context).pop(); // Close loading dialog
       
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to delete account: $e'),

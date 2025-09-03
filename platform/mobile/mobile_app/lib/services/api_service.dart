@@ -452,11 +452,11 @@ class ApiService {
   static Future<Map<String, dynamic>> purchaseBook(String bookId) async {
     try {
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/bookstore/user/purchase'),
+        Uri.parse('$apiBaseUrl/bookstore/purchase'),
         headers: _getHeaders(),
         body: jsonEncode({
           'book_id': bookId,
-          'use_credits': true,
+          'credits_to_use': 1,
         }),
       ).timeout(_timeoutDuration);
 

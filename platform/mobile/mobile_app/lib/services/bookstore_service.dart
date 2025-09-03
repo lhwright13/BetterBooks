@@ -101,10 +101,8 @@ class PurchaseRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      'user_id': userId,
       'book_id': bookId,
-      'purchase_type': purchaseType,
-      if (creditsToUse != null) 'credits_to_use': creditsToUse,
+      'credits_to_use': creditsToUse ?? 1,
     };
   }
 }
@@ -352,7 +350,7 @@ class BookstoreService {
       );
 
       final response = await http.post(
-        Uri.parse('$apiBaseUrl/v2/bookstore/purchase'),
+        Uri.parse('$apiBaseUrl/bookstore/purchase'),
         headers: _getHeaders(),
         body: jsonEncode(request.toJson()),
       ).timeout(_timeoutDuration);

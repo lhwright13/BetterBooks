@@ -168,24 +168,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Send email verification
-  Future<bool> sendEmailVerification(String email) async {
-    _setLoading(true);
-    _clearError();
-    
-    try {
-      final success = await AuthService.sendEmailVerification(email);
-      if (!success) {
-        _setError('Failed to send verification email');
-      }
-      return success;
-    } catch (e) {
-      _setError('Failed to send verification email: $e');
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
+  // Email verification removed
 
   /// Request password reset
   Future<bool> requestPasswordReset(String email) async {
@@ -244,9 +227,9 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Check if current user needs email verification
+  /// Email verification removed - always return false
   bool get needsEmailVerification {
-    return _currentUser?.email != null && !(_currentUser?.emailVerified ?? true);
+    return false;
   }
 
   /// Check if current user has premium subscription

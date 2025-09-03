@@ -114,6 +114,11 @@ def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str
                 
                 books = [dict(row) for row in cursor.fetchall()]
                 
+                # Add sample audio URLs for iOS compatibility
+                for book in books:
+                    book['sample_audio_url'] = _generate_sample_audio_url(book['title'])
+                    book['duration_seconds'] = _get_book_duration_seconds(book['title'])
+                
                 # Get total count
                 cursor.execute("""
                     SELECT COUNT(*) 
@@ -140,6 +145,36 @@ def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str
             'books': [],
             'total_books': 0
         }
+
+def _generate_sample_audio_url(book_title: str) -> str:
+    """Generate sample audio URL based on book title and available files"""
+    # Map book titles to first audio file names
+    audio_files = {
+        "Alice's Adventures in Wonderland": "alices_adventures_01_carroll_64kb.mp3",
+        "Moby Dick": "mobydick_001_002_melville_64kb.mp3", 
+        "The Great Gatsby": "gatsby_chapter_01.mp3",
+        "War and Peace": "warandpeace_001_tolstoy_64kb.mp3"
+    }
+    
+    # Get first audio file for this book
+    filename = audio_files.get(book_title, "")
+    if filename:
+        # Return the API endpoint that serves from Azure Storage
+        return f"/books/{book_title}/{filename}"
+    
+    return None
+
+def _get_book_duration_seconds(book_title: str) -> int:
+    """Get estimated book duration in seconds"""
+    # Approximate durations based on typical audiobook lengths
+    durations = {
+        "Alice's Adventures in Wonderland": 4800,  # ~1.3 hours
+        "Moby Dick": 86400,  # ~24 hours
+        "The Great Gatsby": 18000,  # ~5 hours  
+        "War and Peace": 216000  # ~60 hours
+    }
+    
+    return durations.get(book_title, 3600)  # Default 1 hour
 
 def create_user(email: str, name: str = "") -> Optional[str]:
     """Create a new user in database and return user ID"""
