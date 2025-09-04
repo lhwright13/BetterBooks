@@ -46,6 +46,27 @@ def get_db_connection():
             return psycopg2.connect(fallback_url)
         raise
 
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    """Get user information from database by user ID"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT id, email, username, display_name, role, is_active, 
+                           email_verified, created_at, updated_at
+                    FROM users 
+                    WHERE id = %s
+                """, (user_id,))
+                
+                user = cursor.fetchone()
+                if user:
+                    return dict(user)
+                
+    except Exception as e:
+        logger.error(f"Error getting user by ID {user_id}: {e}")
+    
+    return None
+
 def get_user_credits(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user credit information from database"""
     try:
@@ -65,25 +86,25 @@ def get_user_credits(user_id: str) -> Optional[Dict[str, Any]]:
                 if result:
                     return dict(result)
                 else:
-                    # Initialize new user with 2 free credits
+                    # Initialize new user with 5 free credits
                     cursor.execute("""
                         INSERT INTO user_credits (user_id, total_credits, used_credits)
-                        VALUES (%s, 2, 0)
+                        VALUES (%s, 5, 0)
                         RETURNING total_credits, used_credits, (total_credits - used_credits) as available_credits
                     """, (user_id,))
                     
                     new_result = cursor.fetchone()
                     conn.commit()
-                    logger.info(f"Initialized new user {user_id} with 2 credits")
+                    logger.info(f"Initialized new user {user_id} with 5 credits")
                     return dict(new_result) if new_result else None
                     
     except psycopg2.Error as e:
         logger.error(f"Database error getting user credits: {e}")
         # Return fallback for database connection issues
         return {
-            'total_credits': 2,
+            'total_credits': 5,
             'used_credits': 0,
-            'available_credits': 2
+            'available_credits': 5
         }
     except Exception as e:
         logger.error(f"Unexpected error getting user credits: {e}")

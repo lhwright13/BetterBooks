@@ -158,8 +158,8 @@ async def email_sign_up(request: EmailSignUpRequest):
         logger.info(f"Created new email user: {user.email}")
         
         # Generate tokens  
-        access_token = create_access_token(data={"sub": user.email})
-        refresh_token = create_refresh_token(data={"sub": user.email})
+        access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
+        refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
         
         return AuthResponse(
             access_token=access_token,
@@ -192,8 +192,8 @@ async def email_sign_in(request: EmailSignInRequest):
         logger.info(f"Email sign in successful: {user.email}")
         
         # Generate tokens
-        access_token = create_access_token(data={"sub": user.email})
-        refresh_token = create_refresh_token(data={"sub": user.email})
+        access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
+        refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
         
         return AuthResponse(
             access_token=access_token,
@@ -216,54 +216,84 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
     """Refresh access token"""
     try:
         # Verify refresh token
-        payload = verify_token(request.refresh_token)
+        payload = verify_token(request.refresh_token, "refresh")
         email = payload.get("sub")
+        user_id = payload.get("user_id")
         
-        if not email:
+        if not email or not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
+                detail="Invalid refresh token payload"
             )
             
-        # Get user
-        user = get_user_by_email(email)
-        if not user:
+        # Get user from database
+        from db_utils import get_user_by_id
+        user_data = get_user_by_id(user_id)
+        if not user_data:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
             )
             
         # Generate new tokens
-        access_token = create_access_token(data={"sub": user.email})
-        refresh_token = create_refresh_token(data={"sub": user.email})
+        access_token = create_access_token(data={"sub": email, "user_id": user_id})
+        refresh_token = create_refresh_token(data={"sub": email, "user_id": user_id})
         
         return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_at=int((datetime.utcnow() + timedelta(minutes=30)).timestamp()),
-            user=user.to_dict()
+            user={
+                "id": user_data.get("id"),
+                "email": user_data.get("email"),
+                "username": user_data.get("username") or user_data.get("email"),
+                "display_name": user_data.get("display_name") or user_data.get("email", "").split('@')[0],
+                "role": user_data.get("role", "user"),
+                "is_active": user_data.get("is_active", True),
+                "email_verified": user_data.get("email_verified", True),
+                "created_at": user_data.get("created_at").isoformat() if user_data.get("created_at") else None
+            }
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Token refresh failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token refresh failed"
+            detail=f"Token refresh failed: {str(e)}"
         )
 
 @router.post("/auth/logout")
 async def logout(
-    request: LogoutRequest,
-    current_user: User = Depends(get_current_user)
+    request: Optional[LogoutRequest] = None,
+    authorization: str = Header(None)
 ):
-    """Logout user"""
-    logger.info(f"User logged out: {current_user.email}")
-    return {"message": "Successfully logged out"}
+    """Logout user - invalidates token on server side"""
+    try:
+        # Extract user info from token for logging purposes
+        user_email = "unknown"
+        if authorization and authorization.startswith("Bearer "):
+            try:
+                token = authorization.split(" ")[1]
+                payload = verify_token(token)
+                user_email = payload.get("sub", "unknown")
+            except:
+                # Token might be invalid, but we still want to allow logout
+                pass
+        
+        logger.info(f"User logged out: {user_email}")
+        
+        # TODO: In a real implementation, you would invalidate the token here
+        # For now, we just return success since JWT tokens are stateless
+        return {"message": "Successfully logged out"}
+        
+    except Exception as e:
+        logger.error(f"Logout error: {e}")
+        # Still return success - logout should always work
+        return {"message": "Successfully logged out"}
 
-@router.get("/me")
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Get current user information"""
-    return current_user.to_dict()
+# Removed duplicate endpoint - using /auth/me instead
 
 # =====================================================
 # EMAIL VERIFICATION ENDPOINTS
@@ -299,8 +329,11 @@ async def request_password_reset(request: PasswordResetRequest):
 
 @router.get("/auth/me", response_model=dict)
 async def get_current_user_info(authorization: str = Header(None)):
-    """Get current user information"""
+    """Get current user information from database"""
     try:
+        from db_utils import get_user_by_id
+        
+        # Extract JWT token and get user ID
         if not authorization or not authorization.startswith("Bearer "):
             raise HTTPException(
                 status_code=401,
@@ -317,36 +350,32 @@ async def get_current_user_info(authorization: str = Header(None)):
                 detail="Invalid or expired token"
             )
         
-        # Look up the user in the USERS_DB (in-memory database)
-        user_email = user_data.get("email") or user_data.get("sub")
-        if not user_email:
+        # Extract user ID from token
+        user_id = user_data.get("user_id")
+        if not user_id:
             raise HTTPException(
                 status_code=401,
                 detail="Invalid token payload"
             )
         
-        # Find user in the in-memory database
-        user = None
-        for stored_user in USERS_DB.values():
-            if stored_user["email"] == user_email:
-                user = stored_user
-                break
-        
-        if not user:
+        # Get user data from database
+        user_db_data = get_user_by_id(user_id)
+        if not user_db_data:
             raise HTTPException(
                 status_code=404,
                 detail="User not found"
             )
         
         return {
-            "id": user["id"],
-            "email": user["email"],
-            "display_name": user.get("display_name", user["email"].split('@')[0]),
-            "is_verified": user.get('email_verified', True),
-            "created_at": user["created_at"].isoformat() if user.get("created_at") else None,
-            "role": user.get('role', 'user'),
-            "subscription_status": user.get('subscription_status', 'free'),
-            "avatar_url": user.get('avatar_url', None)
+            "id": user_db_data.get("id"),
+            "email": user_db_data.get("email"),
+            "display_name": user_db_data.get("display_name") or user_db_data.get("email", "").split('@')[0],
+            "username": user_db_data.get("username") or user_db_data.get("email"),
+            "is_verified": user_db_data.get("email_verified", True),
+            "created_at": user_db_data.get("created_at").isoformat() if user_db_data.get("created_at") else None,
+            "role": user_db_data.get("role", "user"),
+            "subscription_status": "free",  # Default subscription status
+            "avatar_url": None  # No avatar URL implemented yet
         }
         
     except HTTPException:

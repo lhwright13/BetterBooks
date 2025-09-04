@@ -33,6 +33,7 @@ import '../models/persona.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
 import '../services/bookstore_adapter.dart';
+import '../services/download_service.dart';
 import '../services/log_service.dart';
 import '../services/optimized_api_service.dart';
 
@@ -108,23 +109,12 @@ class AppState extends ChangeNotifier {
     _setLoading(true);
     try {
       final bookstoreAdapter = BookstoreAdapter();
-      final catalogBooks = await bookstoreAdapter.getUserLibrary(userId);
+      final books = await bookstoreAdapter.getUserLibrary(userId);
       
-      _purchasedBooks = catalogBooks.map((catalogBook) {
-        return Book(
-          id: catalogBook.id,
-          title: catalogBook.title,
-          author: catalogBook.author,
-          audioUrl: catalogBook.sampleAudioUrl,
-          coverUrl: catalogBook.coverImageUrl,
-          duration: catalogBook.durationSeconds != null 
-            ? Duration(seconds: catalogBook.durationSeconds!) 
-            : null,
-          chapters: [],
-        );
-      }).toList();
-      
+      _purchasedBooks = books;
       _error = null;
+      
+      LogService.debug('Loaded ${books.length} purchased books for user $userId');
     } catch (e) {
       _error = e.toString();
       LogService.debug('Error loading purchased books: $e');
@@ -219,15 +209,21 @@ class AppState extends ChangeNotifier {
         loadPersonas(); // Don't await to avoid blocking audio playback
       }
       
+      // Check for local downloaded files first
+      final downloadService = DownloadService();
+      String? localPath;
+      
       if (chapter != null) {
+        // Check for downloaded chapter
+        final fileName = '${book.title}_chapter_${chapter.chapterNumber}.mp3';
+        localPath = await downloadService.getLocalChapterPath(book.id, chapter.id, fileName);
         audioUrl = chapter.audioUrl;
-      } else if (book.audioUrl != null) {
-        audioUrl = book.audioUrl!;
       } else {
-        throw Exception('No audio URL available');
+        // Check for downloaded single book
+        final fileName = '${book.title}.mp3';
+        localPath = await downloadService.getLocalChapterPath(book.id, 'single', fileName);
+        audioUrl = book.audioUrl;
       }
-
-      LogService.debug('Attempting to play audio from: $audioUrl');
       
       // Stop any existing playback
       await _audioPlayer.stop();
@@ -235,7 +231,16 @@ class AppState extends ChangeNotifier {
       // Configure audio session for better iOS compatibility
       await _audioPlayer.setPlayerMode(PlayerMode.mediaPlayer);
       
-      await _audioPlayer.play(UrlSource(audioUrl));
+      // Use local file if available, otherwise stream from URL
+      if (localPath != null) {
+        LogService.debug('Playing from local file: $localPath');
+        await _audioPlayer.play(DeviceFileSource(localPath));
+      } else if (audioUrl != null) {
+        LogService.debug('Streaming from URL: $audioUrl');
+        await _audioPlayer.play(UrlSource(audioUrl));
+      } else {
+        throw Exception('No audio source available');
+      }
       _error = null;
       notifyListeners();
     } catch (e) {

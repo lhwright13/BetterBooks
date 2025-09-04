@@ -195,14 +195,20 @@ class AuthProvider extends ChangeNotifier {
     _clearError();
     
     try {
-      await AuthService.signOut();
-      _setUnauthenticated();
+      // Set a shorter timeout for signout to avoid hanging
+      await AuthService.signOut().timeout(
+        Duration(seconds: 3),
+        onTimeout: () {
+          LogService.debug('Sign out timed out after 3 seconds - proceeding with local logout');
+        },
+      );
     } catch (e) {
       LogService.debug('Sign out error: $e');
-      // Force local logout even if backend request fails
-      _setUnauthenticated();
     } finally {
+      // Always clear local auth state regardless of backend response
+      _setUnauthenticated();
       _setLoading(false);
+      LogService.debug('AuthProvider: User signed out locally');
     }
   }
 

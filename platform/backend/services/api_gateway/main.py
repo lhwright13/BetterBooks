@@ -82,7 +82,7 @@ def _format_datetime(dt):
     return str(dt)
 
 def _generate_sample_audio_url_for_title(book_title: str) -> Optional[str]:
-    """Generate sample audio URL based on book title for iOS compatibility"""
+    """Generate sample audio URL based on book title for iOS compatibility - returns full Azure URL"""
     # Map book titles to first audio file names
     audio_files = {
         "Alice's Adventures in Wonderland": "alices_adventures_01_carroll_64kb.mp3",
@@ -94,7 +94,11 @@ def _generate_sample_audio_url_for_title(book_title: str) -> Optional[str]:
     # Get first audio file for this book
     filename = audio_files.get(book_title, "")
     if filename:
-        # Return the API endpoint that serves from Azure Storage
+        # Try to generate Azure storage URL first
+        azure_url = azure_storage.generate_audio_url(book_title, filename)
+        if azure_url:
+            return azure_url
+        # Fallback to API endpoint that redirects to Azure
         return f"/books/{book_title}/{filename}"
     
     return None
@@ -329,17 +333,17 @@ async def get_user_credits(user_id: str = Depends(get_current_user_id)):
         else:
             logger.warning(f"No credit data found for user {user_id}, using defaults")
             return CreditBalanceResponse(
-                total_credits=2,
+                total_credits=5,
                 used_credits=0,
-                available_credits=2
+                available_credits=5
             )
     except Exception as e:
         logger.error(f"Error getting user credits: {e}")
         # Fallback response if database is unavailable
         return CreditBalanceResponse(
-            total_credits=2,
+            total_credits=5,
             used_credits=0,
-            available_credits=2
+            available_credits=5
         )
 
 @app.get("/bookstore/user/library", response_model=UserLibraryResponse) 

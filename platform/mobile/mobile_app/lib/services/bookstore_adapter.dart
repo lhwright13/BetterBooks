@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../api_config.dart';
 import '../models/bookstore_models.dart';
+import '../models/book.dart';
 import 'cache_service.dart';
 import 'log_service.dart';
 import 'api_service.dart';
@@ -57,7 +58,7 @@ class BookstoreAdapter {
 
       final response = await http.get(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -111,7 +112,7 @@ class BookstoreAdapter {
 
       final response = await http.get(
         uri,
-        headers: {'Content-Type': 'application/json'},
+        headers: _getHeaders(),
       ).timeout(_timeoutDuration);
 
       if (response.statusCode == 200) {
@@ -144,7 +145,7 @@ class BookstoreAdapter {
   Future<List<BookCategory>> getCategories() async {
     final response = await http.get(
       Uri.parse('$apiBaseUrl/bookstore/categories'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _getHeaders(),
     ).timeout(_timeoutDuration);
 
     if (response.statusCode == 200) {
@@ -161,7 +162,7 @@ class BookstoreAdapter {
   Future<BookCatalog> getBookDetails(String bookId) async {
     final response = await http.get(
       Uri.parse('$apiBaseUrl/bookstore/books/$bookId'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _getHeaders(),
     ).timeout(_timeoutDuration);
 
     if (response.statusCode == 200) {
@@ -176,7 +177,7 @@ class BookstoreAdapter {
   Future<CreditBalanceResponse> getCreditBalance() async {
     final response = await http.get(
       Uri.parse('$apiBaseUrl/bookstore/user/credits'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _getHeaders(),
     ).timeout(_timeoutDuration);
 
     if (response.statusCode == 200) {
@@ -200,7 +201,7 @@ class BookstoreAdapter {
   }) async {
     final response = await http.post(
       Uri.parse('$apiBaseUrl/bookstore/purchase'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _getHeaders(),
       body: jsonEncode({
         'book_id': bookId,
         'payment_method': paymentMethod.toString(),
@@ -221,7 +222,7 @@ class BookstoreAdapter {
   }
 
   /// Get user's purchased books (library)
-  Future<List<BookCatalog>> getUserLibrary(String userId) async {
+  Future<List<Book>> getUserLibrary(String userId) async {
     try {
       final response = await http.get(
         Uri.parse('$apiBaseUrl/bookstore/user/library'),
@@ -231,7 +232,17 @@ class BookstoreAdapter {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return (data['books'] as List)
-            .map((book) => BookCatalog.fromJson(book))
+            .map((bookData) => Book(
+              id: bookData['id'],
+              title: bookData['title'],
+              author: bookData['author'],
+              coverUrl: bookData['cover_image_url'],
+              audioUrl: bookData['sample_audio_url'],
+              duration: bookData['duration_seconds'] != null 
+                  ? Duration(seconds: bookData['duration_seconds']) 
+                  : null,
+              chapters: [], // Will be populated later when needed
+            ))
             .toList();
       } else if (response.statusCode == 500) {
         // Backend library endpoint is broken - return empty library for now

@@ -18,17 +18,15 @@ This document provides a comprehensive analysis of all API endpoints used by the
 |-------------|----------------|-------|
 | POST /auth/signup | ✅ Exists | Working, creates users with JWT tokens |
 | POST /auth/signin | ✅ Exists | Working, validates passwords with bcrypt |
+| GET /auth/me | ✅ Fixed | Now working, returns user info from database |
+| POST /auth/logout | ✅ Fixed | Now working, supports both with/without request body |
+| POST /auth/refresh | ✅ Fixed | Now working, refreshes access tokens |
 
-### ❌ Missing or Broken
+### ❌ Missing or Broken (Deferred for MVP)
 | iOS Endpoint | Backend Status | Issue | Priority |
 |-------------|----------------|-------|----------|
-| POST /auth/google | ❌ 404 | Router included but endpoint not working | HIGH |
-| POST /auth/apple | ❌ 404 | Router included but endpoint not working | HIGH |
-| GET /auth/me | ❌ 404 | Exists in router but not accessible | HIGH |
-| POST /auth/logout | ❌ Missing | Not implemented | MEDIUM |
-| POST /auth/refresh | ❌ Missing | Not implemented | MEDIUM |
-| POST /email/send-verification | ❌ Missing | Not implemented | LOW |
-| POST /password/reset | ❌ Missing | Not implemented | LOW |
+| POST /auth/google | ❌ 501 | Returns "coming soon" message | DEFERRED |
+| POST /auth/apple | ❌ 501 | Returns "coming soon" message | DEFERRED |
 
 ---
 
@@ -140,8 +138,7 @@ This document provides a comprehensive analysis of all API endpoints used by the
 
 ### 🔴 CRITICAL (Block core functionality)
 1. **Search functionality** - GET /bookstore/search
-2. **Auth flow** - Fix /auth/me endpoint
-3. **Credit initialization** - POST /bookstore/user/initialize-credits
+2. **Credit initialization** - POST /bookstore/user/initialize-credits
 
 ### 🟡 HIGH (Important for UX)
 1. **OAuth login** - Fix /auth/google and /auth/apple
@@ -149,9 +146,8 @@ This document provides a comprehensive analysis of all API endpoints used by the
 3. **POST /context** - Add POST method support
 
 ### 🟢 MEDIUM (Nice to have)
-1. **Auth tokens** - /auth/refresh, /auth/logout
-2. **Wishlist** - All wishlist endpoints
-3. **Password reset** - Email verification flow
+1. **Wishlist** - All wishlist endpoints
+2. **Password reset** - Email verification flow
 
 ### ⚪ LOW (Future features)
 1. **AI features** - Chapter detection, summarization, questions
@@ -184,7 +180,6 @@ This document provides a comprehensive analysis of all API endpoints used by the
 1. **Search endpoint** - Use existing browse logic with query filter
 2. **Featured/Bestsellers** - Filter existing browse results
 3. **Initialize credits** - Simple database operation
-4. **Fix /auth/me** - Ensure route is properly registered
 
 ### Requires More Work
 1. **OAuth integration** - Need provider configuration

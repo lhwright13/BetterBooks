@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/bookstore_models.dart';
 import '../services/bookstore_adapter.dart';
 import '../providers/auth_provider.dart';
+import '../providers/app_state.dart';
 import '../widgets/smart_cover_image.dart';
 import 'book_details_screen.dart';
 
@@ -27,6 +28,7 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
   
   bool _isLoading = false;
   bool _isSearching = false;
+  bool _isPurchasing = false;
   String? _errorMessage;
 
   @override
@@ -156,6 +158,10 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
 
     if (!confirmed) return;
 
+    setState(() {
+      _isPurchasing = true;
+    });
+
     try {
       final response = await _bookstoreService.purchaseBook(
         bookId: book.id,
@@ -170,12 +176,21 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
           _creditBalance = newCreditBalance;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Successfully purchased "${book.title}"!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        // Refresh the user's library in the app state
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        if (authProvider.isAuthenticated && authProvider.currentUser != null) {
+          final appState = Provider.of<AppState>(context, listen: false);
+          await appState.loadPurchasedBooks(authProvider.currentUser!.id);
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ Successfully purchased "${book.title}"! Check your Library.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
         
         // Navigate to book details to show "Listen Now"
         Navigator.push(
@@ -188,20 +203,30 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
         throw Exception('Purchase failed');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Purchase failed: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Purchase failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPurchasing = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          appBar: AppBar(
         title: Text(
           'Discover Books',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -331,7 +356,47 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                     : _buildMainContent(),
           ),
         ],
-      ),
+          ),
+        ),
+        
+        // Loading overlay during purchase
+        if (_isPurchasing)
+          Container(
+            color: Colors.black.withValues(alpha: 0.5),
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Purchasing...',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Please wait while we process your purchase',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -588,7 +653,7 @@ class _BookstoreScreenState extends State<BookstoreScreen> with SingleTickerProv
                         
                         // Purchase Button
                         ElevatedButton.icon(
-                          onPressed: () => _purchaseBook(book),
+                          onPressed: _isPurchasing ? null : () => _purchaseBook(book),
                           icon: Icon(Icons.monetization_on, size: 16),
                           label: Text(
                             'Buy for ${book.creditPrice}',

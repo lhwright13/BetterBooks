@@ -61,6 +61,7 @@ class AuthService {
   static Future<bool> isAuthenticated() async {
     try {
       final accessToken = await _secureStorage.read(key: _accessTokenKey);
+      LogService.debug('isAuthenticated check - access token: ${accessToken == null ? "null" : "exists"}');
       if (accessToken == null) return false;
 
       // Check if token is expired
@@ -451,27 +452,42 @@ class AuthService {
   /// Sign out
   static Future<void> signOut() async {
     try {
-      // Get refresh token for backend logout
+      // Get tokens BEFORE clearing them
       final refreshToken = await _secureStorage.read(key: _refreshTokenKey);
-      
       final accessToken = await _secureStorage.read(key: _accessTokenKey);
-      if (accessToken != null) {
-        // Notify backend of logout
-        await http.post(
-          Uri.parse('$apiBaseUrl/auth/logout'),
-          headers: {'Authorization': 'Bearer $accessToken'},
-          body: jsonEncode({'refresh_token': refreshToken}),
-        ).timeout(_timeoutDuration);
-      }
-
-      // Sign out from Google if signed in
-      await _googleSignIn.signOut();
-
-      // Clear all stored data
+      
+      // Clear local data first to ensure immediate logout
       await _clearAuthData();
+      
+      LogService.debug('Local auth data cleared');
+      
+      // Run backend and Google logout concurrently with short timeout
+      await Future.wait([
+        // Backend logout with aggressive timeout
+        if (accessToken != null)
+          http.post(
+            Uri.parse('$apiBaseUrl/auth/logout'),
+            headers: {
+              'Authorization': 'Bearer $accessToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'refresh_token': refreshToken}),
+          ).timeout(Duration(seconds: 2)).catchError((e) {
+            LogService.debug('Backend logout timeout: $e');
+            return http.Response('timeout', 408);
+          }),
+        
+        // Google logout with aggressive timeout
+        _googleSignIn.signOut().timeout(Duration(seconds: 2)).catchError((e) {
+          LogService.debug('Google logout timeout: $e');
+          return null;
+        }),
+      ], eagerError: false);
+      
+      LogService.debug('Sign out completed successfully');
     } catch (e) {
-      LogService.error('Sign out error: $e', 'AuthService');
-      // Clear local data even if backend request fails
+      LogService.debug('Sign out error, clearing local data: $e');
+      // Ensure local data is cleared even if there were errors
       await _clearAuthData();
     }
   }
@@ -534,6 +550,8 @@ class AuthService {
 
   /// Clear all authentication data
   static Future<void> _clearAuthData() async {
+    LogService.debug('Clearing auth data...');
+    
     await _secureStorage.delete(key: _accessTokenKey);
     await _secureStorage.delete(key: _refreshTokenKey);
     await _secureStorage.delete(key: _userDataKey);
@@ -541,6 +559,12 @@ class AuthService {
     
     // Clear the ApiService token as well
     ApiService.clearAuthToken();
+    
+    // Verify tokens are actually deleted
+    final accessTokenAfter = await _secureStorage.read(key: _accessTokenKey);
+    final refreshTokenAfter = await _secureStorage.read(key: _refreshTokenKey);
+    
+    LogService.debug('Auth data cleared - access token: ${accessTokenAfter == null ? "deleted" : "still exists"}, refresh token: ${refreshTokenAfter == null ? "deleted" : "still exists"}');
   }
 
   /// Generate nonce for Apple Sign In

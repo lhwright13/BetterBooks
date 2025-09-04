@@ -5,6 +5,8 @@ import '../providers/auth_provider.dart';
 import '../models/book.dart';
 import '../theme/echowright_theme.dart';
 import '../widgets/smart_cover_image.dart';
+import '../services/download_service.dart';
+import '../widgets/download_progress_widget.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -308,27 +310,42 @@ class BookCard extends StatelessWidget {
                   ),
                 ),
                 
-                // Play button
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: EchoWrightTheme.primaryGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: EchoWrightTheme.subtleShadow,
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => _playBook(context, book),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Icon(
-                        Icons.play_arrow_rounded,
-                        color: Colors.white,
-                        size: 24,
+                // Download and play buttons
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Download button
+                    DownloadButton(
+                      bookId: book.id,
+                      downloadService: DownloadService(),
+                      onDownload: () => _downloadBook(context, book),
+                    ),
+                    
+                    SizedBox(width: 8),
+                    
+                    // Play button
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: EchoWrightTheme.primaryGradient,
+                        shape: BoxShape.circle,
+                        boxShadow: EchoWrightTheme.subtleShadow,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () => _playBook(context, book),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -346,6 +363,55 @@ class BookCard extends StatelessWidget {
     } else {
       appState.playBook(book);
       Navigator.pushNamed(context, '/player');
+    }
+  }
+
+  Future<void> _downloadBook(BuildContext context, Book book) async {
+    final downloadService = DownloadService();
+    
+    // Show confirmation dialog for multi-chapter books
+    if (book.hasChapters && book.chapters != null && book.chapters!.length > 1) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: EchoWrightTheme.surfaceDark,
+          title: Text(
+            'Download Book',
+            style: TextStyle(color: EchoWrightTheme.textPrimary),
+          ),
+          content: Text(
+            'This book has ${book.chapters!.length} chapters. Download all chapters for offline listening?',
+            style: TextStyle(color: EchoWrightTheme.textSecondary),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel', style: TextStyle(color: EchoWrightTheme.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: EchoWrightTheme.primaryTurquoise,
+              ),
+              child: Text('Download', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+      
+      if (confirm != true) return;
+    }
+
+    // Start download
+    final success = await downloadService.downloadBook(book);
+    
+    if (!success && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to start download'),
+          backgroundColor: EchoWrightTheme.errorColor,
+        ),
+      );
     }
   }
 

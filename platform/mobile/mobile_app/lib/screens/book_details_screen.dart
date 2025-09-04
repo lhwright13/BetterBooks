@@ -6,6 +6,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../models/bookstore_models.dart';
 import '../models/persona.dart';
 import '../providers/auth_provider.dart';
+import '../providers/app_state.dart';
 import '../services/bookstore_adapter.dart';
 import '../services/api_service.dart';
 import '../theme/echowright_theme.dart';
@@ -124,6 +125,14 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
       if (response.success) {
         setState(() => _isPurchased = true);
+        
+        // Refresh the user's library in the app state
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        if (authProvider.isAuthenticated && authProvider.currentUser != null) {
+          final appState = Provider.of<AppState>(context, listen: false);
+          await appState.loadPurchasedBooks(authProvider.currentUser!.id);
+        }
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('✅ Successfully purchased "${widget.book.title}"!'),

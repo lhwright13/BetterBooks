@@ -42,12 +42,17 @@ def get_current_user_id(
             # Verify and decode the JWT token
             payload = verify_token(authorization.credentials)
             
+            # Try user_id first (new format), then fall back to sub (old format)
             if payload and 'user_id' in payload:
                 user_id = payload['user_id']
-                logger.info(f"User authenticated via JWT: {user_id}")
+                logger.info(f"User authenticated via JWT user_id: {user_id}")
+                return user_id
+            elif payload and 'sub' in payload:
+                user_id = payload['sub']
+                logger.info(f"User authenticated via JWT sub (legacy): {user_id}")
                 return user_id
             else:
-                logger.warning("JWT token valid but no user_id in payload")
+                logger.warning("JWT token valid but no user_id or sub in payload")
                 
         except Exception as e:
             logger.warning(f"JWT token validation failed: {e}")
@@ -57,9 +62,12 @@ def get_current_user_id(
         logger.info(f"User ID from header: {x_user_id}")
         return x_user_id
     
-    # For development: Use demo user ID when no authentication present
-    logger.info(f"Using demo user ID for development: {DEMO_USER_ID}")
-    return DEMO_USER_ID
+    # No authentication present - require proper authentication
+    logger.warning("No authentication present - rejecting request")
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required - no demo accounts allowed"
+    )
 
 def get_current_user_id_optional(
     authorization: HTTPAuthorizationCredentials = Depends(security),
@@ -70,9 +78,6 @@ def get_current_user_id_optional(
     """
     try:
         user_id = get_current_user_id(authorization, x_user_id)
-        # Don't return demo user for optional authentication
-        if user_id == DEMO_USER_ID and not authorization and not x_user_id:
-            return None
         return user_id
     except HTTPException:
         return None

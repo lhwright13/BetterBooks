@@ -635,7 +635,7 @@ class UserManager:
             raise
     
     async def _initialize_user_credits(self, user_id: UUID):
-        """Initialize credit record for new user (starts with 0 credits)"""
+        """Initialize credit record for new user (starts with 5 credits)"""
         try:
             query = """
                 INSERT INTO user_credits (id, user_id, credits_available, credits_used, monthly_credits)
@@ -644,7 +644,7 @@ class UserManager:
             """
             
             await self.db.execute_query(query, [
-                str(uuid4()), str(user_id), 0, 0, 0  # Start with 0 credits as required
+                str(uuid4()), str(user_id), 5, 0, 0  # Start with 5 credits for new users
             ])
             
         except Exception as e:
