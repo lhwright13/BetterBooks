@@ -1,4 +1,4 @@
-"""Configuration loader for the Gemini LLM Gateway."""
+"""Configuration loader for the Azure OpenAI LLM Gateway."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ DEFAULT_LOCAL_PATH = Path(__file__).with_name("config.json")
 
 def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     """Load configuration from a JSON file and environment variables."""
-    env_path = os.getenv("GEMINI_CONFIG")
+    env_path = os.getenv("AZURE_OPENAI_CONFIG")
     if path:
         cfg_path = Path(path)
     elif env_path:
@@ -32,12 +32,32 @@ def load_config(path: str | Path | None = None) -> Dict[str, Any]:
     if cfg_path.exists():
         with open(cfg_path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
-    data.setdefault("model", "gemini-2.0-flash")
-    data.setdefault("generation_config", {"temperature": 0.7})
+    
+    # Azure OpenAI configuration with defaults
+    data.setdefault("model", "gpt-4o-mini")  # Default Azure OpenAI model
+    data.setdefault("generation_config", {"temperature": 0.7, "max_tokens": 4000})
     data.setdefault("prompt_options", {})
     data.setdefault("base_preprompt", "")
-    env_key = os.getenv("GEMINI_API_KEY")
-    if env_key:
-        data["api_key"] = env_key
+    
+    # Azure OpenAI specific configuration from environment variables
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_api_key = os.getenv("AZURE_OPENAI_API_KEY") 
+    azure_deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+    
+    if azure_endpoint:
+        data["azure_endpoint"] = azure_endpoint
+    if azure_api_key:
+        data["api_key"] = azure_api_key
+    if azure_deployment:
+        data["deployment_name"] = azure_deployment
+    if azure_api_version:
+        data["api_version"] = azure_api_version
+    
+    # Set defaults for required Azure fields
+    data.setdefault("azure_endpoint", "https://your-resource.openai.azure.com/")
+    data.setdefault("deployment_name", "gpt-4o-mini")
+    data.setdefault("api_version", "2024-12-01-preview")
     data.setdefault("api_key", "test-key")
+    
     return data

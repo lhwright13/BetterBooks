@@ -184,7 +184,11 @@ from db_utils import (
     update_persona,
     delete_persona,
     add_persona_to_book,
-    remove_persona_from_book
+    remove_persona_from_book,
+    add_to_user_wishlist,
+    remove_from_user_wishlist,
+    get_user_wishlist,
+    get_categories as db_get_categories
 )
 from azure_storage_helper import AzureStorageHelper
 from user_context import get_current_user_id, require_authenticated_user
@@ -431,44 +435,318 @@ async def browse_books(
             has_next_page=False
         )
 
+@app.get("/bookstore/search", response_model=BrowseResponse)
+async def search_books(
+    q: str,
+    page: int = 1,
+    limit: int = 20
+):
+    """Search for books in the catalog by title, author, or keywords"""
+    try:
+        # Calculate offset for pagination
+        offset = (page - 1) * limit
+        
+        # Use existing browse logic with search filter
+        from db_utils import search_books as db_search_books
+        search_data = db_search_books(query=q, limit=limit, offset=offset)
+        
+        # Convert to response format (same as browse)
+        books = [
+            BrowseBook(
+                id=str(book['id']),
+                title=book['title'],
+                author=book['author'] or 'Unknown Author',
+                cover_image_url=book.get('cover_image_url', ''),
+                price_usd=float(book.get('price_usd', 9.99)),
+                credit_price=int(book.get('credit_price', 1)),
+                formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
+                formatted_duration="Unknown length",
+                language="en",
+                is_featured=bool(book.get('is_featured', False)),
+                is_bestseller=bool(book.get('is_bestseller', False)),
+                is_new_release=bool(book.get('is_new_release', False)),
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            )
+            for book in search_data['books']
+        ]
+        
+        return BrowseResponse(
+            books=books,
+            total_count=search_data['total_books'],
+            page=page,
+            page_size=limit,
+            has_next_page=(page * limit) < search_data['total_books']
+        )
+    except Exception as e:
+        logger.error(f"Error searching books: {e}")
+        # Return empty results on error
+        return BrowseResponse(
+            books=[],
+            total_count=0,
+            page=page,
+            page_size=limit,
+            has_next_page=False
+        )
+
+@app.get("/bookstore/featured", response_model=BrowseResponse)
+async def get_featured_books(limit: int = 10):
+    """Get a curated list of featured audiobooks"""
+    try:
+        # Use existing browse logic with featured filter
+        browse_data = db_get_browse_books(limit=limit, offset=0, featured_only=True)
+        
+        # Convert to response format
+        books = [
+            BrowseBook(
+                id=str(book['id']),
+                title=book['title'],
+                author=book['author'] or 'Unknown Author',
+                cover_image_url=book.get('cover_image_url', ''),
+                price_usd=float(book.get('price_usd', 9.99)),
+                credit_price=int(book.get('credit_price', 1)),
+                formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
+                formatted_duration="Unknown length",
+                language="en",
+                is_featured=True,  # All results are featured
+                is_bestseller=bool(book.get('is_bestseller', False)),
+                is_new_release=bool(book.get('is_new_release', False)),
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            )
+            for book in browse_data['books']
+        ]
+        
+        return BrowseResponse(
+            books=books,
+            total_count=browse_data['total_books'],
+            page=1,
+            page_size=limit,
+            has_next_page=False
+        )
+    except Exception as e:
+        logger.error(f"Error getting featured books: {e}")
+        return BrowseResponse(
+            books=[],
+            total_count=0,
+            page=1,
+            page_size=limit,
+            has_next_page=False
+        )
+
+@app.get("/bookstore/bestsellers", response_model=BrowseResponse)
+async def get_bestselling_books(limit: int = 10):
+    """Get the most popular audiobooks"""
+    try:
+        # Use existing browse logic with bestseller filter
+        from db_utils import get_bestselling_books as db_get_bestselling_books
+        browse_data = db_get_bestselling_books(limit=limit, offset=0)
+        
+        # Convert to response format
+        books = [
+            BrowseBook(
+                id=str(book['id']),
+                title=book['title'],
+                author=book['author'] or 'Unknown Author',
+                cover_image_url=book.get('cover_image_url', ''),
+                price_usd=float(book.get('price_usd', 9.99)),
+                credit_price=int(book.get('credit_price', 1)),
+                formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
+                formatted_duration="Unknown length",
+                language="en",
+                is_featured=bool(book.get('is_featured', False)),
+                is_bestseller=True,  # All results are bestsellers
+                is_new_release=bool(book.get('is_new_release', False)),
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            )
+            for book in browse_data['books']
+        ]
+        
+        return BrowseResponse(
+            books=books,
+            total_count=browse_data['total_books'],
+            page=1,
+            page_size=limit,
+            has_next_page=False
+        )
+    except Exception as e:
+        logger.error(f"Error getting bestselling books: {e}")
+        return BrowseResponse(
+            books=[],
+            total_count=0,
+            page=1,
+            page_size=limit,
+            has_next_page=False
+        )
+
+@app.post("/bookstore/user/initialize-credits", response_model=CreditBalanceResponse)
+async def initialize_user_credits(
+    initial_credits: int = 5,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Initialize credits for a new user"""
+    try:
+        from db_utils import initialize_user_credits as db_initialize_credits
+        
+        # Check if user already has credits initialized
+        existing_credits = db_get_user_credits(user_id)
+        if existing_credits:
+            raise HTTPException(
+                status_code=400,
+                detail="User already has credits initialized"
+            )
+        
+        # Initialize credits
+        credits_data = db_initialize_credits(user_id, initial_credits)
+        
+        return CreditBalanceResponse(
+            total_credits=credits_data['total_credits'],
+            used_credits=credits_data['used_credits'],
+            available_credits=credits_data['available_credits']
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error initializing credits for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to initialize credits")
+
+@app.get("/bookstore/test")
+async def test_bookstore_endpoints():
+    """Test endpoint for debugging bookstore functionality"""
+    try:
+        # Test database connection
+        from db_utils import get_db_connection
+        with get_db_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) as book_count FROM books")
+                book_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) as user_count FROM users")  
+                user_count = cursor.fetchone()[0]
+                
+                cursor.execute("SELECT COUNT(*) as persona_count FROM personas")
+                persona_count = cursor.fetchone()[0]
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "database": {
+                "connected": True,
+                "books": book_count,
+                "users": user_count, 
+                "personas": persona_count
+            },
+            "services": {
+                "llm_gateway": LLM_URL,
+                "context_service": CONTEXT_URL,
+                "tts_service": TTS_URL
+            },
+            "version": "1.0.0"
+        }
+        
+    except Exception as e:
+        logger.error(f"Test endpoint error: {e}")
+        return {
+            "status": "error",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "database": {"connected": False},
+            "version": "1.0.0"
+        }
+
+@app.get("/books")
+async def list_all_books(limit: int = 50, offset: int = 0):
+    """Simple book list endpoint - returns basic book information"""
+    try:
+        from db_utils import get_all_books
+        books_data = get_all_books(limit=limit, offset=offset)
+        
+        # Convert to simple format
+        books = [
+            {
+                "id": str(book['id']),
+                "title": book['title'],
+                "author": book['author'] or 'Unknown Author',
+                "cover_image_url": book.get('cover_image_url', ''),
+                "created_at": book.get('created_at', '').isoformat() if book.get('created_at') else None,
+            }
+            for book in books_data['books']
+        ]
+        
+        return {
+            "books": books,
+            "total": books_data.get('total_books', len(books)),
+            "limit": limit,
+            "offset": offset
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing books: {e}")
+        return {"books": [], "total": 0, "limit": limit, "offset": offset}
+
 @app.get("/bookstore/categories", response_model=CategoriesResponse)
 async def get_book_categories():
     """Get book categories for bookstore browsing"""
-    # Return hardcoded categories for now - in production this would come from database
-    categories = [
-        BookCategory(
-            id="classics",
-            name="Classics",
-            description="Timeless literary works that have shaped culture and thought",
-            image_url=None,
-            display_order=1,
-            is_active=True,
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z"
-        ),
-        BookCategory(
-            id="fiction",
-            name="Fiction",
-            description="Imaginative literature that tells compelling stories",
-            image_url=None,
-            display_order=2,
-            is_active=True,
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z"
-        ),
-        BookCategory(
-            id="adventure",
-            name="Adventure",
-            description="Thrilling tales of exploration, danger, and discovery",
-            image_url=None,
-            display_order=3,
-            is_active=True,
-            created_at="2025-01-01T00:00:00Z",
-            updated_at="2025-01-01T00:00:00Z"
-        )
-    ]
-    
-    return CategoriesResponse(categories=categories)
+    try:
+        # Get categories from database
+        categories_data = db_get_categories()
+        
+        # Convert to response format
+        categories = [
+            BookCategory(
+                id=str(category['id']),
+                name=category['name'],
+                description=category.get('description', ''),
+                image_url=category.get('image_url'),
+                display_order=category.get('display_order', 0),
+                is_active=category.get('is_active', True),
+                created_at=category.get('created_at', '2025-01-01T00:00:00Z'),
+                updated_at=category.get('updated_at', '2025-01-01T00:00:00Z')
+            )
+            for category in categories_data['categories']
+        ]
+        
+        return CategoriesResponse(categories=categories)
+        
+    except Exception as e:
+        logger.error(f"Error getting categories: {e}")
+        # Return fallback hardcoded categories on error
+        categories = [
+            BookCategory(
+                id="classics",
+                name="Classics",
+                description="Timeless literary works that have shaped culture and thought",
+                image_url=None,
+                display_order=1,
+                is_active=True,
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            ),
+            BookCategory(
+                id="fiction",
+                name="Fiction",
+                description="Imaginative literature that tells compelling stories",
+                image_url=None,
+                display_order=2,
+                is_active=True,
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            ),
+            BookCategory(
+                id="adventure",
+                name="Adventure",
+                description="Thrilling tales of exploration, danger, and discovery",
+                image_url=None,
+                display_order=3,
+                is_active=True,
+                created_at="2025-01-01T00:00:00Z",
+                updated_at="2025-01-01T00:00:00Z"
+            )
+        ]
+        
+        return CategoriesResponse(categories=categories)
 
 @app.get("/bookstore/books/{book_id}", response_model=DetailedBook)
 async def get_book_details(book_id: str):
@@ -729,6 +1007,68 @@ async def get_book_download_links(book_id: str, user_id: str = Depends(get_curre
         logger.error(f"Error getting download links for book {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate download links")
 
+# Wishlist endpoints
+@app.post("/bookstore/user/wishlist/{book_id}")
+async def add_to_wishlist(book_id: str, user_id: str = Depends(get_current_user_id)):
+    """Add a book to user's wishlist"""
+    try:
+        result = add_to_user_wishlist(user_id, book_id)
+        return result
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        elif "already in wishlist" in str(e).lower():
+            raise HTTPException(status_code=409, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error adding book to wishlist: {e}")
+        raise HTTPException(status_code=500, detail="Failed to add book to wishlist")
+
+@app.delete("/bookstore/user/wishlist/{book_id}")
+async def remove_from_wishlist(book_id: str, user_id: str = Depends(get_current_user_id)):
+    """Remove a book from user's wishlist"""
+    try:
+        result = remove_from_user_wishlist(user_id, book_id)
+        return result
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error removing book from wishlist: {e}")
+        raise HTTPException(status_code=500, detail="Failed to remove book from wishlist")
+
+@app.get("/bookstore/user/wishlist")
+async def get_user_wishlist_endpoint(
+    page: int = 1, 
+    limit: int = 20,
+    user_id: str = Depends(get_current_user_id)
+):
+    """Get user's wishlist"""
+    try:
+        offset = (page - 1) * limit
+        result = get_user_wishlist(user_id, limit, offset)
+        
+        # Format response similar to browse endpoint
+        total_pages = (result['total_books'] + limit - 1) // limit if result['total_books'] > 0 else 0
+        
+        return {
+            "books": result['books'],
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total_books": result['total_books'],
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting user wishlist: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user wishlist")
+
 @app.get("/database/test")
 async def test_database():
     """Test database connection"""
@@ -756,8 +1096,8 @@ async def root():
 
 # File serving endpoints
 @app.get("/books/{book_folder}/{filename}")
-async def serve_book_file(book_folder: str, filename: str):
-    """Serve audiobook files from Azure Storage or local fallback"""
+async def serve_book_file(book_folder: str, filename: str, request: Request):
+    """Serve audiobook files with range support for streaming"""
     try:
         # Try Azure Storage first
         azure_url = azure_storage.generate_audio_url(book_folder, filename)
@@ -765,11 +1105,14 @@ async def serve_book_file(book_folder: str, filename: str):
             logger.info(f"Redirecting to Azure Storage for {book_folder}/{filename}")
             return RedirectResponse(url=azure_url)
         
-        # Fallback to local storage
+        # Fallback to local storage with range support
         file_path = BOOK_FILES_DIR / book_folder / filename
         
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found")
+        
+        # Get file size
+        file_size = file_path.stat().st_size
         
         # Determine media type based on file extension
         media_type = "audio/mpeg"
@@ -782,11 +1125,61 @@ async def serve_book_file(book_folder: str, filename: str):
         elif filename.endswith(".m4a"):
             media_type = "audio/mp4"
         
-        logger.info(f"Serving from local storage: {book_folder}/{filename}")
+        # Parse range header
+        range_header = request.headers.get('Range')
+        
+        if range_header:
+            # Handle range requests for audio streaming
+            range_match = None
+            import re
+            range_pattern = r'bytes=(\d*)-(\d*)'
+            range_match = re.match(range_pattern, range_header)
+            
+            if range_match:
+                start_str, end_str = range_match.groups()
+                start = int(start_str) if start_str else 0
+                end = int(end_str) if end_str else file_size - 1
+                
+                # Ensure valid range
+                if start >= file_size:
+                    raise HTTPException(status_code=416, detail="Range Not Satisfiable")
+                
+                if end >= file_size:
+                    end = file_size - 1
+                
+                content_length = end - start + 1
+                
+                # Read the file chunk
+                with open(file_path, 'rb') as f:
+                    f.seek(start)
+                    chunk_data = f.read(content_length)
+                
+                headers = {
+                    "Content-Range": f"bytes {start}-{end}/{file_size}",
+                    "Content-Length": str(content_length),
+                    "Accept-Ranges": "bytes"
+                }
+                
+                logger.info(f"Serving range {start}-{end} from local storage: {book_folder}/{filename}")
+                return Response(
+                    content=chunk_data,
+                    status_code=206,
+                    media_type=media_type,
+                    headers=headers
+                )
+        
+        # No range header, serve complete file
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(file_size)
+        }
+        
+        logger.info(f"Serving complete file from local storage: {book_folder}/{filename}")
         return FileResponse(
             path=file_path,
             media_type=media_type,
-            filename=filename
+            filename=filename,
+            headers=headers
         )
     except Exception as e:
         logger.error(f"Error serving book file {book_folder}/{filename}: {e}")
@@ -970,6 +1363,145 @@ class ContextRequest(BaseModel):
     chapter_name: Optional[str] = None
     current_position: float  # Position in seconds
 
+# Progress tracking models
+class SaveProgressRequest(BaseModel):
+    book_id: str
+    position: float  # Position in seconds
+    chapter_id: Optional[str] = None
+
+class ProgressResponse(BaseModel):
+    book_id: str
+    position: float
+    chapter_id: Optional[str] = None
+    updated_at: str
+
+class BookmarkRequest(BaseModel):
+    book_id: str
+    position: float  # Position in seconds
+    note: Optional[str] = None
+
+class BookmarkResponse(BaseModel):
+    id: str
+    book_id: str
+    position: float
+    note: Optional[str] = None
+    created_at: str
+
+# =====================================================
+# USER PROGRESS TRACKING ENDPOINTS
+# =====================================================
+
+@app.post("/bookstore/user/progress", response_model=ProgressResponse)
+async def save_user_progress(request: SaveProgressRequest, user_id: str = Depends(get_current_user_id)):
+    """Save user's reading progress for a book"""
+    try:
+        from db_utils import save_user_reading_progress
+        
+        # Save progress to database
+        success = save_user_reading_progress(
+            user_id=user_id,
+            book_id=request.book_id,
+            position=request.position,
+            chapter_id=request.chapter_id
+        )
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to save progress")
+        
+        return ProgressResponse(
+            book_id=request.book_id,
+            position=request.position,
+            chapter_id=request.chapter_id,
+            updated_at=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Error saving user progress: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save progress")
+
+@app.get("/bookstore/user/progress/{book_id}", response_model=ProgressResponse)
+async def get_user_progress(book_id: str, user_id: str = Depends(get_current_user_id)):
+    """Get user's reading progress for a book"""
+    try:
+        from db_utils import get_user_reading_progress
+        
+        progress = get_user_reading_progress(user_id=user_id, book_id=book_id)
+        
+        if not progress:
+            # Return default progress if none saved
+            return ProgressResponse(
+                book_id=book_id,
+                position=0.0,
+                chapter_id=None,
+                updated_at=datetime.now().isoformat()
+            )
+        
+        return ProgressResponse(
+            book_id=book_id,
+            position=float(progress.get('position', 0.0)),
+            chapter_id=progress.get('chapter_id'),
+            updated_at=progress.get('updated_at', datetime.now()).isoformat() if progress.get('updated_at') else datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting user progress: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get progress")
+
+@app.post("/bookstore/user/bookmarks", response_model=BookmarkResponse)
+async def save_user_bookmark(request: BookmarkRequest, user_id: str = Depends(get_current_user_id)):
+    """Save a bookmark for a user"""
+    try:
+        from db_utils import save_user_bookmark
+        
+        bookmark_id = save_user_bookmark(
+            user_id=user_id,
+            book_id=request.book_id,
+            position=request.position,
+            note=request.note
+        )
+        
+        if not bookmark_id:
+            raise HTTPException(status_code=500, detail="Failed to save bookmark")
+        
+        return BookmarkResponse(
+            id=bookmark_id,
+            book_id=request.book_id,
+            position=request.position,
+            note=request.note,
+            created_at=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Error saving bookmark: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save bookmark")
+
+@app.get("/bookstore/user/bookmarks/{book_id}")
+async def get_user_bookmarks(book_id: str, user_id: str = Depends(get_current_user_id)):
+    """Get all bookmarks for a book"""
+    try:
+        from db_utils import get_user_bookmarks
+        
+        bookmarks = get_user_bookmarks(user_id=user_id, book_id=book_id)
+        
+        return [
+            BookmarkResponse(
+                id=str(bookmark.get('id', '')),
+                book_id=book_id,
+                position=float(bookmark.get('position', 0.0)),
+                note=bookmark.get('note'),
+                created_at=bookmark.get('created_at', datetime.now()).isoformat() if bookmark.get('created_at') else datetime.now().isoformat()
+            )
+            for bookmark in bookmarks
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting bookmarks: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get bookmarks")
+
+# =====================================================
+# CONTEXT SERVICE ENDPOINTS
+# =====================================================
+
 @app.get("/context")
 async def get_context(query: str, book_id: Optional[str] = None):
     """Proxy context retrieval requests to Context Service"""
@@ -1020,6 +1552,153 @@ async def get_positional_context(request: ContextRequest):
     except Exception as e:
         logger.error(f"Error getting positional context: {e}")
         raise HTTPException(status_code=500, detail="Context retrieval failed")
+
+# Voice Chat Upload Endpoint
+
+class VoiceChatRequest(BaseModel):
+    transcription: str
+    persona_config: Optional[str] = None
+    book_id: Optional[str] = None
+    current_position: Optional[float] = None
+
+class VoiceChatResponse(BaseModel):
+    transcription: str
+    response_text: str
+    response_audio: Optional[str] = None  # Base64 encoded audio response
+
+@app.post("/voice-chat", response_model=VoiceChatResponse)
+async def process_voice_chat(
+    audio_file: UploadFile = File(...),
+    persona_config: Optional[str] = None,
+    book_id: Optional[str] = None,
+    current_position: Optional[float] = None,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Process uploaded voice audio for chat with AI personas
+    
+    1. Transcribes the audio using Azure OpenAI Whisper
+    2. Sends transcription to LLM Gateway for response
+    3. Optionally converts response to speech using TTS
+    """
+    
+    # Validate file type
+    if not audio_file.content_type or not audio_file.content_type.startswith('audio/'):
+        raise HTTPException(status_code=400, detail="File must be an audio file")
+    
+    # File size limit (10MB)
+    MAX_FILE_SIZE = 10 * 1024 * 1024
+    audio_content = await audio_file.read()
+    if len(audio_content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Audio file too large (max 10MB)")
+    
+    try:
+        # Step 1: Transcribe audio using Azure OpenAI Whisper
+        transcription = await _transcribe_audio(audio_content, audio_file.filename)
+        
+        if not transcription.strip():
+            raise HTTPException(status_code=400, detail="Could not transcribe audio - no speech detected")
+        
+        # Step 2: Send transcription to LLM Gateway for response
+        completion_request = {
+            "messages": [
+                {"role": "user", "content": transcription}
+            ],
+            "config": persona_config,
+            "book_id": book_id,
+            "current_position": current_position
+        }
+        
+        async with httpx.AsyncClient() as client:
+            llm_response = await client.post(
+                f"{LLM_URL}/complete",
+                json=completion_request,
+                timeout=30.0
+            )
+            
+            if llm_response.status_code != 200:
+                logger.error(f"LLM Gateway error: {llm_response.text}")
+                raise HTTPException(status_code=500, detail="Failed to get AI response")
+            
+            response_data = llm_response.json()
+            response_text = response_data.get("content", "I'm sorry, I couldn't process your request.")
+        
+        # Step 3: Optionally generate TTS response
+        response_audio = None
+        if persona_config:  # Only generate TTS if persona is specified
+            try:
+                tts_request = {
+                    "text": response_text,
+                    "config": persona_config
+                }
+                
+                async with httpx.AsyncClient() as client:
+                    tts_response = await client.post(
+                        f"{TTS_URL}/synthesize",
+                        json=tts_request,
+                        timeout=30.0
+                    )
+                    
+                    if tts_response.status_code == 200:
+                        tts_data = tts_response.json()
+                        response_audio = tts_data.get("audio")
+            except Exception as e:
+                logger.warning(f"TTS generation failed: {e}")
+                # Continue without audio - text response is still valid
+        
+        return VoiceChatResponse(
+            transcription=transcription,
+            response_text=response_text,
+            response_audio=response_audio
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice chat processing error: {e}")
+        raise HTTPException(status_code=500, detail="Voice chat processing failed")
+
+async def _transcribe_audio(audio_content: bytes, filename: str) -> str:
+    """Transcribe audio using Azure OpenAI Whisper API"""
+    try:
+        # Get Azure OpenAI credentials from config
+        azure_openai_key = os.getenv("AZURE_OPENAI_API_KEY")
+        azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        
+        if not azure_openai_key or not azure_openai_endpoint:
+            raise HTTPException(status_code=500, detail="Azure OpenAI not configured")
+        
+        # Prepare audio file for API
+        files = {
+            'file': (filename or 'audio.wav', audio_content, 'audio/wav')
+        }
+        
+        data = {
+            'model': 'whisper-1',
+            'response_format': 'text'
+        }
+        
+        # Make request to Azure OpenAI Whisper API
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{azure_openai_endpoint}/openai/audio/transcriptions?api-version=2024-12-01-preview",
+                headers={"api-key": azure_openai_key},
+                files=files,
+                data=data,
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Whisper API error: {response.text}")
+                raise HTTPException(status_code=500, detail="Audio transcription failed")
+            
+            return response.text.strip()
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        raise HTTPException(status_code=500, detail="Audio transcription failed")
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,7 +1,7 @@
-name: echowright
-description: EchoWright - AI-powered audiobook companion with interactive personas
+name: echowright_rebuilt
+description: EchoWright - Rebuilt with API-driven architecture
 publish_to: 'none'
-version: 1.0.0+4
+version: 2.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -9,37 +9,52 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Essential UI
   cupertino_icons: ^1.0.2
-  http: ^1.1.0
-  audioplayers: ^6.5.0
-  provider: ^6.1.1
-  shared_preferences: ^2.2.2
   google_fonts: ^6.1.0
   flutter_svg: ^2.0.7
-  cached_network_image: ^3.3.0
-  # Authentication packages
+  
+  # Networking & API
+  http: ^1.1.0
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
+  
+  # Audio & Voice
+  audioplayers: ^6.5.0
+  # speech_to_text: ^6.3.0  # Temporarily disabled due to build issues
+  # permission_handler: ^11.0.1  # Will add back when needed
+  # flutter_sound: ^9.2.13  # Will add back when needed
+  # flutter_tts: ^3.8.3  # Will add back when needed
+  
+  # Authentication
   google_sign_in: ^6.2.1
   sign_in_with_apple: ^5.0.0
-  flutter_secure_storage: ^9.0.0
-  url_launcher: ^6.2.1
-  crypto: ^3.0.3
-  # Payment and subscription packages
-  in_app_purchase: ^3.1.0
-  in_app_purchase_storekit: ^0.3.0
-  in_app_purchase_android: ^0.3.0
-  share_plus: ^7.2.0
-  permission_handler: ^11.0.0
-  connectivity_plus: ^5.0.0
-  # Audio and speech packages
-  # speech_to_text: ^6.6.0  # Temporarily disabled for build issue
-  # Database for offline support
-  sqflite: ^2.3.0
-  # File system and download packages
+  
+  # Storage & Downloads
   path_provider: ^2.1.1
-  dio: ^5.3.4
+  dio: ^5.3.2
+  sqflite: ^2.3.0
+  
+  # UI & Interactions
+  lottie: ^2.6.0
+  url_launcher: ^6.2.1
+  share_plus: ^7.2.1
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  
+  # In-App Purchases
+  in_app_purchase: ^3.1.11
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
@@ -47,5 +62,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-  shaders:
-    - shaders/ripple.frag

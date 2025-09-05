@@ -26,11 +26,23 @@ spec:
         env:
         - name: ENVIRONMENT
           value: {{ .Values.global.environment | default "production" }}
-        - name: GEMINI_API_KEY
+        - name: AZURE_OPENAI_API_KEY
           valueFrom:
             secretKeyRef:
               name: app-secrets
-              key: gemini-api-key
+              key: azure-openai-api-key
+        - name: AZURE_OPENAI_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-endpoint
+        - name: AZURE_OPENAI_DEPLOYMENT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: azure-openai-deployment-name
+        - name: AZURE_OPENAI_API_VERSION
+          value: "2024-10-01-preview"
         - name: REDIS_HOST
           value: {{ .Values.redis.host | default "redis" }}
         - name: REDIS_PORT

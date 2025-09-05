@@ -41,9 +41,17 @@ if 'JWT_SECRET_KEY' not in os.environ:
     os.environ['JWT_SECRET_KEY'] = 'test-secret-key-for-testing'
     print(f"🔧 Set JWT_SECRET_KEY for local development")
 
-if 'GEMINI_API_KEY' not in os.environ:
-    os.environ['GEMINI_API_KEY'] = 'test-key'
-    print(f"🔧 Set GEMINI_API_KEY for local development")
+if 'AZURE_OPENAI_API_KEY' not in os.environ:
+    os.environ['AZURE_OPENAI_API_KEY'] = 'test-key'
+    print(f"🔧 Set AZURE_OPENAI_API_KEY for local development")
+
+if 'AZURE_OPENAI_ENDPOINT' not in os.environ:
+    os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://your-resource.openai.azure.com/'
+    print(f"🔧 Set AZURE_OPENAI_ENDPOINT for local development")
+
+if 'AZURE_OPENAI_DEPLOYMENT_NAME' not in os.environ:
+    os.environ['AZURE_OPENAI_DEPLOYMENT_NAME'] = 'gpt-4o-mini'
+    print(f"🔧 Set AZURE_OPENAI_DEPLOYMENT_NAME for local development")
 
 # Import and run the main app
 print(f"🚀 Starting API Gateway...")

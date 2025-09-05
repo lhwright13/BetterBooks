@@ -51,7 +51,7 @@ class AIConfig:
     openai_api_key: Optional[str] = None
     elevenlabs_api_key: Optional[str] = None
     assemblyai_api_key: Optional[str] = None
-    default_model: str = "gemini-pro"
+    default_model: str = "gpt-4o-mini"
     max_tokens: int = 4000
     temperature: float = 0.7
     enable_content_filtering: bool = True
@@ -101,20 +101,20 @@ class ConfigManager:
     def _validate_required_config(self):
         """Validate that required configuration is present"""
         required_vars = []
-        optional_vars = ["GEMINI_API_KEY", "JWT_SECRET_KEY"]
+        optional_vars = ["GEMINI_API_KEY", "JWT_SECRET_KEY", "AZURE_OPENAI_API_KEY"]
         
         if self.environment == Environment.PRODUCTION:
             # In production, these are truly required
-            required_vars.extend(["JWT_SECRET_KEY", "GEMINI_API_KEY", "DATABASE_URL"])
+            required_vars.extend(["JWT_SECRET_KEY", "AZURE_OPENAI_API_KEY", "DATABASE_URL"])
         elif self.environment == Environment.DEVELOPMENT:
             # In development, provide defaults if missing
             if not os.getenv("JWT_SECRET_KEY"):
                 os.environ["JWT_SECRET_KEY"] = "dev-secret-key-not-for-production-use"
                 logger.warning("Using default JWT_SECRET_KEY for development - not secure for production!")
             
-            if not os.getenv("GEMINI_API_KEY"):
-                os.environ["GEMINI_API_KEY"] = "test-api-key"
-                logger.warning("Using test GEMINI_API_KEY for development - AI features may not work")
+            if not os.getenv("AZURE_OPENAI_API_KEY"):
+                os.environ["AZURE_OPENAI_API_KEY"] = "test-api-key"
+                logger.warning("Using test AZURE_OPENAI_API_KEY for development - AI features may not work")
                 
         missing_vars = []
         for var in required_vars:
@@ -156,11 +156,11 @@ class ConfigManager:
     def get_ai_config(self) -> AIConfig:
         """Get AI provider configuration"""
         return AIConfig(
-            gemini_api_key=self.get_required("GEMINI_API_KEY"),
-            openai_api_key=os.getenv("OPENAI_API_KEY"),
+            gemini_api_key=os.getenv("GEMINI_API_KEY"),  # Now optional - kept for backward compatibility
+            openai_api_key=self.get_required("AZURE_OPENAI_API_KEY"),  # Azure OpenAI is now primary
             elevenlabs_api_key=os.getenv("ELEVENLABS_API_KEY"),
             assemblyai_api_key=os.getenv("ASSEMBLYAI_API_KEY"),
-            default_model=os.getenv("DEFAULT_LLM_MODEL", "gemini-pro"),
+            default_model=os.getenv("DEFAULT_LLM_MODEL", "gpt-4o-mini"),
             max_tokens=int(os.getenv("MAX_CONTEXT_TOKENS", "4000")),
             temperature=float(os.getenv("LLM_TEMPERATURE", "0.7")),
             enable_content_filtering=os.getenv("ENABLE_CONTENT_FILTERING", "true").lower() == "true",
@@ -240,6 +240,7 @@ class ConfigManager:
         api_keys = {
             "gemini": bool(os.getenv("GEMINI_API_KEY")),
             "openai": bool(os.getenv("OPENAI_API_KEY")),
+            "azure_openai": bool(os.getenv("AZURE_OPENAI_API_KEY")),
             "elevenlabs": bool(os.getenv("ELEVENLABS_API_KEY")),
             "assemblyai": bool(os.getenv("ASSEMBLYAI_API_KEY")),
         }

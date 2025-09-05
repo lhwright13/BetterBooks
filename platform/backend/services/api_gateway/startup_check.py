@@ -72,7 +72,8 @@ class StartupValidator:
         
         # Check critical environment variables first
         required_env_vars = [
-            ("GEMINI_API_KEY", "AI functionality"),
+            ("AZURE_OPENAI_API_KEY", "AI functionality"),
+            ("AZURE_OPENAI_ENDPOINT", "Azure OpenAI endpoint"),
             ("JWT_SECRET_KEY", "Authentication"),
         ]
         

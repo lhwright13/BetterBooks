@@ -142,7 +142,9 @@ EMAIL_FROM_ADDRESS=noreply@echowright.com
 FRONTEND_BASE_URL=https://app.echowright.com
 
 # External Services
-GEMINI_API_KEY=your_gemini_api_key
+AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
 REDIS_URL=redis://localhost:6379
 DATABASE_URL=postgresql://user:pass@localhost/betterbooks
 

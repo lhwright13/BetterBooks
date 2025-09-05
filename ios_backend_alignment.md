@@ -43,25 +43,32 @@ This document provides a comprehensive analysis of all API endpoints used by the
 | GET /bookstore/user/library | ✅ Exists | Returns user's purchased books |
 | GET /bookstore/books/{book_id}/download | ✅ Exists | Returns download links |
 
-### ❌ Missing
-| iOS Endpoint | Backend Status | Issue | Priority |
-|-------------|----------------|-------|----------|
-| GET /bookstore/search | ❌ Missing | Search functionality needed | HIGH |
-| POST /bookstore/user/initialize-credits | ❌ Missing | Credit initialization needed | HIGH |
-| GET /bookstore/featured | ❌ Missing | Featured books filter | MEDIUM |
-| GET /bookstore/bestsellers | ❌ Missing | Bestseller books filter | MEDIUM |
-| GET /bookstore/test | ❌ Missing | Test endpoint | LOW |
+### ✅ Working (Recently Added - Sept 4, 2025)
+| iOS Endpoint | Backend Status | Notes |
+|-------------|----------------|-------|
+| GET /bookstore/search | ✅ Exists | Full-text search with relevance ranking |
+| POST /bookstore/user/initialize-credits | ✅ Exists | Credit initialization with duplicate prevention |
+| GET /bookstore/featured | ✅ Exists | Featured books filter |
+| GET /bookstore/bestsellers | ✅ Exists | Bestseller books filter |
+| GET /bookstore/test | ✅ Exists | Debug endpoint for system status |
 
 ---
 
-## 3. V2 ENDPOINTS (iOS uses but don't exist)
+## 3. WISHLIST ENDPOINTS (✅ Now Implemented - Sept 4, 2025)
 
+### ✅ Working (User-authenticated endpoints)
+| Backend Endpoint | Status | Notes |
+|-----------------|--------|-------|
+| POST /bookstore/user/wishlist/{book_id} | ✅ Exists | Add book to user's wishlist (JWT authenticated) |
+| DELETE /bookstore/user/wishlist/{book_id} | ✅ Exists | Remove book from user's wishlist (JWT authenticated) |
+| GET /bookstore/user/wishlist | ✅ Exists | Get user's wishlist with pagination (JWT authenticated) |
+
+### ❌ Still Missing (V2 endpoints iOS references)
 | iOS Endpoint | Backend Status | Issue | Priority |
 |-------------|----------------|-------|----------|
-| POST /v2/bookstore/wishlist/{user_id}/{book_id} | ❌ Missing | Wishlist add | LOW |
-| DELETE /v2/bookstore/wishlist/{user_id}/{book_id} | ❌ Missing | Wishlist remove | LOW |
-| GET /v2/bookstore/wishlist/{user_id} | ❌ Missing | Get wishlist | LOW |
-| POST /v2/bookstore/download | ❌ Missing | Download endpoint | LOW |
+| POST /v2/bookstore/download | ❌ Missing | V2 Download endpoint | LOW |
+
+**Note**: iOS should update to use the new user-authenticated wishlist endpoints instead of V2 endpoints.
 
 ---
 
@@ -108,10 +115,10 @@ This document provides a comprehensive analysis of all API endpoints used by the
 | GET /books/{folder}/{file} | ✅ Exists | Serve book audio files |
 | GET /books/cover/{folder}/{file} | ✅ Exists | Serve book covers |
 
-### ❌ Missing
-| iOS Endpoint | Backend Status | Issue | Priority |
-|-------------|----------------|-------|----------|
-| GET /books | ❌ Missing | Book list endpoint | LOW |
+### ✅ Working (Recently Added - Sept 4, 2025)
+| iOS Endpoint | Backend Status | Notes |
+|-------------|----------------|-------|
+| GET /books | ✅ Exists | Simple book list with pagination |
 
 ---
 
@@ -136,18 +143,19 @@ This document provides a comprehensive analysis of all API endpoints used by the
 
 ## RECOMMENDED FIX PRIORITY
 
-### 🔴 CRITICAL (Block core functionality)
-1. **Search functionality** - GET /bookstore/search
-2. **Credit initialization** - POST /bookstore/user/initialize-credits
+### ✅ COMPLETED (Sept 4, 2025)
+1. **Search functionality** - ✅ GET /bookstore/search implemented
+2. **Credit initialization** - ✅ POST /bookstore/user/initialize-credits implemented  
+3. **Featured/Bestsellers** - ✅ GET /bookstore/featured and /bookstore/bestsellers implemented
+4. **Wishlist** - ✅ All wishlist endpoints implemented
+5. **Utility endpoints** - ✅ GET /books and /bookstore/test implemented
 
-### 🟡 HIGH (Important for UX)
+### 🟡 REMAINING HIGH PRIORITY
 1. **OAuth login** - Fix /auth/google and /auth/apple
-2. **Featured/Bestsellers** - Add filtering endpoints
-3. **POST /context** - Add POST method support
+2. **POST /context** - Add POST method support
 
-### 🟢 MEDIUM (Nice to have)
-1. **Wishlist** - All wishlist endpoints
-2. **Password reset** - Email verification flow
+### 🟢 REMAINING MEDIUM PRIORITY
+1. **Password reset** - Email verification flow
 
 ### ⚪ LOW (Future features)
 1. **AI features** - Chapter detection, summarization, questions

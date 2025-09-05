@@ -667,3 +667,471 @@ def remove_persona_from_book(book_id: str, persona_id: str) -> bool:
     except Exception as e:
         logger.error(f"Database error removing persona {persona_id} from book {book_id}: {e}")
         return False
+
+
+def search_books(query: str, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+    """Search for books by title, author, or description"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Search in title, author, and description
+                search_query = """
+                    SELECT id, title, author, description, cover_image_url, 
+                           price_usd, credit_price, is_featured, is_bestseller, is_new_release
+                    FROM books 
+                    WHERE (
+                        title ILIKE %s OR 
+                        author ILIKE %s OR 
+                        description ILIKE %s
+                    )
+                    ORDER BY 
+                        CASE 
+                            WHEN title ILIKE %s THEN 1
+                            WHEN author ILIKE %s THEN 2
+                            ELSE 3
+                        END,
+                        title
+                    LIMIT %s OFFSET %s
+                """
+                
+                search_pattern = f"%{query}%"
+                cursor.execute(search_query, (
+                    search_pattern, search_pattern, search_pattern,  # WHERE conditions
+                    search_pattern, search_pattern,                   # ORDER BY conditions
+                    limit, offset
+                ))
+                
+                books = cursor.fetchall()
+                
+                # Get total count for pagination
+                count_query = """
+                    SELECT COUNT(*) as total
+                    FROM books 
+                    WHERE (
+                        title ILIKE %s OR 
+                        author ILIKE %s OR 
+                        description ILIKE %s
+                    )
+                """
+                
+                cursor.execute(count_query, (search_pattern, search_pattern, search_pattern))
+                total_count = cursor.fetchone()['total']
+                
+                return {
+                    'books': [dict(book) for book in books],
+                    'total_books': total_count
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error searching books with query '{query}': {e}")
+        return {'books': [], 'total_books': 0}
+
+
+def get_bestselling_books(limit: int = 10, offset: int = 0) -> Dict[str, Any]:
+    """Get bestselling books (based on purchase count or is_bestseller flag)"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # First try to get books marked as bestsellers
+                cursor.execute("""
+                    SELECT b.id, b.title, b.author, b.description, b.cover_image_url,
+                           b.price_usd, b.credit_price, b.is_featured, b.is_bestseller, b.is_new_release
+                    FROM books b
+                    WHERE b.is_bestseller = TRUE
+                    ORDER BY b.title
+                    LIMIT %s OFFSET %s
+                """, (limit, offset))
+                
+                bestsellers = cursor.fetchall()
+                
+                # If no bestsellers found, fall back to most purchased books
+                if not bestsellers:
+                    cursor.execute("""
+                        SELECT b.id, b.title, b.author, b.description, b.cover_image_url,
+                               b.price_usd, b.credit_price, b.is_featured, b.is_bestseller, b.is_new_release,
+                               COUNT(up.id) as purchase_count
+                        FROM books b
+                        LEFT JOIN user_purchases up ON b.id = up.book_id
+                        GROUP BY b.id, b.title, b.author, b.description, b.cover_image_url,
+                                 b.price_usd, b.credit_price, b.is_featured, b.is_bestseller, b.is_new_release
+                        ORDER BY purchase_count DESC, b.title
+                        LIMIT %s OFFSET %s
+                    """, (limit, offset))
+                    
+                    bestsellers = cursor.fetchall()
+                
+                # Get total count
+                cursor.execute("SELECT COUNT(*) as total FROM books WHERE is_bestseller = TRUE")
+                total_count = cursor.fetchone()['total']
+                
+                return {
+                    'books': [dict(book) for book in bestsellers],
+                    'total_books': total_count
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error getting bestselling books: {e}")
+        return {'books': [], 'total_books': 0}
+
+
+def initialize_user_credits(user_id: str, initial_credits: int = 5) -> Dict[str, Any]:
+    """Initialize credits for a new user (only if they don't have credits already)"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Check if user already has credits
+                cursor.execute("""
+                    SELECT total_credits, used_credits, (total_credits - used_credits) as available_credits
+                    FROM user_credits 
+                    WHERE user_id = %s
+                """, (user_id,))
+                
+                existing_credits = cursor.fetchone()
+                if existing_credits:
+                    raise ValueError("User already has credits initialized")
+                
+                # Initialize credits for new user
+                cursor.execute("""
+                    INSERT INTO user_credits (user_id, total_credits, used_credits)
+                    VALUES (%s, %s, 0)
+                    RETURNING total_credits, used_credits, (total_credits - used_credits) as available_credits
+                """, (user_id, initial_credits))
+                
+                credits_data = cursor.fetchone()
+                conn.commit()
+                
+                logger.info(f"Initialized {initial_credits} credits for user {user_id}")
+                return dict(credits_data)
+                
+    except Exception as e:
+        logger.error(f"Database error initializing credits for user {user_id}: {e}")
+        raise
+
+
+def add_to_user_wishlist(user_id: str, book_id: str) -> Dict[str, Any]:
+    """Add a book to user's wishlist"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Check if book exists
+                cursor.execute("SELECT id, title FROM books WHERE id = %s", (book_id,))
+                book = cursor.fetchone()
+                if not book:
+                    raise ValueError("Book not found")
+                
+                # Check if already in wishlist
+                cursor.execute("""
+                    SELECT id FROM user_wishlists 
+                    WHERE user_id = %s AND book_id = %s
+                """, (user_id, book_id))
+                
+                if cursor.fetchone():
+                    raise ValueError("Book already in wishlist")
+                
+                # Add to wishlist
+                cursor.execute("""
+                    INSERT INTO user_wishlists (user_id, book_id, added_at)
+                    VALUES (%s, %s, NOW())
+                    RETURNING id, added_at
+                """, (user_id, book_id))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                logger.info(f"Added book {book_id} to user {user_id}'s wishlist")
+                return {
+                    'wishlist_id': result['id'],
+                    'user_id': user_id,
+                    'book_id': book_id,
+                    'book_title': book['title'],
+                    'added_at': result['added_at'].isoformat() if result['added_at'] else None,
+                    'message': 'Book added to wishlist successfully'
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error adding book {book_id} to user {user_id}'s wishlist: {e}")
+        raise
+
+
+def remove_from_user_wishlist(user_id: str, book_id: str) -> Dict[str, Any]:
+    """Remove a book from user's wishlist"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Check if book is in wishlist
+                cursor.execute("""
+                    SELECT uw.id, b.title 
+                    FROM user_wishlists uw
+                    JOIN books b ON uw.book_id = b.id
+                    WHERE uw.user_id = %s AND uw.book_id = %s
+                """, (user_id, book_id))
+                
+                wishlist_item = cursor.fetchone()
+                if not wishlist_item:
+                    raise ValueError("Book not found in wishlist")
+                
+                # Remove from wishlist
+                cursor.execute("""
+                    DELETE FROM user_wishlists 
+                    WHERE user_id = %s AND book_id = %s
+                """, (user_id, book_id))
+                
+                conn.commit()
+                
+                logger.info(f"Removed book {book_id} from user {user_id}'s wishlist")
+                return {
+                    'user_id': user_id,
+                    'book_id': book_id,
+                    'book_title': wishlist_item['title'],
+                    'message': 'Book removed from wishlist successfully'
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error removing book {book_id} from user {user_id}'s wishlist: {e}")
+        raise
+
+
+def get_user_wishlist(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str, Any]:
+    """Get user's wishlist with book details"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Get wishlist with book details
+                cursor.execute("""
+                    SELECT 
+                        uw.id as wishlist_id,
+                        uw.book_id,
+                        uw.added_at,
+                        b.title,
+                        b.author,
+                        b.description,
+                        b.cover_image_url,
+                        b.price_usd,
+                        b.credit_price,
+                        b.is_featured,
+                        b.is_bestseller,
+                        b.is_new_release
+                    FROM user_wishlists uw
+                    JOIN books b ON uw.book_id = b.id
+                    WHERE uw.user_id = %s
+                    ORDER BY uw.added_at DESC
+                    LIMIT %s OFFSET %s
+                """, (user_id, limit, offset))
+                
+                wishlist_items = cursor.fetchall()
+                
+                # Get total count
+                cursor.execute("""
+                    SELECT COUNT(*) as total 
+                    FROM user_wishlists 
+                    WHERE user_id = %s
+                """, (user_id,))
+                
+                total_count = cursor.fetchone()['total']
+                
+                # Format the response
+                books = []
+                for item in wishlist_items:
+                    book_data = dict(item)
+                    # Convert datetime to ISO format
+                    if book_data.get('added_at'):
+                        book_data['added_at'] = book_data['added_at'].isoformat()
+                    books.append(book_data)
+                
+                return {
+                    'books': books,
+                    'total_books': total_count,
+                    'user_id': user_id
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error getting wishlist for user {user_id}: {e}")
+        return {'books': [], 'total_books': 0, 'user_id': user_id}
+
+def get_categories() -> Dict[str, Any]:
+    """Get all active book categories from database"""
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT 
+                        id,
+                        name,
+                        description,
+                        image_url,
+                        display_order,
+                        is_active,
+                        created_at,
+                        updated_at
+                    FROM book_categories
+                    WHERE is_active = true
+                    ORDER BY display_order ASC, name ASC
+                """)
+                
+                categories = cursor.fetchall()
+                
+                # Format the response
+                formatted_categories = []
+                for category in categories:
+                    category_data = dict(category)
+                    # Convert UUIDs and timestamps to strings
+                    if category_data.get('id'):
+                        category_data['id'] = str(category_data['id'])
+                    if category_data.get('created_at'):
+                        category_data['created_at'] = category_data['created_at'].isoformat()
+                    if category_data.get('updated_at'):
+                        category_data['updated_at'] = category_data['updated_at'].isoformat()
+                    formatted_categories.append(category_data)
+                
+                return {
+                    'categories': formatted_categories,
+                    'total_count': len(formatted_categories)
+                }
+                
+    except Exception as e:
+        logger.error(f"Database error getting categories: {e}")
+        # Return fallback hardcoded categories on database failure
+        return {
+            'categories': [
+                {
+                    'id': 'classics',
+                    'name': 'Classics',
+                    'description': 'Timeless literary works that have shaped culture and thought',
+                    'image_url': None,
+                    'display_order': 1,
+                    'is_active': True,
+                    'created_at': '2025-01-01T00:00:00Z',
+                    'updated_at': '2025-01-01T00:00:00Z'
+                },
+                {
+                    'id': 'fiction',
+                    'name': 'Fiction',
+                    'description': 'Imaginative literature that tells compelling stories',
+                    'image_url': None,
+                    'display_order': 2,
+                    'is_active': True,
+                    'created_at': '2025-01-01T00:00:00Z',
+                    'updated_at': '2025-01-01T00:00:00Z'
+                },
+                {
+                    'id': 'adventure',
+                    'name': 'Adventure',
+                    'description': 'Thrilling tales of exploration, danger, and discovery',
+                    'image_url': None,
+                    'display_order': 3,
+                    'is_active': True,
+                    'created_at': '2025-01-01T00:00:00Z',
+                    'updated_at': '2025-01-01T00:00:00Z'
+                }
+            ],
+            'total_count': 3
+        }
+
+# =====================================================
+# USER PROGRESS TRACKING FUNCTIONS
+# =====================================================
+
+def save_user_reading_progress(user_id: str, book_id: str, position: float, chapter_id: Optional[str] = None) -> bool:
+    """Save or update user's reading progress for a book"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Use UPSERT (INSERT ... ON CONFLICT) to update or insert progress
+        cur.execute("""
+            INSERT INTO user_reading_progress (user_id, book_id, position, chapter_id, updated_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            ON CONFLICT (user_id, book_id)
+            DO UPDATE SET 
+                position = EXCLUDED.position,
+                chapter_id = EXCLUDED.chapter_id,
+                updated_at = NOW()
+        """, (user_id, book_id, position, chapter_id))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved reading progress for user {user_id}, book {book_id}, position {position}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error saving reading progress: {e}")
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False
+
+def get_user_reading_progress(user_id: str, book_id: str) -> Optional[Dict[str, Any]]:
+    """Get user's reading progress for a specific book"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        cur.execute("""
+            SELECT user_id, book_id, position, chapter_id, updated_at
+            FROM user_reading_progress
+            WHERE user_id = %s AND book_id = %s
+        """, (user_id, book_id))
+        
+        progress = cur.fetchone()
+        conn.close()
+        
+        if progress:
+            return dict(progress)
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting reading progress: {e}")
+        if conn:
+            conn.close()
+        return None
+
+def save_user_bookmark(user_id: str, book_id: str, position: float, note: Optional[str] = None) -> Optional[str]:
+    """Save a bookmark for a user and return the bookmark ID"""
+    try:
+        import uuid
+        
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        bookmark_id = str(uuid.uuid4())
+        
+        cur.execute("""
+            INSERT INTO user_bookmarks (id, user_id, book_id, position, note, created_at)
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """, (bookmark_id, user_id, book_id, position, note))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Saved bookmark for user {user_id}, book {book_id}, position {position}")
+        return bookmark_id
+        
+    except Exception as e:
+        logger.error(f"Error saving bookmark: {e}")
+        if conn:
+            conn.rollback()
+            conn.close()
+        return None
+
+def get_user_bookmarks(user_id: str, book_id: str) -> List[Dict[str, Any]]:
+    """Get all bookmarks for a user's book"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        cur.execute("""
+            SELECT id, user_id, book_id, position, note, created_at
+            FROM user_bookmarks
+            WHERE user_id = %s AND book_id = %s
+            ORDER BY created_at DESC
+        """, (user_id, book_id))
+        
+        bookmarks = cur.fetchall()
+        conn.close()
+        
+        return [dict(bookmark) for bookmark in bookmarks]
+        
+    except Exception as e:
+        logger.error(f"Error getting bookmarks: {e}")
+        if conn:
+            conn.close()
+        return []

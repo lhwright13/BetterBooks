@@ -1,4 +1,4 @@
-"""Tiny wrapper around the Gemini API used for text generation."""
+"""Tiny wrapper around the Azure OpenAI API used for text generation."""
 
 import os
 import sys
@@ -24,13 +24,9 @@ except ImportError as e:
     SEMANTIC_CACHE_AVAILABLE = False
 
 try:  # pragma: no cover - library may not be installed during tests
-    import google.generativeai as genai
-    from google.generativeai.types import GenerationConfig, HarmCategory, HarmBlockThreshold
+    from openai import AzureOpenAI
 except Exception:  # pragma: no cover - the library may be stubbed in tests
-    genai = types.SimpleNamespace(configure=lambda *a, **k: None, GenerativeModel=lambda *a, **k: None)  # type: ignore
-    GenerationConfig = dict  # type: ignore
-    HarmCategory = types.SimpleNamespace()  # type: ignore
-    HarmBlockThreshold = types.SimpleNamespace()  # type: ignore
+    AzureOpenAI = types.SimpleNamespace()  # type: ignore
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -65,10 +61,16 @@ else:
     repo_root = _parents[4] if len(_parents) > 4 else _parents[-1]
     CONFIG_DIR = repo_root / "config" / "production" / "llm_configs"
 
-# Validate API key before configuring
+# Validate Azure OpenAI configuration
 api_key = cfg["api_key"]
+azure_endpoint = cfg["azure_endpoint"]
+deployment_name = cfg["deployment_name"]
+api_version = cfg["api_version"]
+
 if not api_key or api_key.strip() == "":
-    raise ValueError("Valid GEMINI_API_KEY environment variable is required")
+    raise ValueError("Valid AZURE_OPENAI_API_KEY environment variable is required")
+if not azure_endpoint or azure_endpoint.strip() == "":
+    raise ValueError("Valid AZURE_OPENAI_ENDPOINT environment variable is required")
 
 # Set up structured logging
 logger = setup_logging(
@@ -76,9 +78,18 @@ logger = setup_logging(
     log_level=os.getenv("LOG_LEVEL", "INFO")
 )
 
-logger.info(f"Configuring LLM Gateway with API key", api_key_prefix=api_key[:10])
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel(cfg["model"])
+logger.info(f"Configuring Azure OpenAI Gateway with endpoint", 
+           endpoint=azure_endpoint, 
+           deployment=deployment_name,
+           api_version=api_version)
+
+# Initialize Azure OpenAI client
+client = AzureOpenAI(
+    api_key=api_key,
+    api_version=api_version,
+    azure_endpoint=azure_endpoint
+)
+model_name = cfg["model"]
 gen_config_defaults = cfg.get("generation_config", {})
 
 # FastAPI application instance
@@ -148,7 +159,7 @@ class CompletionRequest(BaseModel):
 
 @app.post("/complete")
 def complete(req: CompletionRequest) -> dict:
-    """Call Gemini to generate a text completion with semantic caching."""
+    """Call Azure OpenAI to generate a text completion with semantic caching."""
     
     # Track prompt length
     prompt_length_histogram.observe(len(req.prompt))
@@ -196,49 +207,72 @@ def complete(req: CompletionRequest) -> dict:
         cache_performance_counter.labels(operation="get", result="miss").inc()
     
     try:
-        # Validate local API key
+        # Validate local Azure OpenAI configuration
         local_api_key = cfg_local.get("api_key", "")
+        local_endpoint = cfg_local.get("azure_endpoint", "")
+        local_deployment = cfg_local.get("deployment_name", "")
+        local_api_version = cfg_local.get("api_version", "")
+        
         if not local_api_key or local_api_key.strip() == "":
             raise ValueError("Valid API key is required for this configuration")
+        if not local_endpoint or local_endpoint.strip() == "":
+            raise ValueError("Valid Azure endpoint is required for this configuration")
         
-        genai.configure(api_key=local_api_key)
-        model_local = genai.GenerativeModel(cfg_local["model"])
+        # Create local client for this request if different from global
+        local_client = client
+        if (local_api_key != api_key or 
+            local_endpoint != azure_endpoint or 
+            local_api_version != api_version):
+            local_client = AzureOpenAI(
+                api_key=local_api_key,
+                api_version=local_api_version,
+                azure_endpoint=local_endpoint
+            )
+        
         gen_config_defaults_local = cfg_local.get("generation_config", {})
-        config = GenerationConfig(
-            **{
-                **gen_config_defaults_local,
-                "max_output_tokens": req.max_tokens,
-            }
-        )
-        logger.debug("Generating completion", prompt_length=len(prompt), config=req.config)
         
-        # Safety settings to prevent truncation
-        safety_settings = {
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        # Map configuration to OpenAI parameters
+        openai_params = {
+            "model": local_deployment or deployment_name,
+            "max_tokens": req.max_tokens,
+            "temperature": gen_config_defaults_local.get("temperature", 0.7),
         }
         
-        resp = model_local.generate_content(
-            prompt,
-            generation_config=config,
-            safety_settings=safety_settings,
+        # Add optional parameters if present
+        if "top_p" in gen_config_defaults_local:
+            openai_params["top_p"] = gen_config_defaults_local["top_p"]
+        if "frequency_penalty" in gen_config_defaults_local:
+            openai_params["frequency_penalty"] = gen_config_defaults_local["frequency_penalty"]
+        if "presence_penalty" in gen_config_defaults_local:
+            openai_params["presence_penalty"] = gen_config_defaults_local["presence_penalty"]
+        
+        logger.debug("Generating completion", prompt_length=len(prompt), config=req.config)
+        
+        # Create messages array for OpenAI chat completion
+        messages = [
+            {"role": "user", "content": prompt}
+        ]
+        
+        # Call Azure OpenAI
+        response = local_client.chat.completions.create(
+            messages=messages,
+            **openai_params
         )
+        
     except Exception as exc:  # pragma: no cover - requires actual API call
         logger.error(
-            "LLM generation failed",
+            "Azure OpenAI generation failed",
             error=str(exc),
             config=req.config,
             request_id=get_request_id()
         )
         raise HTTPException(status_code=502, detail=str(exc))
 
-    # Validate response has text attribute
-    if not hasattr(resp, 'text') or resp.text is None:
-        raise HTTPException(status_code=502, detail="Invalid response from language model")
+    # Validate response structure
+    if not response.choices or not response.choices[0].message or not response.choices[0].message.content:
+        raise HTTPException(status_code=502, detail="Invalid response from Azure OpenAI")
     
-    response_data = {"text": resp.text.strip()}
+    response_data = {"text": response.choices[0].message.content.strip()}
     
     # Cache the response for future use
     if semantic_cache and SEMANTIC_CACHE_AVAILABLE:
