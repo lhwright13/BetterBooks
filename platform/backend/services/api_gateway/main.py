@@ -21,10 +21,11 @@ import logging
 import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+import yaml
 
 import httpx
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, RedirectResponse
 from pydantic import BaseModel
@@ -935,6 +936,67 @@ async def list_personas_endpoint():
     except Exception as e:
         logger.error(f"Error listing personas: {e}")
         raise HTTPException(status_code=500, detail="Failed to list personas")
+
+@app.get("/voice/config")
+async def get_voice_config():
+    """Get voice chat configuration for frontend"""
+    try:
+        # Look for voice config file in multiple locations
+        config_paths = [
+            Path("/app/config/voice/voice_chat_config.yaml"),  # Docker container path
+            Path("../../../config/voice/voice_chat_config.yaml"),  # Local development path
+            Path("/Users/lhwri/BetterBooks/config/voice/voice_chat_config.yaml")  # Absolute path fallback
+        ]
+        
+        config_data = {}
+        config_loaded = False
+        
+        for config_path in config_paths:
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config_data = yaml.safe_load(f)
+                    config_loaded = True
+                    logger.info(f"Loaded voice config from: {config_path}")
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed to load config from {config_path}: {e}")
+                    continue
+        
+        if not config_loaded:
+            # Fallback default configuration
+            config_data = {
+                "vad": {"sensitivity": "medium", "silence_timeout_ms": 2000},
+                "conversation": {"max_length": 50, "continuous_listening": True},
+                "tts": {"default_voice": "en-US-Neural2-J", "speech_rate": 1.0},
+                "features": {"voice_chat_enabled": True, "persona_voice_switching": True}
+            }
+            logger.warning("Using fallback voice configuration")
+        
+        # Return frontend-relevant configuration only
+        return {
+            "vad_sensitivity": config_data.get("vad", {}).get("sensitivity", "medium"),
+            "silence_timeout_ms": config_data.get("vad", {}).get("silence_timeout_ms", 2000),
+            "max_conversation_length": config_data.get("conversation", {}).get("max_length", 50),
+            "continuous_listening": config_data.get("conversation", {}).get("continuous_listening", True),
+            "interrupt_enabled": config_data.get("conversation", {}).get("interrupt_enabled", True),
+            "voice_chat_enabled": config_data.get("features", {}).get("voice_chat_enabled", True),
+            "persona_voice_switching": config_data.get("features", {}).get("persona_voice_switching", True),
+            "response_timeout_seconds": config_data.get("performance", {}).get("response_timeout_seconds", 30)
+        }
+    except Exception as e:
+        logger.error(f"Error loading voice config: {e}")
+        # Return safe defaults on error
+        return {
+            "vad_sensitivity": "medium",
+            "silence_timeout_ms": 2000,
+            "max_conversation_length": 50,
+            "continuous_listening": True,
+            "interrupt_enabled": True,
+            "voice_chat_enabled": True,
+            "persona_voice_switching": True,
+            "response_timeout_seconds": 30
+        }
 
 @app.get("/bookstore/books/{book_id}/download", response_model=BookDownloadResponse)
 async def get_book_download_links(book_id: str, user_id: str = Depends(get_current_user_id)):

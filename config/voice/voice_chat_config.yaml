@@ -1,0 +1,69 @@
+# Voice Chat Configuration for EchoWright
+# This file contains centralized configuration for voice chat features
+
+# Voice Activity Detection (VAD) Settings
+vad:
+  sensitivity: "medium"  # Options: low, medium, high
+  silence_timeout_ms: 2000  # How long to wait for silence before ending input
+  min_speech_duration_ms: 500  # Minimum speech duration to register
+  
+# Conversation Management
+conversation:
+  max_length: 50  # Maximum messages per conversation session
+  session_timeout_minutes: 30  # Auto-end conversation after inactivity
+  continuous_listening: true  # Keep listening after AI response
+  interrupt_enabled: true  # Allow user to interrupt AI mid-sentence
+  
+# Speech-to-Text Settings  
+stt:
+  language: "en-US"  # Primary language
+  fallback_languages: ["en-GB", "en-AU"]  # Fallback options
+  confidence_threshold: 0.7  # Minimum confidence for transcription
+  
+# Text-to-Speech Default Settings (can be overridden by persona)
+tts:
+  default_voice: "en-US-Neural2-J"  # Default voice when no persona config
+  speech_rate: 1.0  # Default speech rate
+  pitch: 1.0  # Default pitch
+  volume: 0.8  # Default volume
+  
+# Performance & Rate Limiting
+performance:
+  response_timeout_seconds: 30  # Max time to wait for AI response
+  max_concurrent_sessions: 5  # Max simultaneous voice sessions per user
+  rate_limit_warning_percent: 20  # Show warning at 20% of daily limit
+  battery_optimization: true  # Enable battery-saving features
+  
+# Context Integration
+context:
+  include_reading_position: true  # Include current chapter/position
+  include_recent_chapters: 2  # Number of previous chapters for context
+  max_context_length: 4000  # Maximum context tokens
+  
+# Feature Flags
+features:
+  voice_chat_enabled: true  # Master voice chat toggle
+  continuous_mode_enabled: true  # Enable continuous listening mode
+  persona_voice_switching: true  # Enable different voices per persona
+  waveform_visualization: true  # Show audio waveforms
+  noise_suppression: false  # Advanced noise suppression (future feature)
+  
+# Error Handling
+error_handling:
+  max_retry_attempts: 3  # Max retries for failed requests
+  fallback_to_text: true  # Fall back to text chat on voice failure
+  show_error_details: false  # Show technical error details to users
+  
+# Privacy Settings
+privacy:
+  store_transcripts: true  # Store conversation transcripts on backend
+  transcript_retention_days: 90  # How long to keep transcripts
+  voice_data_retention_days: 30  # How long to keep voice recordings
+  analytics_enabled: true  # Enable usage analytics
+  
+# Development/Debug Settings
+debug:
+  log_transcriptions: false  # Log speech transcriptions (dev only)
+  log_tts_requests: false  # Log TTS requests (dev only)
+  mock_mode: false  # Use mock services for testing
+  verbose_logging: false  # Enable detailed logging
