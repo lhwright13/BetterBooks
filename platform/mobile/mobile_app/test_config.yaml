@@ -1,0 +1,128 @@
+# Flutter Test Configuration
+name: BetterBooks Mobile App Test Suite
+description: Comprehensive testing configuration for production-ready Flutter app
+
+# Test Execution Settings
+test_execution:
+  parallel: true
+  timeout: 30s
+  randomize_execution_order: true
+  stop_on_first_failure: false
+
+# Coverage Settings
+coverage:
+  enabled: true
+  output_directory: coverage/
+  report_formats:
+    - lcov
+    - html
+    - json
+  minimum_coverage: 80
+  exclude_from_coverage:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/main.dart"
+    - "test/**"
+
+# Test Categories
+categories:
+  unit_tests:
+    pattern: "test/unit/**/*_test.dart"
+    description: "Unit tests for business logic and data models"
+    coverage_required: true
+    
+  widget_tests:
+    pattern: "test/widget/**/*_test.dart"
+    description: "Widget tests for UI components"
+    coverage_required: true
+    
+  integration_tests:
+    pattern: "test/integration/**/*_test.dart"
+    description: "Integration tests for complete user flows"
+    timeout: 60s
+    
+  golden_tests:
+    pattern: "test/golden/**/*_test.dart"
+    description: "Golden tests for UI consistency"
+    update_goldens: false
+    
+  performance_tests:
+    pattern: "test/integration/performance_*.dart"
+    description: "Performance and accessibility tests"
+    timeout: 120s
+
+# Device Configurations for Testing
+device_configurations:
+  ios:
+    - name: "iPhone SE (3rd generation)"
+      platform: "iOS"
+      version: "17.2"
+      screen_size: "375x667"
+    - name: "iPhone 15 Pro"
+      platform: "iOS"
+      version: "17.2"
+      screen_size: "393x852"
+    - name: "iPad Air (5th generation)"
+      platform: "iOS"
+      version: "17.2"
+      screen_size: "820x1180"
+      
+  android:
+    - name: "Pixel 7"
+      platform: "Android"
+      version: "14"
+      screen_size: "411x891"
+    - name: "Samsung Galaxy S24"
+      platform: "Android"
+      version: "14"
+      screen_size: "384x832"
+
+# Test Data Configuration
+test_data:
+  mock_api_responses: true
+  use_fake_data_generators: true
+  preserve_test_state: false
+  cleanup_after_tests: true
+
+# Performance Benchmarks
+performance_benchmarks:
+  app_startup_time: 3000ms
+  navigation_time: 1000ms
+  list_scroll_performance: 60fps
+  memory_usage_limit: 200MB
+
+# Quality Gates
+quality_gates:
+  minimum_test_coverage: 80%
+  maximum_test_execution_time: 300s
+  zero_critical_analysis_issues: true
+  all_golden_tests_pass: true
+
+# Reporting
+reporting:
+  formats:
+    - junit_xml
+    - html
+    - json
+  output_directory: test_reports/
+  include_performance_metrics: true
+  include_coverage_report: true
+  
+# Environment Variables for Testing
+environment:
+  FLUTTER_TEST: true
+  API_BASE_URL: "https://mock-api.betterbooks.test"
+  ENABLE_ANALYTICS: false
+  LOG_LEVEL: "debug"
+
+# Mock Configuration
+mocks:
+  api_client:
+    type: "manual"
+    fallback_responses: true
+  repositories:
+    type: "generated"
+    use_build_runner: true
+  services:
+    type: "manual"
+    simulate_real_behavior: true

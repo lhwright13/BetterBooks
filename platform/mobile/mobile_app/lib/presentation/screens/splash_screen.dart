@@ -19,20 +19,31 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToAuth() async {
-    // Initialize auth service
-    await AuthService.initialize();
-    
-    // Check if user is already authenticated
-    final isAuthenticated = await AuthService.isAuthenticated();
-    
-    await Future.delayed(const Duration(seconds: 1));
-    
-    if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => isAuthenticated ? const MainNavigation() : const EnhancedAuthScreen(),
-        ),
-      );
+    try {
+      // Initialize auth service
+      await AuthService.initialize();
+      
+      // Check if user is already authenticated
+      final isAuthenticated = await AuthService.isAuthenticated();
+      
+      await Future.delayed(const Duration(seconds: 1));
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => isAuthenticated ? const MainNavigation() : const EnhancedAuthScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        // On any error, go to auth screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const EnhancedAuthScreen(),
+          ),
+        );
+      }
     }
   }
 

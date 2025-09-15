@@ -53,17 +53,14 @@ class _EnhancedBookDetailsScreenState extends State<EnhancedBookDetailsScreen> w
     });
 
     try {
-      final [book, personas] = await Future.wait([
-        ApiClient.getBookDetails(widget.bookId),
-        ApiClient.getBookPersonas(widget.bookId),
-      ]);
+      final book = await ApiClient.getBookDetails(widget.bookId);
       
       // Simulate loading reviews (mock data for MVP)
       final reviews = _generateMockReviews();
       
       setState(() {
         _book = book;
-        _personas = personas;
+        _personas = []; // TODO: Add personas API call when implemented
         _reviews = reviews;
         _isLoading = false;
         // TODO: Check actual purchase/wishlist status from API
@@ -927,9 +924,21 @@ class _EnhancedBookDetailsScreenState extends State<EnhancedBookDetailsScreen> w
   }
 
   void _startListening() {
+    if (_book == null) return;
+    
+    // Convert DetailedBook to BrowseBook for the player
+    final browseBook = BrowseBook(
+      id: _book!.id,
+      title: _book!.title,
+      author: _book!.author,
+      coverImageUrl: _book!.coverImageUrl,
+      priceUsd: 9.99, // Default price
+      creditPrice: 1, // Default credit price
+    );
+    
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => const FullPlayerScreen(),
+        builder: (_) => FullPlayerScreen(book: browseBook),
         fullscreenDialog: true,
       ),
     );

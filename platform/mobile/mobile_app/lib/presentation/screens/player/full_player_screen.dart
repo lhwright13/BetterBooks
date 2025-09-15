@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../data/models/book_models.dart';
+import '../../../data/models/chat_models.dart';
 import '../../widgets/enhanced_book_cover.dart';
 import '../../widgets/chapter_selector_sheet.dart';
+import '../text_chat_screen.dart';
+import '../../controllers/purchase_controller.dart';
+import 'package:provider/provider.dart';
 
 class FullPlayerScreen extends StatefulWidget {
   final BrowseBook book;
@@ -20,6 +24,67 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
   double _progress = 0.67;
   double _playbackSpeed = 1.0;
   int _currentChapterIndex = 0;
+  bool _isPreviewMode = false;
+  
+  // Persona state
+  List<BookPersona> _availablePersonas = [];
+  BookPersona? _currentPersona;
+  
+  @override
+  void initState() {
+    super.initState();
+    _initializePersonas();
+    _checkPreviewMode();
+  }
+  
+  void _checkPreviewMode() {
+    // Enable preview mode if book is not purchased
+    _isPreviewMode = !widget.book.isPurchased;
+    
+    // If in preview mode, ensure we start at chapter 0
+    if (_isPreviewMode) {
+      _currentChapterIndex = 0;
+    }
+  }
+  
+  void _initializePersonas() {
+    // Mock personas for demo - in real implementation this would come from API
+    _availablePersonas = [
+      BookPersona(
+        id: '1',
+        personaId: 'gatsby',
+        personaName: 'Jay Gatsby',
+        personaDisplayName: 'Jay Gatsby',
+        personaDescription: 'The enigmatic millionaire',
+        isDefault: true,
+        sortOrder: 0,
+      ),
+      BookPersona(
+        id: '2',
+        personaId: 'nick',
+        personaName: 'Nick Carraway',
+        personaDisplayName: 'Nick Carraway',
+        personaDescription: 'The observant narrator',
+        isDefault: false,
+        sortOrder: 1,
+      ),
+      BookPersona(
+        id: '3',
+        personaId: 'helper',
+        personaName: 'Literary Helper',
+        personaDisplayName: 'Literary Helper',
+        personaDescription: 'Your AI reading assistant',
+        isDefault: false,
+        sortOrder: 2,
+      ),
+    ];
+    
+    // Set default persona
+    _currentPersona = _availablePersonas.firstWhere(
+      (p) => p.isDefault,
+      orElse: () => _availablePersonas.first,
+    );
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -139,12 +204,12 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.replay_10),
-                      onPressed: () {},
+                      onPressed: _rewind10Seconds,
                       iconSize: 32,
                     ),
                     IconButton(
                       icon: const Icon(Icons.skip_previous),
-                      onPressed: () {},
+                      onPressed: _isPreviewMode ? null : _skipToPrevious,
                       iconSize: 40,
                     ),
                     Container(
@@ -163,12 +228,12 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.skip_next),
-                      onPressed: () {},
+                      onPressed: _isPreviewMode ? null : _skipToNext,
                       iconSize: 40,
                     ),
                     IconButton(
                       icon: const Icon(Icons.forward_10),
-                      onPressed: () {},
+                      onPressed: _forward10Seconds,
                       iconSize: 32,
                     ),
                   ],
@@ -182,6 +247,17 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
                     TextButton(
                       onPressed: _showSpeedMenu,
                       child: Text('${_playbackSpeed}x'),
+                    ),
+                    TextButton(
+                      onPressed: _showPersonaMenu,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person, size: 16),
+                          SizedBox(width: 4),
+                          Text(_currentPersona?.personaDisplayName.split(' ').first ?? 'AI'),
+                        ],
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.timer),
@@ -210,9 +286,9 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
   Widget _buildChapterIndicator() {
     if (widget.book.chapters.isEmpty) {
       return Text(
-        'Ready to play',
+        _isPreviewMode ? 'Preview Mode' : 'Ready to play',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: _isPreviewMode ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.primary,
         ),
         textAlign: TextAlign.center,
       );
@@ -225,19 +301,36 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        color: _isPreviewMode 
+          ? Theme.of(context).colorScheme.secondary.withOpacity(0.1)
+          : Theme.of(context).colorScheme.primary.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+          color: _isPreviewMode 
+            ? Theme.of(context).colorScheme.secondary.withOpacity(0.3)
+            : Theme.of(context).colorScheme.primary.withOpacity(0.3),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (_isPreviewMode) ...[
+            Text(
+              'PREVIEW MODE',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+              ),
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
-            'Chapter ${_currentChapterIndex + 1} of ${widget.book.chapters.length}',
+            _isPreviewMode 
+              ? 'Chapter ${_currentChapterIndex + 1} (First Chapter Free)'
+              : 'Chapter ${_currentChapterIndex + 1} of ${widget.book.chapters.length}',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: _isPreviewMode ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -262,6 +355,12 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
   void _showChapterSelector() {
     if (widget.book.chapters.isEmpty) return;
     
+    // In preview mode, only show first chapter
+    if (_isPreviewMode) {
+      _showPurchaseDialog();
+      return;
+    }
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -276,6 +375,12 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
   }
 
   void _selectChapter(int chapterIndex) {
+    // In preview mode, only allow first chapter
+    if (_isPreviewMode && chapterIndex > 0) {
+      _showPurchaseDialog();
+      return;
+    }
+    
     setState(() {
       _currentChapterIndex = chapterIndex.clamp(0, widget.book.chapters.length - 1);
     });
@@ -365,6 +470,55 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
     );
   }
 
+  void _showPersonaMenu() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choose AI Persona',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            ..._availablePersonas.map(
+              (persona) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  child: Text(
+                    persona.personaDisplayName[0],
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                title: Text(persona.personaDisplayName),
+                subtitle: Text(persona.personaDescription ?? ''),
+                trailing: _currentPersona?.id == persona.id
+                    ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    _currentPersona = persona;
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Now chatting with ${persona.personaDisplayName}'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showOptionsMenu() {
     showModalBottomSheet(
       context: context,
@@ -375,31 +529,168 @@ class _FullPlayerScreenState extends State<FullPlayerScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.chat),
-              title: const Text('Chat with AI'),
+              title: const Text('Text Chat'),
+              subtitle: Text('Chat with ${_currentPersona?.personaDisplayName ?? "AI"}'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Navigate to chat
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => TextChatScreen(
+                      book: widget.book,
+                      initialPersonaId: _currentPersona?.personaId,
+                    ),
+                  ),
+                );
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.note_add),
-              title: const Text('Add Note'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Add note functionality
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Share'),
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Share functionality
-              },
-            ),
+            if (!_isPreviewMode) ...[
+              ListTile(
+                leading: const Icon(Icons.note_add),
+                title: const Text('Add Note'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Add note functionality
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.share),
+                title: const Text('Share'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Share functionality
+                },
+              ),
+            ] else ...[
+              ListTile(
+                leading: const Icon(Icons.shopping_cart),
+                title: const Text('Purchase Full Book'),
+                subtitle: Text('${widget.book.creditPrice} credit${widget.book.creditPrice == 1 ? '' : 's'}'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showPurchaseDialog();
+                },
+              ),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  void _rewind10Seconds() {
+    // TODO: Implement actual rewind functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Rewound 10 seconds'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _forward10Seconds() {
+    // In preview mode, check if we're near the end of first chapter
+    if (_isPreviewMode && _progress > 0.9) {
+      _showPurchaseDialog();
+      return;
+    }
+    
+    // TODO: Implement actual forward functionality
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Fast forwarded 10 seconds'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _skipToPrevious() {
+    if (_currentChapterIndex > 0) {
+      _selectChapter(_currentChapterIndex - 1);
+    }
+  }
+
+  void _skipToNext() {
+    if (_currentChapterIndex < widget.book.chapters.length - 1) {
+      _selectChapter(_currentChapterIndex + 1);
+    }
+  }
+
+  void _showPurchaseDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Purchase Required'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('You\'re currently in preview mode. To access the full book including all chapters, please purchase it.'),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(Icons.auto_stories, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Full book: ${widget.book.creditPrice} credit${widget.book.creditPrice == 1 ? '' : 's'}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('• Access to all ${widget.book.chapters.length} chapters'),
+            Text('• Download for offline listening'),
+            Text('• Create bookmarks and notes'),
+            Text('• Full AI chat experience'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Continue Preview'),
+          ),
+          Consumer<PurchaseController>(
+            builder: (context, purchaseController, child) {
+              return ElevatedButton(
+                onPressed: purchaseController.hasEnoughCredits(widget.book.creditPrice)
+                    ? () => _purchaseBook(purchaseController)
+                    : null,
+                child: purchaseController.hasEnoughCredits(widget.book.creditPrice)
+                    ? const Text('Purchase Now')
+                    : const Text('Insufficient Credits'),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _purchaseBook(PurchaseController purchaseController) async {
+    Navigator.pop(context); // Close dialog
+    
+    final success = await purchaseController.purchaseBook(widget.book.id);
+    
+    if (success) {
+      setState(() {
+        _isPreviewMode = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.book.title} purchased successfully!'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Purchase failed. Please try again.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

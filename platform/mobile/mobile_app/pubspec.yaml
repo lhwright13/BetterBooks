@@ -27,7 +27,7 @@ dependencies:
   
   # Audio & Voice
   audioplayers: ^6.5.0
-  # speech_to_text: ^6.3.0  # Temporarily disabled due to build issues
+  # speech_to_text: ^6.3.0  # Temporarily disabled due to iOS Swift header issues
   # permission_handler: ^11.0.1  # Will add back when needed
   # flutter_sound: ^9.2.13  # Will add back when needed
   # flutter_tts: ^3.8.3  # Will add back when needed

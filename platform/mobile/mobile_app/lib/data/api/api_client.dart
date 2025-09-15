@@ -161,17 +161,7 @@ class ApiClient {
   }
   
   static Future<BrowseResponse> getFeaturedBooks({int limit = 10}) async {
-    final uri = Uri.parse('${ApiConstants.baseUrl}${ApiConstants.bookstoreFeatured}')
-        .replace(queryParameters: {'limit': limit.toString()});
-    
-    final response = await http.get(uri, headers: _headers)
-        .timeout(ApiConstants.timeout);
-    
-    if (response.statusCode == 200) {
-      return BrowseResponse.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to get featured books: ${response.body}');
-    }
+    return browseBooks(featured: true, limit: limit);
   }
   
   static Future<BrowseResponse> getBestsellingBooks({int limit = 10}) async {

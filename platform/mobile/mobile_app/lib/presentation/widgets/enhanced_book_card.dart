@@ -10,6 +10,7 @@ import '../screens/book_details_screen.dart';
 /// - Smooth hover/press animations
 /// - Better typography and spacing
 /// - Enhanced cover image handling with elegant fallbacks
+/// - Purchase and download status indicators
 /// - WCAG AA compliant design
 class EnhancedBookCard extends StatefulWidget {
   final BrowseBook book;
@@ -18,6 +19,10 @@ class EnhancedBookCard extends StatefulWidget {
   final VoidCallback? onTap;
   final bool showProgress;
   final double? progress;
+  final bool isPurchased;
+  final bool isDownloaded;
+  final bool isDownloading;
+  final double? downloadProgress;
 
   const EnhancedBookCard({
     super.key,
@@ -27,6 +32,10 @@ class EnhancedBookCard extends StatefulWidget {
     this.onTap,
     this.showProgress = false,
     this.progress,
+    this.isPurchased = false,
+    this.isDownloaded = false,
+    this.isDownloading = false,
+    this.downloadProgress,
   });
 
   @override
@@ -202,6 +211,9 @@ class _EnhancedBookCardState extends State<EnhancedBookCard>
             ),
           ),
         ),
+        
+        // Status indicators (purchase/download status)
+        _buildStatusIndicators(context),
       ],
     );
   }
@@ -466,6 +478,102 @@ class _EnhancedBookCardState extends State<EnhancedBookCard>
               color: theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusIndicators(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    // Don't show indicators if not purchased
+    if (!widget.isPurchased) {
+      return const SizedBox.shrink();
+    }
+    
+    return Positioned(
+      top: 8,
+      right: 8,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Download status indicator
+          if (widget.isDownloaded)
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.download_done_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            )
+          else if (widget.isDownloading)
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      value: widget.downloadProgress,
+                      strokeWidth: 2,
+                      color: Colors.white,
+                      backgroundColor: Colors.white.withOpacity(0.3),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.download_rounded,
+                    color: Colors.white,
+                    size: 10,
+                  ),
+                ],
+              ),
+            )
+          else
+            // Purchased but not downloaded - show cloud icon
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondary.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.cloud_download_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
         ],
       ),
     );

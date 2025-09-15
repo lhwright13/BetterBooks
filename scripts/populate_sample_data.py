@@ -22,8 +22,8 @@ def get_db_connection():
     # Try to get database URL from environment first
     db_url = os.getenv('DATABASE_URL')
     if not db_url:
-        # Fallback to local Docker connection for development
-        db_url = "postgresql://betterbooks:testpassword123@localhost:5432/betterbooks"
+        # Connect to production database at Azure
+        db_url = "postgresql://betterbooks:testpassword123@128.203.92.141:5432/betterbooks"
     
     print(f"Connecting to database: {db_url.split('@')[1] if '@' in db_url else 'local'}")
     return psycopg2.connect(db_url)

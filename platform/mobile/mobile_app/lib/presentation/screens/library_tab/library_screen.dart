@@ -5,6 +5,7 @@ import '../../../data/api/api_client.dart';
 import '../../../data/models/book_models.dart';
 import '../../../services/download_service.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/navigation_service.dart';
 import '../../widgets/cloud_badge.dart';
 import '../../widgets/download_button.dart';
 import '../book_details_screen.dart';
@@ -165,7 +166,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
         subtitle: 'Browse the store to add books to your library',
         actionText: 'Browse Books',
         onAction: () {
-          // TODO: Navigate to discover tab
+          NavigationService.goToDiscover();
         },
       );
     }
@@ -707,7 +708,7 @@ class _LibraryScreenState extends State<LibraryScreen> with TickerProviderStateM
               title: const Text('Browse Store'),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Navigate to discover tab
+                NavigationService.goToDiscover();
               },
             ),
             ListTile(

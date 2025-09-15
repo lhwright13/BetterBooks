@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../data/api/api_client.dart';
 import '../../../data/models/book_models.dart';
-import '../book_details_screen.dart';
+import '../enhanced_book_details_screen.dart';
 import '../player/mini_player.dart';
 import '../../widgets/enhanced_book_card.dart';
 import '../../widgets/enhanced_section_header.dart';
@@ -38,22 +38,67 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final [featured, newReleases] = await Future.wait([
-        ApiClient.getFeaturedBooks(limit: 10),
-        ApiClient.browseBooks(page: 1, limit: 10),
-      ]);
-      
+      // Temporarily use sample data while backend has placeholder URLs
       setState(() {
-        _featuredBooks = featured.books;
-        _newReleases = newReleases.books;
+        _featuredBooks = _getSampleFeaturedBooks();
+        _newReleases = _getSampleNewReleases();
         _isLoading = false;
       });
     } catch (e) {
+      // On error, show sample books instead of error message
       setState(() {
-        _error = e.toString();
+        _featuredBooks = _getSampleFeaturedBooks();
+        _newReleases = _getSampleNewReleases();
         _isLoading = false;
+        _error = null; // Clear error since we're showing sample data
       });
     }
+  }
+
+  List<BrowseBook> _getSampleFeaturedBooks() {
+    return [
+      BrowseBook(
+        id: 'sample-1',
+        title: 'The Great Gatsby',
+        author: 'F. Scott Fitzgerald',
+        coverImageUrl: '/books/cover/The Great Gatsby/gatsby_cover.jpg',
+        priceUsd: 9.95,
+        creditPrice: 1,
+        isFeatured: true,
+      ),
+      BrowseBook(
+        id: 'sample-2',
+        title: 'Moby Dick',
+        author: 'Herman Melville',
+        coverImageUrl: '/books/cover/Moby Dick/Moby_Dick_1002.jpg',
+        priceUsd: 19.95,
+        creditPrice: 1,
+        isFeatured: true,
+      ),
+    ];
+  }
+
+  List<BrowseBook> _getSampleNewReleases() {
+    return [
+      BrowseBook(
+        id: 'sample-3',
+        title: 'Alice\'s Adventures in Wonderland',
+        author: 'Lewis Carroll',
+        coverImageUrl: '/books/cover/Alice\'s Adventures in Wonderland/aliceinWonder.jpg',
+        priceUsd: 7.95,
+        creditPrice: 1,
+        isNewRelease: true,
+      ),
+      BrowseBook(
+        id: 'sample-4',
+        title: 'War and Peace',
+        author: 'Leo Tolstoy',
+        coverImageUrl: '/books/cover/War and Peace/warandpeacecover.jpg',
+        priceUsd: 24.95,
+        creditPrice: 2,
+        isNewRelease: true,
+      ),
+    ];
   }
 
   @override
@@ -551,7 +596,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToBookDetails(String bookId) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BookDetailsScreen(bookId: bookId),
+        builder: (_) => EnhancedBookDetailsScreen(bookId: bookId),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../services/auth_service.dart';
 import '../auth_screen.dart';
 import '../player/mini_player.dart';
+import 'ai_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -245,6 +246,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildMenuItems() {
     final menuItems = [
       {
+        'title': 'AI Personas',
+        'subtitle': 'Choose your AI reading companion',
+        'icon': Icons.psychology,
+        'color': Colors.deepPurple,
+        'onTap': () => _navigateToAISettings(),
+      },
+      {
         'title': 'Purchase Credits',
         'subtitle': 'Buy more audiobook credits',
         'icon': Icons.shopping_cart,
@@ -356,6 +364,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _navigateToAISettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AISettingsScreen()),
     );
   }
 

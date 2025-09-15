@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../services/auth_service.dart';
-import '../../navigation/main_navigation.dart';
 import '../onboarding/welcome_screen.dart';
 
 class EnhancedAuthScreen extends StatefulWidget {
@@ -21,9 +18,6 @@ class _EnhancedAuthScreenState extends State<EnhancedAuthScreen> {
   bool _isLoading = false;
   bool _agreedToTerms = false;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
 
   @override
   void dispose() {
@@ -77,28 +71,6 @@ class _EnhancedAuthScreenState extends State<EnhancedAuthScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // OAuth Buttons
-                _buildGoogleSignInButton(),
-                const SizedBox(height: 16),
-                _buildAppleSignInButton(),
-                const SizedBox(height: 24),
-
-                // Divider
-                Row(
-                  children: [
-                    Expanded(child: Divider(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.3))),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'or',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.7),
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.3))),
-                  ],
-                ),
                 const SizedBox(height: 24),
 
                 // Email Sign In Button
@@ -107,7 +79,7 @@ class _EnhancedAuthScreenState extends State<EnhancedAuthScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _showEmailSignIn,
                     icon: const Icon(Icons.email),
-                    label: const Text('Continue with Email'),
+                    label: const Text('Sign In / Create Account'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(context).colorScheme.surface,
                       foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -137,85 +109,7 @@ class _EnhancedAuthScreenState extends State<EnhancedAuthScreen> {
     );
   }
 
-  Widget _buildGoogleSignInButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _isLoading ? null : _signInWithGoogle,
-        icon: SvgPicture.asset(
-          'assets/images/google_icon.svg', // We'll need to add this
-          height: 20,
-          width: 20,
-        ),
-        label: const Text('Continue with Google'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildAppleSignInButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: SignInWithAppleButton(
-        onPressed: _signInWithApple,
-        text: 'Continue with Apple',
-        height: 56,
-        borderRadius: BorderRadius.circular(12),
-      ),
-    );
-  }
-
-  Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      
-      // TODO: Send Google token to backend for verification and account creation
-      // For now, we'll simulate successful authentication
-      await _navigateToOnboarding();
-      
-    } catch (e) {
-      _showErrorDialog('Google Sign-In failed: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _signInWithApple() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-
-      // TODO: Send Apple credential to backend for verification and account creation
-      // For now, we'll simulate successful authentication
-      await _navigateToOnboarding();
-      
-    } catch (e) {
-      _showErrorDialog('Apple Sign-In failed: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
   void _showEmailSignIn() {
     showModalBottomSheet(
