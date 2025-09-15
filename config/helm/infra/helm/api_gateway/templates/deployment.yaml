@@ -99,7 +99,17 @@ spec:
                   key: AZURE_STORAGE_ACCOUNT_KEY
             # Database Configuration
             - name: DATABASE_URL
+              value: postgresql://betterbooks:betterbooks@postgres:5432/betterbooks
+            # Azure OpenAI Configuration
+            - name: AZURE_OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: app-secrets
-                  key: database-url
+                  key: azure-openai-api-key
+            - name: AZURE_OPENAI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: azure-openai-endpoint
+            - name: AZURE_OPENAI_DEPLOYMENT_NAME
+              value: gpt-4o-mini

@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../data/api/api_client.dart';
 import '../../../data/models/book_models.dart';
-import '../book_details_screen.dart';
+import '../enhanced_book_details_screen.dart';
 import '../player/mini_player.dart';
 
 class DiscoverScreen extends StatefulWidget {
@@ -60,7 +60,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> with TickerProviderStat
         _isLoadingNewReleases = false;
       });
     } catch (e) {
+      // Backend unavailable - show empty state for now
       setState(() {
+        _bestsellerBooks = [];
+        _newReleaseBooks = [];
+        _plusCatalogBooks = [];
         _isLoadingBestsellers = false;
         _isLoadingNewReleases = false;
       });
@@ -615,7 +619,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> with TickerProviderStat
   void _navigateToBookDetails(String bookId) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => BookDetailsScreen(bookId: bookId),
+        builder: (_) => EnhancedBookDetailsScreen(bookId: bookId),
       ),
     );
   }
@@ -782,5 +786,10 @@ class _DiscoverScreenState extends State<DiscoverScreen> with TickerProviderStat
         },
       ),
     );
+  }
+
+  /// Simplified fallback books method - disabled for now
+  List<BrowseBook> _generateFallbackBooks() {
+    return []; // Empty for now - backend should work
   }
 }

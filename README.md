@@ -11,14 +11,16 @@ An MVP audiobook platform that combines traditional audiobook listening with AI-
 ### Setup
 1. **Clone and start:**
    ```bash
-   git clone https://github.com/username/echowright.git
-   cd echowright
-   export GEMINI_API_KEY=your-key
+   git clone https://github.com/username/betterbooks.git
+   cd BetterBooks
+   export AZURE_OPENAI_API_KEY=your-azure-key
+   export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+   export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
    docker-compose up --build
    ```
 
 2. **Access the platform:**
-   - **API Gateway:** http://localhost:8000
+   - **API Gateway:** http://localhost:8000 (local) or http://128.203.92.141:8000 (Azure)
    - **Mobile App:** `cd platform/mobile/mobile_app && flutter run`
 
 ## ✨ Current MVP Features
@@ -42,8 +44,11 @@ graph TD
     A[Mobile App] --> B[API Gateway :8000]
     B --> C[LLM Gateway :8002]
     B --> D[PostgreSQL Database]
-    C --> E[Google Gemini API]
-    B --> F[Audio Files Storage]
+    C --> E[Azure OpenAI GPT-4o]
+    B --> F[Azure Blob Storage]
+    D --> G[Books & Categories Tables]
+    D --> H[Users & Authentication]
+    D --> I[AI Personas System]
 ```
 
 ### Services

@@ -1762,6 +1762,174 @@ async def _transcribe_audio(audio_content: bytes, filename: str) -> str:
         logger.error(f"Transcription error: {e}")
         raise HTTPException(status_code=500, detail="Audio transcription failed")
 
+# Temporary admin endpoint to populate books for MVP testing
+@app.post("/admin/populate-books")
+async def populate_sample_books():
+    """Temporary endpoint to add sample books for MVP testing"""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        books_to_add = [
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'The Great Gatsby',
+                'author': 'F. Scott Fitzgerald',
+                'narrator': 'LibriVox Reader',
+                'description': 'A classic American novel about the Jazz Age, love, and the American Dream.',
+                'duration_minutes': 240,
+                'price_usd': 12.95,
+                'credit_price': 1,
+                'category_id': 'fiction',
+                'is_featured': True,
+                'is_bestseller': True,
+                'is_new_release': False,
+                'publication_date': '1925-04-10',
+                'file_path': 'The Great Gatsby',
+                'total_chapters': 9,
+                'cover_image_url': '/books/cover/The Great Gatsby/gatsby_cover.jpg',
+                'sample_audio_url': '/books/The Great Gatsby/gatsby_sample.mp3',
+                'sample_duration': 180,
+                'average_rating': 4.2,
+                'review_count': 15432,
+                'purchase_count': 8921
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Pride and Prejudice',
+                'author': 'Jane Austen',
+                'narrator': 'LibriVox Reader',
+                'description': 'A romantic novel about Elizabeth Bennet and Mr. Darcy.',
+                'duration_minutes': 720,
+                'price_usd': 14.95,
+                'credit_price': 1,
+                'category_id': 'fiction',
+                'is_featured': True,
+                'is_bestseller': True,
+                'is_new_release': False,
+                'publication_date': '1813-01-28',
+                'file_path': 'Pride and Prejudice',
+                'total_chapters': 61,
+                'cover_image_url': '/books/cover/Pride and Prejudice/pride_cover.jpg',
+                'sample_audio_url': '/books/Pride and Prejudice/pride_sample.mp3',
+                'sample_duration': 180,
+                'average_rating': 4.5,
+                'review_count': 22341,
+                'purchase_count': 12456
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': '1984',
+                'author': 'George Orwell',
+                'narrator': 'LibriVox Reader',
+                'description': 'A dystopian novel about totalitarianism and surveillance.',
+                'duration_minutes': 720,
+                'price_usd': 12.95,
+                'credit_price': 1,
+                'category_id': 'fiction',
+                'is_featured': False,
+                'is_bestseller': True,
+                'is_new_release': False,
+                'publication_date': '1949-06-08',
+                'file_path': '1984',
+                'total_chapters': 23,
+                'cover_image_url': '/books/cover/1984/1984_cover.jpg',
+                'sample_audio_url': '/books/1984/1984_sample.mp3',
+                'sample_duration': 180,
+                'average_rating': 4.4,
+                'review_count': 25678,
+                'purchase_count': 15432
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'Harry Potter and the Sorcerer\'s Stone',
+                'author': 'J.K. Rowling',
+                'narrator': 'LibriVox Reader',
+                'description': 'The first book in the magical Harry Potter series.',
+                'duration_minutes': 480,
+                'price_usd': 15.95,
+                'credit_price': 1,
+                'category_id': 'fiction',
+                'is_featured': True,
+                'is_bestseller': True,
+                'is_new_release': True,
+                'publication_date': '1997-06-26',
+                'file_path': 'Harry Potter and the Sorcerers Stone',
+                'total_chapters': 17,
+                'cover_image_url': '/books/cover/Harry Potter/hp1_cover.jpg',
+                'sample_audio_url': '/books/Harry Potter/hp1_sample.mp3',
+                'sample_duration': 180,
+                'average_rating': 4.8,
+                'review_count': 45321,
+                'purchase_count': 25678
+            },
+            {
+                'id': str(uuid.uuid4()),
+                'title': 'To Kill a Mockingbird',
+                'author': 'Harper Lee',
+                'narrator': 'LibriVox Reader',
+                'description': 'A gripping tale of racial injustice and loss of innocence in the American South.',
+                'duration_minutes': 480,
+                'price_usd': 13.95,
+                'credit_price': 1,
+                'category_id': 'fiction',
+                'is_featured': True,
+                'is_bestseller': False,
+                'is_new_release': False,
+                'publication_date': '1960-07-11',
+                'file_path': 'To Kill a Mockingbird',
+                'total_chapters': 31,
+                'cover_image_url': '/books/cover/To Kill a Mockingbird/mockingbird_cover.jpg',
+                'sample_audio_url': '/books/To Kill a Mockingbird/mockingbird_sample.mp3',
+                'sample_duration': 180,
+                'average_rating': 4.7,
+                'review_count': 18765,
+                'purchase_count': 9432
+            }
+        ]
+        
+        added_books = []
+        async with DatabaseManager() as db:
+            for book in books_to_add:
+                try:
+                    await db.execute("""
+                        INSERT INTO books (
+                            id, title, author, narrator, description, duration_minutes,
+                            price_usd, credit_price, category_id, is_featured, is_bestseller,
+                            is_new_release, publication_date, file_path, total_chapters,
+                            cover_image_url, sample_audio_url, sample_duration, average_rating,
+                            review_count, purchase_count, created_at, updated_at
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+                        ON CONFLICT (title) DO NOTHING
+                    """, 
+                        book['id'], book['title'], book['author'], book['narrator'],
+                        book['description'], book['duration_minutes'], book['price_usd'],
+                        book['credit_price'], book['category_id'], book['is_featured'],
+                        book['is_bestseller'], book['is_new_release'], book['publication_date'],
+                        book['file_path'], book['total_chapters'], book['cover_image_url'],
+                        book['sample_audio_url'], book['sample_duration'], book['average_rating'],
+                        book['review_count'], book['purchase_count'], datetime.now(), datetime.now()
+                    )
+                    added_books.append(book['title'])
+                except Exception as e:
+                    logger.error(f"Failed to add book {book['title']}: {e}")
+                    continue
+        
+        # Get total count of books now in database
+        async with DatabaseManager() as db:
+            result = await db.fetch_one("SELECT COUNT(*) as count FROM books")
+            total_books = result['count'] if result else 0
+        
+        return {
+            "message": f"Successfully populated {len(added_books)} books",
+            "books_added": added_books,
+            "total_books_in_database": total_books
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to populate books: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to populate books: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
