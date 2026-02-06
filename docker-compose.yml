@@ -1,8 +1,15 @@
 version: '3.8'
 
-# EchoWright Audiobook Platform - Development Environment
-# Orchestrates all backend services, databases, and frontend applications
-# for local development of the AI-powered audiobook companion platform.
+# BetterBooks - AI Audiobook Platform
+# Simplified development environment
+#
+# Quick Start:
+#   docker-compose up -d postgres redis
+#
+# Then run services locally (see CLAUDE.md for full commands):
+#   cd platform/backend/services/api_gateway && uvicorn main:app --port 8000
+#   cd platform/backend/services/llm_gateway && uvicorn main:app --port 8002
+#   cd platform/frontend/simple_web && python -m http.server 3000
 
 networks:
   betterbooks_network:
@@ -10,55 +17,30 @@ networks:
 
 volumes:
   postgres_data:
-  pgbouncer_logs:
   redis_data:
-  transcription_cache:
+  grafana_data:
+  loki_data:
+  prometheus_data:
 
 services:
   # === DATABASE LAYER ===
-  
-  postgres_primary:
+
+  postgres:
     image: pgvector/pgvector:pg15
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-betterbooks}
       POSTGRES_USER: ${POSTGRES_USER:-betterbooks}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./config/local/postgresql_primary.conf:/etc/postgresql/postgresql.conf:ro
-      - ./config/database/init_primary.sql:/docker-entrypoint-initdb.d/init_primary.sql:ro
-      - ./core/database/migrations:/migrations:ro
+      - ./core/database/migrations:/docker-entrypoint-initdb.d/migrations:ro
     ports:
       - "5432:5432"
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-betterbooks}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - betterbooks_network
-
-  pgbouncer:
-    image: pgbouncer/pgbouncer:latest
-    environment:
-      DATABASES_HOST: postgres_primary
-      DATABASES_PORT: 5432
-      DATABASES_USER: ${POSTGRES_USER:-betterbooks}
-      DATABASES_PASSWORD: ${POSTGRES_PASSWORD:-betterbooks}
-      DATABASES_DBNAME: ${POSTGRES_DB:-betterbooks}
-      POOL_MODE: transaction
-      MAX_CLIENT_CONN: 1000
-      DEFAULT_POOL_SIZE: 25
-    volumes:
-      - ./config/local/pgbouncer_primary.ini:/etc/pgbouncer/pgbouncer.ini
-      - pgbouncer_logs:/var/log/pgbouncer
-    ports:
-      - "6432:6432"
-    depends_on:
-      postgres_primary:
-        condition: service_healthy
     networks:
       - betterbooks_network
 
@@ -77,143 +59,170 @@ services:
     networks:
       - betterbooks_network
 
-  # === BACKEND SERVICES ===
+  # === BACKEND SERVICES (Optional - can run locally instead) ===
 
-  context_service:
+  api_gateway:
     build:
       context: .
-      dockerfile: platform/backend/services/context_service/Dockerfile
-      cache_from:
-        - betterbooks/context_service:latest
+      dockerfile: platform/backend/services/api_gateway/Dockerfile
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
+      LLM_GATEWAY_URL: http://llm_gateway:8000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@postgres:5432/${POSTGRES_DB:-betterbooks}
       REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key}
+      CORS_ORIGINS: "http://localhost:3000,http://localhost:3001,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:3001"
     depends_on:
-      pgbouncer:
-        condition: service_started
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - "8001:8000"
+      - "8000:8000"
     volumes:
-      - ./core:/app/core:ro
+      # Mount source code for live development (no rebuild needed)
+      - ./platform/backend/services/api_gateway:/app
+      - ./core:/app/core
+      - ./book_files:/app/book_files:ro
+      - ./config/personas:/app/config/personas:ro
     networks:
       - betterbooks_network
+    profiles:
+      - full  # Only starts with: docker-compose --profile full up
 
   llm_gateway:
     build:
       context: .
       dockerfile: platform/backend/services/llm_gateway/Dockerfile
-      cache_from:
-        - betterbooks/llm_gateway:latest
     env_file:
       - .env
     environment:
-      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT}
-      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY}
-      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME}
-      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-12-01-preview}
+      USE_OLLAMA: ${USE_OLLAMA:-true}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:latest}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME:-}
       REDIS_URL: redis://redis:6379/1
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       redis:
         condition: service_healthy
     ports:
       - "8002:8000"
     volumes:
-      - ./config/production/llm_configs:/app/llm_configs:ro
-      - ./core:/app/core:ro
+      # Mount source code for live development (no rebuild needed)
+      - ./platform/backend/services/llm_gateway:/app
+      - ./core:/app/core
     networks:
       - betterbooks_network
+    profiles:
+      - full  # Only starts with: docker-compose --profile full up
 
-  transcription_service:
-    build:
-      context: .
-      dockerfile: platform/backend/services/transcription_service/Dockerfile_minimal
-      cache_from:
-        - betterbooks/transcription_service:latest
-    env_file:
-      - .env
+  # === OBSERVABILITY STACK ===
+
+  # OpenTelemetry Collector - receives traces/metrics/logs from services
+  # NOTE: For simple setups, send traces directly to Jaeger on port 4317
+  # The collector is useful when you need to process/route telemetry
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./config/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4327:4317"   # OTLP gRPC (remapped to avoid conflict with Jaeger)
+      - "4328:4318"   # OTLP HTTP (remapped)
+      - "8888:8888"   # Prometheus metrics exposed by collector
+      - "8889:8889"   # Prometheus exporter metrics
+    depends_on:
+      - jaeger
+      - loki
+    networks:
+      - betterbooks_network
+    profiles:
+      - observability
+
+  # Jaeger - Distributed tracing UI and storage
+  jaeger:
+    image: jaegertracing/all-in-one:latest
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
-      ASSEMBLYAI_API_KEY: ${ASSEMBLYAI_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      # Azure Speech Service configuration
-      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
-      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-eastus}
-      AZURE_SPEECH_LANGUAGE: ${AZURE_SPEECH_LANGUAGE:-en-US}
-      AZURE_SPEECH_PROFANITY_FILTER: ${AZURE_SPEECH_PROFANITY_FILTER:-false}
-      AZURE_SPEECH_ENABLE_DICTATION: ${AZURE_SPEECH_ENABLE_DICTATION:-true}
-      AZURE_SPEECH_ENABLE_PUNCTUATION: ${AZURE_SPEECH_ENABLE_PUNCTUATION:-true}
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14250:14250"  # gRPC
+      - "4317:4317"    # OTLP gRPC (for traces from host/notebook)
+      - "4318:4318"    # OTLP HTTP
+    networks:
+      - betterbooks_network
+    profiles:
+      - observability
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki_data:/loki
+      - ./config/observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - betterbooks_network
+    profiles:
+      - observability
+
+  # Promtail - Log shipper (collects Docker logs)
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/observability/promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
     depends_on:
-      pgbouncer:
-        condition: service_started
-    ports:
-      - "8003:8000"
-    volumes:
-      - ./book_files:/app/book_files:ro
-      - ./config/local/context_config.yaml:/context_config.yaml:ro
-      - transcription_cache:/app/transcript_cache
-      - ./core:/app/core:ro
+      - loki
     networks:
       - betterbooks_network
+    profiles:
+      - observability
 
-  tts_service:
-    build:
-      context: .
-      dockerfile: platform/backend/services/tts_service/Dockerfile
-      cache_from:
-        - betterbooks/tts_service:latest
-    env_file:
-      - .env
+  # Prometheus - Metrics storage
+  prometheus:
+    image: prom/prometheus:latest
     ports:
-      - "8004:8000"
+      - "9090:9090"
     volumes:
-      - ./core:/app/core:ro
+      - prometheus_data:/prometheus
+      - ./config/observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
     networks:
       - betterbooks_network
+    profiles:
+      - observability
 
-  api_gateway:
-    build:
-      context: .
-      dockerfile: platform/backend/services/api_gateway/Dockerfile
-      cache_from:
-        - betterbooks/api_gateway:latest
-    env_file:
-      - .env
+  # Grafana - Unified dashboards
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
     environment:
-      CONTEXT_SERVICE_URL: http://context_service:8000
-      LLM_GATEWAY_URL: http://llm_gateway:8000
-      TTS_SERVICE_URL: http://tts_service:8000
-      TRANSCRIPTION_SERVICE_URL: http://transcription_service:8000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-betterbooks}:${POSTGRES_PASSWORD:-betterbooks}@pgbouncer:6432/${POSTGRES_DB:-betterbooks}
-      REDIS_URL: redis://redis:6379/2
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
-    depends_on:
-      - context_service
-      - llm_gateway
-      - tts_service
-      - transcription_service
-      - redis
-    ports:
-      - "8000:8000"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
-      - ./core:/app/core:ro
-      - ./book_files:/app/book_files:ro
-    networks:
-      - betterbooks_network
-
-  # === FRONTEND APPLICATIONS ===
-
-  web_app:
-    build:
-      context: ./platform/frontend/web_app
-      dockerfile: Dockerfile
-    ports:
-      - "8080:80"
+      - grafana_data:/var/lib/grafana
+      - ./config/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
-      - api_gateway
+      - prometheus
+      - loki
+      - jaeger
     networks:
       - betterbooks_network
+    profiles:
+      - observability

@@ -1,20 +1,30 @@
 # Byte-compiled / cache
 __pycache__/
 *.py[cod]
-
-# Flutter build outputs
-mobile_app/build/
+*.pyo
+*.pyd
 
 # Virtual environments
 .venv/
 ENV/
 venv/
+env/
 
-# Terraform state
-infra/terraform/.terraform/
-*.tfstate*
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
 
-# Node modules (if any)
+# Node modules
 node_modules/
 
 # Book files - MP3 audiobooks should not be committed
@@ -24,5 +34,63 @@ book_files/
 # Transcription cache
 transcript_cache/
 
-CLAUDE.md
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/
+
+# Environment and secrets
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Project-specific exclusions
+CLAUDE.md
+
+# Logs
+*.log
+logs/
+
+# Jupyter notebooks (not part of project)
+*.ipynb
+.ipynb_checkpoints/
+
+# Personal/interview files
+interview*
+personal*
+
+# Python testing and coverage
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+
+# Python package building
+*.egg
+*.egg-info/
+dist/
+build/
+
+# pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Development/testing artifacts
+.playwright-mcp/
+.cache/
+
+# Secondary virtual environments
+llm_venv/

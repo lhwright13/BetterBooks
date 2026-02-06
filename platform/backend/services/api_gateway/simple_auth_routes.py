@@ -15,10 +15,12 @@ Supports:
 
 import os
 import logging
-from typing import Optional, Dict, Any
+import threading
+from typing import Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
+from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, status, Depends, Header
+from fastapi import APIRouter, HTTPException, status, Depends, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 
@@ -39,6 +41,130 @@ router = APIRouter()
 
 # Security
 security = HTTPBearer()
+
+# =====================================================
+# RATE LIMITING
+# =====================================================
+
+class RateLimiter:
+    """
+    Simple in-memory rate limiter for authentication endpoints.
+    Uses a sliding window approach with automatic cleanup of old entries.
+    """
+
+    def __init__(self):
+        # Dict mapping IP -> list of request timestamps
+        self._requests: Dict[str, list] = defaultdict(list)
+        self._lock = threading.Lock()
+        self._last_cleanup = datetime.utcnow()
+        self._cleanup_interval = timedelta(minutes=5)
+
+    def _cleanup_old_entries(self, window_seconds: int = 60):
+        """Remove entries older than the largest window we care about."""
+        now = datetime.utcnow()
+        if now - self._last_cleanup < self._cleanup_interval:
+            return
+
+        self._last_cleanup = now
+        cutoff = now - timedelta(seconds=window_seconds * 2)
+
+        ips_to_remove = []
+        for ip, timestamps in self._requests.items():
+            # Filter out old timestamps
+            self._requests[ip] = [ts for ts in timestamps if ts > cutoff]
+            if not self._requests[ip]:
+                ips_to_remove.append(ip)
+
+        for ip in ips_to_remove:
+            del self._requests[ip]
+
+    def check_rate_limit(self, ip: str, max_requests: int, window_seconds: int = 60) -> Tuple[bool, int]:
+        """
+        Check if IP has exceeded rate limit.
+
+        Returns:
+            Tuple of (is_allowed, retry_after_seconds)
+        """
+        now = datetime.utcnow()
+        window_start = now - timedelta(seconds=window_seconds)
+
+        with self._lock:
+            self._cleanup_old_entries(window_seconds)
+
+            # Get requests within the window
+            timestamps = self._requests[ip]
+            recent_requests = [ts for ts in timestamps if ts > window_start]
+
+            if len(recent_requests) >= max_requests:
+                # Calculate when the oldest request in window will expire
+                oldest_in_window = min(recent_requests)
+                retry_after = int((oldest_in_window + timedelta(seconds=window_seconds) - now).total_seconds()) + 1
+                return False, max(retry_after, 1)
+
+            # Record this request
+            self._requests[ip].append(now)
+            # Keep only recent timestamps
+            self._requests[ip] = [ts for ts in self._requests[ip] if ts > window_start]
+
+            return True, 0
+
+
+# Global rate limiter instance
+_rate_limiter = RateLimiter()
+
+# Rate limit settings
+SIGNIN_RATE_LIMIT = 5  # 5 attempts per minute
+SIGNUP_RATE_LIMIT = 3  # 3 attempts per minute
+RATE_LIMIT_WINDOW = 60  # 60 seconds
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP from request, handling proxies."""
+    # Check X-Forwarded-For header first (for proxied requests)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        # Take the first IP in the chain (original client)
+        return forwarded_for.split(",")[0].strip()
+
+    # Check X-Real-IP header
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+
+    # Fall back to direct client IP
+    if request.client:
+        return request.client.host
+
+    return "unknown"
+
+
+def check_signin_rate_limit(request: Request):
+    """Dependency to check signin rate limit."""
+    ip = get_client_ip(request)
+    allowed, retry_after = _rate_limiter.check_rate_limit(ip, SIGNIN_RATE_LIMIT, RATE_LIMIT_WINDOW)
+
+    if not allowed:
+        logger.warning(f"Rate limit exceeded for signin from IP: {ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many login attempts. Please try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
+
+
+def check_signup_rate_limit(request: Request):
+    """Dependency to check signup rate limit."""
+    ip = get_client_ip(request)
+    allowed, retry_after = _rate_limiter.check_rate_limit(ip, SIGNUP_RATE_LIMIT, RATE_LIMIT_WINDOW)
+
+    if not allowed:
+        logger.warning(f"Rate limit exceeded for signup from IP: {ip}")
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Too many signup attempts. Please try again in {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
+
 
 # =====================================================
 # HELPER FUNCTIONS
@@ -124,7 +250,10 @@ async def apple_sign_in(request: AppleSignInRequest):
     )
 
 @router.post("/auth/signup", response_model=AuthResponse)
-async def email_sign_up(request: EmailSignUpRequest):
+async def email_sign_up(
+    request: EmailSignUpRequest,
+    _: None = Depends(check_signup_rate_limit)
+):
     """Email/password sign up"""
     try:
         # Check if user already exists
@@ -178,7 +307,10 @@ async def email_sign_up(request: EmailSignUpRequest):
         )
 
 @router.post("/auth/signin", response_model=AuthResponse)
-async def email_sign_in(request: EmailSignInRequest):
+async def email_sign_in(
+    request: EmailSignInRequest,
+    _: None = Depends(check_signin_rate_limit)
+):
     """Email/password sign in"""
     try:
         # Authenticate user

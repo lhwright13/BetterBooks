@@ -7,37 +7,50 @@ Supports both synchronous and asynchronous operations.
 
 import os
 import logging
-from typing import Optional, Dict, Any, AsyncContextManager
-from contextlib import contextmanager, asynccontextmanager
+from typing import Optional, Any
+from contextlib import contextmanager
 import psycopg2
-from psycopg2 import pool
-from psycopg2.extras import RealDictCursor, DictCursor
-import psycopg2.sql as sql
+from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
 
 class DatabaseConfig:
     """Database configuration management"""
-    
+
     def __init__(self):
         # Environment-based database URL detection
-        if os.path.exists('/.dockerenv') or os.getenv('DOCKER_ENV'):
-            # Docker environment
-            self.database_url = os.getenv(
-                'DATABASE_URL',
-                'postgresql://betterbooks:betterbooks@postgres_primary:5432/betterbooks'
-            )
-        else:
-            # Local development
-            self.database_url = os.getenv(
-                'DATABASE_URL',
-                'postgresql://betterbooks:testpassword123@localhost:5432/betterbooks'
-            )
-        
-        # Connection pool settings
-        self.min_connections = int(os.getenv('DB_MIN_CONNECTIONS', '1'))
-        self.max_connections = int(os.getenv('DB_MAX_CONNECTIONS', '10'))
+        # Priority: DATABASE_URL env var > RDS endpoint > Docker > Local
+        self.database_url = os.getenv('DATABASE_URL')
+
+        if not self.database_url:
+            # Check for AWS RDS configuration
+            rds_host = os.getenv('RDS_HOSTNAME')
+            rds_db = os.getenv('RDS_DB_NAME', 'betterbooks')
+            rds_user = os.getenv('RDS_USERNAME', 'betterbooks')
+            rds_password = os.getenv('RDS_PASSWORD')
+
+            if rds_host and rds_password:
+                # AWS RDS connection
+                self.database_url = f"postgresql://{rds_user}:{rds_password}@{rds_host}:5432/{rds_db}"
+            elif os.path.exists('/.dockerenv') or os.getenv('DOCKER_ENV'):
+                # Docker environment
+                self.database_url = 'postgresql://betterbooks:betterbooks@postgres_primary:5432/betterbooks'
+            else:
+                # Local development
+                self.database_url = 'postgresql://betterbooks:testpassword123@localhost:5432/betterbooks'
+
+        # Connection pool settings - higher defaults for production
+        # RDS connections benefit from larger pools
+        is_production = os.getenv('ENVIRONMENT', 'development') == 'production'
+        default_min = '5' if is_production else '1'
+        default_max = '25' if is_production else '10'
+
+        self.min_connections = int(os.getenv('DB_MIN_CONNECTIONS', default_min))
+        self.max_connections = int(os.getenv('DB_MAX_CONNECTIONS', default_max))
         self.connection_timeout = int(os.getenv('DB_CONNECTION_TIMEOUT', '30'))
+
+        # SSL mode for RDS (required in production)
+        self.ssl_mode = os.getenv('DB_SSL_MODE', 'prefer')  # prefer, require, verify-full
 
 class DatabaseConnectionManager:
     """Manages PostgreSQL connections with connection pooling"""
@@ -51,16 +64,28 @@ class DatabaseConnectionManager:
         """Initialize the connection pool"""
         if self._initialized:
             return
-        
+
         try:
+            # Build connection string with SSL if configured
+            dsn = self.config.database_url
+            ssl_mode = getattr(self.config, 'ssl_mode', 'prefer')
+
+            # Add sslmode to connection if not already in URL
+            if 'sslmode=' not in dsn:
+                separator = '&' if '?' in dsn else '?'
+                dsn = f"{dsn}{separator}sslmode={ssl_mode}"
+
             self._pool = psycopg2.pool.ThreadedConnectionPool(
                 self.config.min_connections,
                 self.config.max_connections,
-                self.config.database_url,
+                dsn,
                 cursor_factory=RealDictCursor
             )
             self._initialized = True
-            logger.info(f"Database connection pool initialized (min={self.config.min_connections}, max={self.config.max_connections})")
+            logger.info(
+                f"Database connection pool initialized "
+                f"(min={self.config.min_connections}, max={self.config.max_connections}, ssl={ssl_mode})"
+            )
         except Exception as e:
             logger.error(f"Failed to initialize database pool: {e}")
             raise

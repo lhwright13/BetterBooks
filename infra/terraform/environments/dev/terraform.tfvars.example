@@ -1,0 +1,24 @@
+# BetterBooks Terraform Variables Example
+# Copy this to terraform.tfvars and fill in your values
+# terraform.tfvars is gitignored for security
+
+aws_region   = "us-east-1"
+project_name = "betterbooks"
+environment  = "dev"
+
+# Database credentials (use strong passwords in production)
+db_password    = "your-secure-db-password-here"
+jwt_secret_key = "your-jwt-secret-key-here"
+
+# Container images (update after first ECR push)
+# api_gateway_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/betterbooks-api-gateway:latest"
+# llm_gateway_image = "123456789.dkr.ecr.us-east-1.amazonaws.com/betterbooks-llm-gateway:latest"
+
+# Fargate sizing (defaults are cost-optimized)
+# api_gateway_cpu    = 256   # 0.25 vCPU
+# api_gateway_memory = 512   # 512 MB
+# llm_gateway_cpu    = 512   # 0.5 vCPU
+# llm_gateway_memory = 1024  # 1 GB
+
+# Redis (optional - leave empty to skip ElastiCache)
+# redis_url = "redis://your-elasticache-endpoint:6379"

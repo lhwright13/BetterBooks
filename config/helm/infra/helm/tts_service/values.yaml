@@ -1,6 +1,0 @@
-image:
-  repository: betterbooksacr.azurecr.io/tts_service
-  tag: latest
-service:
-  type: ClusterIP
-  port: 8003

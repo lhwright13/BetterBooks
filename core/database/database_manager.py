@@ -408,11 +408,11 @@ class DatabaseManager:
                 health_info["status"] = "healthy"
             
             # Get pool statistics
-            if self.pool:
+            if self.primary_pool:
                 health_info["pool_info"] = {
-                    "size": self.pool.size,
-                    "available": self.pool.available,
-                    "waiting": self.pool.waiting
+                    "size": self.primary_pool.size,
+                    "available": self.primary_pool.available,
+                    "waiting": self.primary_pool.waiting
                 }
             
             # Get performance metrics

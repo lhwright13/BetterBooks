@@ -1,7 +1,0 @@
-image:
-  repository: betterbooksacr.azurecr.io/context_service
-  tag: latest
-service:
-  type: ClusterIP
-  port: 8001
-databaseUrl: postgres://betterbooks:betterbooks@postgres:5432/betterbooks

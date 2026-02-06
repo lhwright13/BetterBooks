@@ -9,12 +9,12 @@ import psycopg2
 import psycopg2.extras
 import logging
 from typing import Dict, List, Any, Optional
-from azure_storage_helper import AzureStorageHelper
+from storage_helper import get_storage
 
 logger = logging.getLogger(__name__)
 
-# Initialize Azure Storage helper
-azure_storage = AzureStorageHelper()
+# Initialize storage helper (auto-selects S3, Azure, or local based on config)
+storage = get_storage()
 
 def get_db_connection():
     """Get database connection using environment variables with smart fallbacks"""
@@ -36,14 +36,14 @@ def get_db_connection():
     logger.info(f"Connecting to database: {log_url}")
     
     try:
-        return psycopg2.connect(db_url)
+        return psycopg2.connect(db_url, connect_timeout=10)
     except psycopg2.Error as e:
         logger.error(f"Database connection failed: {e}")
         # Try fallback to localhost if Docker connection fails
         if 'postgres_primary' in db_url:
             fallback_url = db_url.replace('postgres_primary', 'localhost')
             logger.info("Trying localhost fallback...")
-            return psycopg2.connect(fallback_url)
+            return psycopg2.connect(fallback_url, connect_timeout=10)
         raise
 
 def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
@@ -116,19 +116,19 @@ def get_user_library(user_id: str, limit: int = 50, offset: int = 0) -> Dict[str
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                # Get library from user_purchases joined with books
+                # Get library from user_purchases joined with books and reading progress
                 cursor.execute("""
-                    SELECT 
+                    SELECT
                         b.id,
                         b.title,
                         b.author,
                         b.cover_image_url,
-                        COALESCE(ul.last_position_seconds::numeric / NULLIF(b.duration_minutes * 60, 0), 0.0) as progress,
+                        COALESCE(urp.completion_percentage, 0.0) as progress,
                         up.purchase_date as purchased_at
                     FROM user_purchases up
-                    JOIN books b ON up.book_id::uuid = b.id
-                    LEFT JOIN user_library ul ON ul.user_id = up.user_id AND ul.book_id = b.id::text
-                    WHERE up.user_id = %s
+                    JOIN books b ON up.book_id = b.id
+                    LEFT JOIN user_reading_progress urp ON urp.user_id = up.user_id AND urp.book_id = b.id
+                    WHERE up.user_id = %s::uuid
                     ORDER BY up.purchase_date DESC
                     LIMIT %s OFFSET %s
                 """, (user_id, limit, offset))
@@ -320,9 +320,9 @@ def get_browse_books(limit: int = 20, offset: int = 0, featured_only: bool = Fal
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                where_clause = ""
+                where_clause = "WHERE title != 'Pride and Prejudice'"
                 if featured_only:
-                    where_clause = "WHERE is_featured = true"
+                    where_clause = "WHERE title != 'Pride and Prejudice' AND is_featured = true"
                 
                 cursor.execute(f"""
                     SELECT 
@@ -438,9 +438,9 @@ def get_book_details(book_id: str) -> Optional[Dict[str, Any]]:
                             audio_url = None
                             if '/' in file_path:
                                 book_folder, filename = file_path.split('/', 1)
-                                azure_url = azure_storage.generate_audio_url(book_folder, filename)
-                                if azure_url:
-                                    audio_url = azure_url
+                                cloud_url = storage.generate_audio_url(book_folder, filename)
+                                if cloud_url:
+                                    audio_url = cloud_url
                             
                             # Fallback to local file serving endpoint if Azure not available
                             if not audio_url:
@@ -821,7 +821,7 @@ def add_to_user_wishlist(user_id: str, book_id: str) -> Dict[str, Any]:
                 
                 # Check if already in wishlist
                 cursor.execute("""
-                    SELECT id FROM user_wishlists 
+                    SELECT id FROM user_wishlists
                     WHERE user_id = %s AND book_id = %s
                 """, (user_id, book_id))
                 
@@ -860,7 +860,7 @@ def remove_from_user_wishlist(user_id: str, book_id: str) -> Dict[str, Any]:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                 # Check if book is in wishlist
                 cursor.execute("""
-                    SELECT uw.id, b.title 
+                    SELECT uw.id, b.title
                     FROM user_wishlists uw
                     JOIN books b ON uw.book_id = b.id
                     WHERE uw.user_id = %s AND uw.book_id = %s
@@ -872,7 +872,7 @@ def remove_from_user_wishlist(user_id: str, book_id: str) -> Dict[str, Any]:
                 
                 # Remove from wishlist
                 cursor.execute("""
-                    DELETE FROM user_wishlists 
+                    DELETE FROM user_wishlists
                     WHERE user_id = %s AND book_id = %s
                 """, (user_id, book_id))
                 
@@ -898,7 +898,7 @@ def get_user_wishlist(user_id: str, limit: int = 50, offset: int = 0) -> Dict[st
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                 # Get wishlist with book details
                 cursor.execute("""
-                    SELECT 
+                    SELECT
                         uw.id as wishlist_id,
                         uw.book_id,
                         uw.added_at,
@@ -922,8 +922,8 @@ def get_user_wishlist(user_id: str, limit: int = 50, offset: int = 0) -> Dict[st
                 
                 # Get total count
                 cursor.execute("""
-                    SELECT COUNT(*) as total 
-                    FROM user_wishlists 
+                    SELECT COUNT(*) as total
+                    FROM user_wishlists
                     WHERE user_id = %s
                 """, (user_id,))
                 
@@ -1031,28 +1031,44 @@ def get_categories() -> Dict[str, Any]:
 # USER PROGRESS TRACKING FUNCTIONS
 # =====================================================
 
-def save_user_reading_progress(user_id: str, book_id: str, position: float, chapter_id: Optional[str] = None) -> bool:
+def save_user_reading_progress(user_id: str, book_id: str, position: float) -> bool:
     """Save or update user's reading progress for a book"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
+
+        # Get book duration to calculate completion percentage
+        cur.execute("SELECT duration_minutes FROM books WHERE id = %s", (book_id,))
+        book_row = cur.fetchone()
+        duration_minutes = book_row[0] if book_row and book_row[0] else 0
+
+        # Calculate completion percentage
+        completion_pct = 0.0
+        is_completed = False
+        if duration_minutes > 0:
+            duration_seconds = duration_minutes * 60
+            completion_pct = min(100.0, (position / duration_seconds) * 100)
+            is_completed = completion_pct >= 95.0
+
         # Use UPSERT (INSERT ... ON CONFLICT) to update or insert progress
         cur.execute("""
-            INSERT INTO user_reading_progress (user_id, book_id, position, chapter_id, updated_at)
-            VALUES (%s, %s, %s, %s, NOW())
+            INSERT INTO user_reading_progress
+                (user_id, book_id, current_position_seconds, completion_percentage, is_completed, last_accessed, updated_at)
+            VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
             ON CONFLICT (user_id, book_id)
-            DO UPDATE SET 
-                position = EXCLUDED.position,
-                chapter_id = EXCLUDED.chapter_id,
+            DO UPDATE SET
+                current_position_seconds = EXCLUDED.current_position_seconds,
+                completion_percentage = EXCLUDED.completion_percentage,
+                is_completed = EXCLUDED.is_completed,
+                last_accessed = NOW(),
                 updated_at = NOW()
-        """, (user_id, book_id, position, chapter_id))
-        
+        """, (user_id, book_id, int(position), completion_pct, is_completed))
+
         conn.commit()
         conn.close()
-        logger.info(f"Saved reading progress for user {user_id}, book {book_id}, position {position}")
+        logger.info(f"Saved reading progress for user {user_id}, book {book_id}, position {position}, completion {completion_pct:.1f}%")
         return True
-        
+
     except Exception as e:
         logger.error(f"Error saving reading progress: {e}")
         if conn:
@@ -1065,25 +1081,50 @@ def get_user_reading_progress(user_id: str, book_id: str) -> Optional[Dict[str, 
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        
+
         cur.execute("""
-            SELECT user_id, book_id, position, chapter_id, updated_at
+            SELECT user_id, book_id, current_position_seconds, total_listening_time,
+                   completion_percentage, last_accessed, is_completed, updated_at
             FROM user_reading_progress
             WHERE user_id = %s AND book_id = %s
         """, (user_id, book_id))
-        
+
         progress = cur.fetchone()
         conn.close()
-        
+
         if progress:
             return dict(progress)
         return None
-        
+
     except Exception as e:
         logger.error(f"Error getting reading progress: {e}")
         if conn:
             conn.close()
         return None
+
+def get_all_user_reading_progress(user_id: str) -> List[Dict[str, Any]]:
+    """Get all reading progress records for a user"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+        cur.execute("""
+            SELECT user_id, book_id, current_position_seconds, total_listening_time,
+                   completion_percentage, last_accessed, is_completed, updated_at
+            FROM user_reading_progress
+            WHERE user_id = %s
+        """, (user_id,))
+
+        rows = cur.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]
+
+    except Exception as e:
+        logger.error(f"Error getting all reading progress: {e}")
+        if conn:
+            conn.close()
+        return []
 
 def save_user_bookmark(user_id: str, book_id: str, position: float, note: Optional[str] = None) -> Optional[str]:
     """Save a bookmark for a user and return the bookmark ID"""
@@ -1096,7 +1137,7 @@ def save_user_bookmark(user_id: str, book_id: str, position: float, note: Option
         bookmark_id = str(uuid.uuid4())
         
         cur.execute("""
-            INSERT INTO user_bookmarks (id, user_id, book_id, position, note, created_at)
+            INSERT INTO user_bookmarks (id, user_id, book_id, position_seconds, notes, created_at)
             VALUES (%s, %s, %s, %s, %s, NOW())
         """, (bookmark_id, user_id, book_id, position, note))
         
@@ -1119,7 +1160,7 @@ def get_user_bookmarks(user_id: str, book_id: str) -> List[Dict[str, Any]]:
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         
         cur.execute("""
-            SELECT id, user_id, book_id, position, note, created_at
+            SELECT id, user_id, book_id, position_seconds, notes, created_at
             FROM user_bookmarks
             WHERE user_id = %s AND book_id = %s
             ORDER BY created_at DESC

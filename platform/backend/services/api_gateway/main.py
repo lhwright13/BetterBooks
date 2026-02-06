@@ -18,36 +18,48 @@ Key responsibilities:
 
 import os
 import logging
-import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import yaml
 
 import httpx
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Request
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response, RedirectResponse
+from fastapi.responses import FileResponse, Response, RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 # Import centralized configuration first
 from core.shared.utils.config_manager import get_config
 app_config = get_config()
 
+# Import Chat Logger for observability
+from core.infrastructure.chat_logger import get_chat_logger
+import uuid
+from uuid import UUID
+import time
+
+
+def validate_uuid(value: str, name: str = "id") -> None:
+    """
+    Validate that a string is a valid UUID format.
+    Raises HTTPException with 404 status if invalid.
+    """
+    try:
+        UUID(value)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Invalid {name} format")
+
+
 # Service URLs from centralized configuration
 CONTEXT_URL = app_config.get_service_url("context_service")
-LLM_URL = app_config.get_service_url("llm_gateway") 
+LLM_URL = app_config.get_service_url("llm_gateway")
 TTS_URL = app_config.get_service_url("tts_service")
-TRANSCRIPTION_URL = app_config.get_service_url("transcription_service")
 
-# Import GraphQL schema - temporarily disabled due to supabase dependency
-# from graphql_schema import graphql_router
-# from simple_bookstore_routes import router as bookstore_router  # Removed - was demo code
-# from bookstore_routes import router as enhanced_bookstore_router  # Disabled - requires httpx
-# from user_bookstore_routes import router as user_bookstore_router  # Temporarily disabled - depends on core.auth
-
-# Book files directory - will be mounted in Docker
-BOOK_FILES_DIR = Path("/app/book_files")
+# Book files directory - use environment variable or auto-detect local vs Docker
+_docker_path = Path("/app/book_files")
+_local_path = Path(__file__).parent.parent.parent.parent.parent / "book_files"
+BOOK_FILES_DIR = _docker_path if _docker_path.exists() else _local_path
 
 # Set up logging from centralized configuration
 logging_config = app_config.get_logging_config()
@@ -68,9 +80,14 @@ else:
 logger = logging.getLogger(__name__)
 logger.info(f"API Gateway starting with configuration: {app_config.get_config_summary()}")
 
-# Import Azure storage helper (config already imported above)
-from azure_storage_helper import AzureStorageHelper
-azure_storage = AzureStorageHelper()
+# Import storage helper (auto-selects S3, Azure, or local based on config)
+from storage_helper import get_storage
+storage = get_storage()
+
+# Import Context Engine components for AI Chat
+from context import JsonContextRetriever
+from personas import JsonPersonaManager
+from chat import PromptBuilder
 
 def _format_datetime(dt):
     """Helper function to safely format datetime objects"""
@@ -96,13 +113,37 @@ def _generate_sample_audio_url_for_title(book_title: str) -> Optional[str]:
     filename = audio_files.get(book_title, "")
     if filename:
         # Try to generate Azure storage URL first
-        azure_url = azure_storage.generate_audio_url(book_title, filename)
-        if azure_url:
-            return azure_url
+        cloud_url = storage.generate_audio_url(book_title, filename)
+        if cloud_url:
+            return cloud_url
         # Fallback to API endpoint that redirects to Azure
         return f"/books/{book_title}/{filename}"
     
     return None
+
+def _generate_azure_cover_url(book_title: str, fallback_url: str) -> str:
+    """Generate Azure cover URL or return fallback"""
+    if not book_title:
+        return fallback_url
+
+    # Try to generate Azure storage URL for cover
+    cover_filename = "cover.jpg"  # Standard cover filename
+    cloud_url = storage.generate_cover_url(book_title, cover_filename)
+    if cloud_url:
+        logger.debug(f"Generated Azure cover URL for {book_title}: {cloud_url}")
+        return cloud_url
+
+    # If Azure unavailable, return API endpoint that will redirect
+    if fallback_url and not fallback_url.startswith('http'):
+        # Convert relative URL to API endpoint format
+        if fallback_url.startswith('/books/cover/'):
+            return fallback_url  # Already correct format
+        else:
+            return f"/books/cover/{book_title}/cover.jpg"
+
+    return fallback_url or f"/books/cover/{book_title}/cover.jpg"
+
+# Chapter generation function will be moved after class definitions
 
 def _get_book_duration_for_title(book_title: str) -> Optional[int]:
     """Get estimated book duration in seconds for iOS compatibility"""
@@ -125,15 +166,52 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Initialize Context Engine components
+# These will be initialized on startup
+context_retriever: JsonContextRetriever = None
+persona_manager: JsonPersonaManager = None
+prompt_builder: PromptBuilder = None
+
 # Startup validation
 @app.on_event("startup")
 async def startup_validation():
     """Run startup validation checks"""
+    global context_retriever, persona_manager, prompt_builder
+
+    # Initialize Context Engine
+    try:
+        # Find project root and book_files path
+        # In container: /app/main.py (use /app paths directly)
+        # In dev: .../platform/backend/services/api_gateway/main.py (go up 4 levels)
+        try:
+            project_root = Path(__file__).resolve().parents[4]
+            book_files_path = project_root / "book_files"
+            config_path = project_root / "config"
+        except IndexError:
+            # Running in container where path is shallow
+            book_files_path = Path("/app/book_files")
+            config_path = Path("/app/config")
+
+        # Fallback to local paths if running in container
+        if not book_files_path.exists():
+            book_files_path = Path("/app/book_files")
+            config_path = Path("/app/config")
+
+        context_retriever = JsonContextRetriever(str(book_files_path))
+        persona_manager = JsonPersonaManager(str(book_files_path), str(config_path))
+        prompt_builder = PromptBuilder(context_retriever, persona_manager)
+
+        logger.info(f"✅ Context Engine initialized with book_files: {book_files_path}")
+    except Exception as e:
+        logger.warning(f"Context Engine initialization failed: {e}")
+        logger.warning("AI Chat features may not work correctly")
+
+    # Run other startup validations
     try:
         from startup_check import StartupValidator
         validator = StartupValidator()
         passed, results = await validator.run_all_validations()
-        
+
         if not passed:
             logger.error("🛑 API Gateway startup validation failed - some critical checks failed")
             # Don't exit in production, just log warnings
@@ -141,7 +219,7 @@ async def startup_validation():
                 logger.error("Continuing startup in development mode despite validation failures")
         else:
             logger.info("🎉 API Gateway startup validation completed successfully")
-            
+
     except Exception as e:
         logger.warning(f"Startup validation encountered an error: {e}")
         logger.warning("Continuing startup without validation checks")
@@ -156,46 +234,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add request/response logging middleware
+from core.infrastructure.logging_middleware import LoggingMiddleware
+app.add_middleware(LoggingMiddleware, logger=logger)
+
 # Import and include simple authentication routes
 from simple_auth_routes import router as auth_router
 app.include_router(auth_router)
 
-# Include GraphQL endpoint - temporarily disabled
-# app.include_router(graphql_router, prefix="/graphql")
-
-# Include bookstore routes
-# app.include_router(bookstore_router)  # Removed - was demo code
-# app.include_router(enhanced_bookstore_router)  # Disabled - requires httpx
-# app.include_router(user_bookstore_router)  # Temporarily disabled
-
 
 # Database-backed user endpoints
 from db_utils import (
-    get_user_credits as db_get_user_credits, 
-    get_user_library as db_get_user_library, 
-    get_browse_books as db_get_browse_books, 
-    get_book_details as db_get_book_details, 
+    get_user_credits as db_get_user_credits,
+    get_user_library as db_get_user_library,
+    get_browse_books as db_get_browse_books,
+    get_book_details as db_get_book_details,
     test_database_connection,
     create_purchase,
     check_user_owns_book,
     get_book_personas,
     get_persona_details,
     get_all_personas,
-    create_persona,
-    update_persona,
-    delete_persona,
-    add_persona_to_book,
-    remove_persona_from_book,
     add_to_user_wishlist,
     remove_from_user_wishlist,
     get_user_wishlist,
     get_categories as db_get_categories
 )
-from azure_storage_helper import AzureStorageHelper
-from user_context import get_current_user_id, require_authenticated_user
-
-# Initialize Azure Storage helper
-azure_storage = AzureStorageHelper()
+from user_context import get_current_user_id
 
 class CreditBalanceResponse(BaseModel):
     total_credits: int
@@ -216,6 +281,13 @@ class UserLibraryResponse(BaseModel):
     books: List[LibraryBook]
     total_books: int
 
+class Chapter(BaseModel):
+    id: str
+    title: str
+    audio_url: str
+    chapter_number: int
+    duration: Optional[int] = None
+
 class BrowseBook(BaseModel):
     id: str
     title: str
@@ -231,6 +303,8 @@ class BrowseBook(BaseModel):
     is_new_release: bool = False
     created_at: str = "2025-01-01T00:00:00Z"
     updated_at: str = "2025-01-01T00:00:00Z"
+    chapters: List[Chapter] = []
+    audio_url: Optional[str] = None  # For compatibility with mobile app
 
 class BrowseResponse(BaseModel):
     books: List[BrowseBook]
@@ -260,13 +334,6 @@ class BookDownloadResponse(BaseModel):
     book_title: str
     files: List[DownloadFile]
     expires_at: str
-
-class Chapter(BaseModel):
-    id: str
-    title: str
-    audio_url: str
-    chapter_number: int
-    duration: Optional[int] = None
 
 class DetailedBook(BaseModel):
     id: str
@@ -327,6 +394,38 @@ class BookPersonasResponse(BaseModel):
     book_id: str
     book_title: str
 
+def _generate_chapters_for_book(book_title: str, total_chapters: int = None) -> List[Chapter]:
+    """Generate chapters list for a book with Azure streaming URLs"""
+    chapters = []
+
+    # Default chapter counts for books
+    chapter_counts = {
+        "The Great Gatsby": 9,
+        "Pride and Prejudice": 61,
+        "1984": 23,
+        "Harry Potter and the Sorcerers Stone": 17,
+        "To Kill a Mockingbird": 31,
+        "Moby Dick": 135,
+        "Alice's Adventures in Wonderland": 12,
+        "War and Peace": 365
+    }
+
+    chapter_count = total_chapters or chapter_counts.get(book_title, 10)
+
+    for i in range(1, chapter_count + 1):
+        chapter_filename = f"Chapter {i}.mp3"
+        audio_url = f"/audio/stream/{book_title}/{chapter_filename}"
+
+        chapters.append(Chapter(
+            id=f"{book_title.lower().replace(' ', '_')}_ch_{i:02d}",
+            title=f"Chapter {i}",
+            audio_url=audio_url,
+            chapter_number=i,
+            duration=1800  # Default 30 minutes per chapter
+        ))
+
+    return chapters
+
 @app.get("/bookstore/user/credits", response_model=CreditBalanceResponse)
 async def get_user_credits(user_id: str = Depends(get_current_user_id)):
     """Get user credit balance from database"""
@@ -363,7 +462,7 @@ async def get_user_library(user_id: str = Depends(get_current_user_id)):
                 id=str(book['id']),  # Convert UUID to string
                 title=book['title'],
                 author=book['author'] or 'Unknown Author',
-                cover_image_url=book.get('cover_image_url', ''),
+                cover_image_url=_generate_azure_cover_url(book['title'], book.get('cover_image_url', '')),
                 progress=float(book.get('progress', 0.0)),
                 purchased_at=_format_datetime(book.get('purchased_at')),
                 sample_audio_url=_generate_sample_audio_url_for_title(book['title']),
@@ -386,8 +485,8 @@ async def browse_books(
     featured: bool = False,
     bestsellers: bool = False,
     new_releases: bool = False,
-    page: int = 1,
-    limit: int = 20
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """Browse books in the bookstore with database-backed data"""
     try:
@@ -403,7 +502,7 @@ async def browse_books(
                 id=str(book['id']),  # Convert UUID to string
                 title=book['title'],
                 author=book['author'] or 'Unknown Author',
-                cover_image_url=book.get('cover_image_url', ''),
+                cover_image_url=_generate_azure_cover_url(book['title'], book.get('cover_image_url', '')),
                 price_usd=float(book.get('price_usd', 9.99)),
                 credit_price=int(book.get('credit_price', 1)),
                 formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
@@ -413,7 +512,9 @@ async def browse_books(
                 is_bestseller=bool(book.get('is_bestseller', False)),
                 is_new_release=bool(book.get('is_new_release', False)),
                 created_at="2025-01-01T00:00:00Z",
-                updated_at="2025-01-01T00:00:00Z"
+                updated_at="2025-01-01T00:00:00Z",
+                chapters=_generate_chapters_for_book(book['title'], book.get('total_chapters')),
+                audio_url=f"/audio/stream/{book['title']}/Chapter 1.mp3"
             )
             for book in browse_data['books']
         ]
@@ -439,8 +540,8 @@ async def browse_books(
 @app.get("/bookstore/search", response_model=BrowseResponse)
 async def search_books(
     q: str,
-    page: int = 1,
-    limit: int = 20
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """Search for books in the catalog by title, author, or keywords"""
     try:
@@ -457,7 +558,7 @@ async def search_books(
                 id=str(book['id']),
                 title=book['title'],
                 author=book['author'] or 'Unknown Author',
-                cover_image_url=book.get('cover_image_url', ''),
+                cover_image_url=_generate_azure_cover_url(book['title'], book.get('cover_image_url', '')),
                 price_usd=float(book.get('price_usd', 9.99)),
                 credit_price=int(book.get('credit_price', 1)),
                 formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
@@ -467,7 +568,9 @@ async def search_books(
                 is_bestseller=bool(book.get('is_bestseller', False)),
                 is_new_release=bool(book.get('is_new_release', False)),
                 created_at="2025-01-01T00:00:00Z",
-                updated_at="2025-01-01T00:00:00Z"
+                updated_at="2025-01-01T00:00:00Z",
+                chapters=_generate_chapters_for_book(book['title'], book.get('total_chapters')),
+                audio_url=f"/audio/stream/{book['title']}/Chapter 1.mp3"
             )
             for book in search_data['books']
         ]
@@ -491,7 +594,7 @@ async def search_books(
         )
 
 @app.get("/bookstore/featured", response_model=BrowseResponse)
-async def get_featured_books(limit: int = 10):
+async def get_featured_books(limit: int = Query(10, ge=1, le=100, description="Maximum items to return")):
     """Get a curated list of featured audiobooks"""
     try:
         # Use existing browse logic with featured filter
@@ -503,7 +606,7 @@ async def get_featured_books(limit: int = 10):
                 id=str(book['id']),
                 title=book['title'],
                 author=book['author'] or 'Unknown Author',
-                cover_image_url=book.get('cover_image_url', ''),
+                cover_image_url=_generate_azure_cover_url(book['title'], book.get('cover_image_url', '')),
                 price_usd=float(book.get('price_usd', 9.99)),
                 credit_price=int(book.get('credit_price', 1)),
                 formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
@@ -513,7 +616,9 @@ async def get_featured_books(limit: int = 10):
                 is_bestseller=bool(book.get('is_bestseller', False)),
                 is_new_release=bool(book.get('is_new_release', False)),
                 created_at="2025-01-01T00:00:00Z",
-                updated_at="2025-01-01T00:00:00Z"
+                updated_at="2025-01-01T00:00:00Z",
+                chapters=_generate_chapters_for_book(book['title'], book.get('total_chapters')),
+                audio_url=f"/audio/stream/{book['title']}/Chapter 1.mp3"
             )
             for book in browse_data['books']
         ]
@@ -536,7 +641,7 @@ async def get_featured_books(limit: int = 10):
         )
 
 @app.get("/bookstore/bestsellers", response_model=BrowseResponse)
-async def get_bestselling_books(limit: int = 10):
+async def get_bestselling_books(limit: int = Query(10, ge=1, le=100, description="Maximum items to return")):
     """Get the most popular audiobooks"""
     try:
         # Use existing browse logic with bestseller filter
@@ -549,7 +654,7 @@ async def get_bestselling_books(limit: int = 10):
                 id=str(book['id']),
                 title=book['title'],
                 author=book['author'] or 'Unknown Author',
-                cover_image_url=book.get('cover_image_url', ''),
+                cover_image_url=_generate_azure_cover_url(book['title'], book.get('cover_image_url', '')),
                 price_usd=float(book.get('price_usd', 9.99)),
                 credit_price=int(book.get('credit_price', 1)),
                 formatted_price=f"${float(book.get('price_usd', 9.99)):.2f}",
@@ -658,7 +763,10 @@ async def test_bookstore_endpoints():
         }
 
 @app.get("/books")
-async def list_all_books(limit: int = 50, offset: int = 0):
+async def list_all_books(
+    limit: int = Query(50, ge=1, le=100, description="Maximum items to return"),
+    offset: int = Query(0, ge=0, description="Number of items to skip")
+):
     """Simple book list endpoint - returns basic book information"""
     try:
         from db_utils import get_all_books
@@ -752,6 +860,7 @@ async def get_book_categories():
 @app.get("/bookstore/books/{book_id}", response_model=DetailedBook)
 async def get_book_details(book_id: str):
     """Get detailed book information including chapters"""
+    validate_uuid(book_id, "book_id")
     try:
         book_data = db_get_book_details(book_id)
         if not book_data:
@@ -774,7 +883,7 @@ async def get_book_details(book_id: str):
             title=book_data['title'],
             author=book_data['author'],
             description=book_data.get('description'),
-            cover_image_url=book_data['cover_image_url'],
+            cover_image_url=_generate_azure_cover_url(book_data['title'], book_data['cover_image_url']),
             price_usd=float(book_data.get('price_usd', 9.99)),
             credit_price=int(book_data.get('credit_price', 1)),
             is_featured=bool(book_data.get('is_featured', False)),
@@ -783,6 +892,8 @@ async def get_book_details(book_id: str):
             chapters=chapters,
             total_duration=book_data.get('total_duration')
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting book details for {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -849,7 +960,9 @@ async def purchase_book(request: PurchaseRequest, user_id: str = Depends(get_cur
                 message="Purchase failed - please try again",
                 remaining_credits=available_credits
             )
-            
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error purchasing book {request.book_id}: {e}")
         raise HTTPException(status_code=500, detail="Purchase failed")
@@ -858,6 +971,7 @@ async def purchase_book(request: PurchaseRequest, user_id: str = Depends(get_cur
 @app.get("/bookstore/books/{book_id}/personas", response_model=BookPersonasResponse)
 async def get_book_personas_endpoint(book_id: str):
     """Get all personas available for a specific book"""
+    validate_uuid(book_id, "book_id")
     try:
         personas_data = get_book_personas(book_id)
         if not personas_data:
@@ -882,6 +996,8 @@ async def get_book_personas_endpoint(book_id: str):
             book_id=personas_data['book_id'],
             book_title=personas_data['book_title']
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting personas for book {book_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get book personas")
@@ -889,6 +1005,7 @@ async def get_book_personas_endpoint(book_id: str):
 @app.get("/personas/{persona_id}", response_model=PersonaResponse)
 async def get_persona_endpoint(persona_id: str):
     """Get detailed information about a specific persona"""
+    validate_uuid(persona_id, "persona_id")
     try:
         persona_data = get_persona_details(persona_id)
         if not persona_data:
@@ -909,6 +1026,8 @@ async def get_persona_endpoint(persona_id: str):
         )
         
         return PersonaResponse(persona=persona)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting persona {persona_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get persona details")
@@ -933,6 +1052,8 @@ async def list_personas_endpoint():
         ]
         
         return {"personas": personas}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error listing personas: {e}")
         raise HTTPException(status_code=500, detail="Failed to list personas")
@@ -942,10 +1063,11 @@ async def get_voice_config():
     """Get voice chat configuration for frontend"""
     try:
         # Look for voice config file in multiple locations
+        project_root = Path(__file__).parent.parent.parent.parent.parent
         config_paths = [
             Path("/app/config/voice/voice_chat_config.yaml"),  # Docker container path
             Path("../../../config/voice/voice_chat_config.yaml"),  # Local development path
-            Path("/Users/lhwri/BetterBooks/config/voice/voice_chat_config.yaml")  # Absolute path fallback
+            project_root / "config" / "voice" / "voice_chat_config.yaml"  # Project root fallback
         ]
         
         config_data = {}
@@ -1001,6 +1123,7 @@ async def get_voice_config():
 @app.get("/bookstore/books/{book_id}/download", response_model=BookDownloadResponse)
 async def get_book_download_links(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Get download links for all chapters of a purchased book"""
+    validate_uuid(book_id, "book_id")
     try:
         # Verify user owns this book
         user_owns_book = check_user_owns_book(user_id, book_id)
@@ -1030,7 +1153,7 @@ async def get_book_download_links(book_id: str, user_id: str = Depends(get_curre
             raise HTTPException(status_code=404, detail="No audio files found for this book")
         
         # Generate download URLs with 24-hour expiry
-        download_urls = azure_storage.generate_download_urls(file_paths, expiry_hours=24)
+        download_urls = storage.generate_download_urls(file_paths, expiry_hours=24)
         
         if not download_urls:
             # Fallback to local file URLs if Azure not available
@@ -1052,7 +1175,7 @@ async def get_book_download_links(book_id: str, user_id: str = Depends(get_curre
         download_files.sort(key=lambda x: int(x.chapter_id) if x.chapter_id.isdigit() else 0)
         
         expires_at = datetime.utcnow().isoformat() + "Z"
-        if azure_storage.enabled:
+        if storage.enabled:
             from datetime import timedelta
             expires_at = (datetime.utcnow() + timedelta(hours=24)).isoformat() + "Z"
         
@@ -1073,9 +1196,12 @@ async def get_book_download_links(book_id: str, user_id: str = Depends(get_curre
 @app.post("/bookstore/user/wishlist/{book_id}")
 async def add_to_wishlist(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Add a book to user's wishlist"""
+    validate_uuid(book_id, "book_id")
     try:
         result = add_to_user_wishlist(user_id, book_id)
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
@@ -1090,9 +1216,12 @@ async def add_to_wishlist(book_id: str, user_id: str = Depends(get_current_user_
 @app.delete("/bookstore/user/wishlist/{book_id}")
 async def remove_from_wishlist(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Remove a book from user's wishlist"""
+    validate_uuid(book_id, "book_id")
     try:
         result = remove_from_user_wishlist(user_id, book_id)
         return result
+    except HTTPException:
+        raise
     except ValueError as e:
         if "not found" in str(e).lower():
             raise HTTPException(status_code=404, detail=str(e))
@@ -1104,8 +1233,8 @@ async def remove_from_wishlist(book_id: str, user_id: str = Depends(get_current_
 
 @app.get("/bookstore/user/wishlist")
 async def get_user_wishlist_endpoint(
-    page: int = 1, 
-    limit: int = 20,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(20, ge=1, le=100, description="Items per page"),
     user_id: str = Depends(get_current_user_id)
 ):
     """Get user's wishlist"""
@@ -1127,6 +1256,8 @@ async def get_user_wishlist_endpoint(
                 "has_prev": page > 1
             }
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting user wishlist: {e}")
         raise HTTPException(status_code=500, detail="Failed to get user wishlist")
@@ -1162,10 +1293,10 @@ async def serve_book_file(book_folder: str, filename: str, request: Request):
     """Serve audiobook files with range support for streaming"""
     try:
         # Try Azure Storage first
-        azure_url = azure_storage.generate_audio_url(book_folder, filename)
-        if azure_url:
+        cloud_url = storage.generate_audio_url(book_folder, filename)
+        if cloud_url:
             logger.info(f"Redirecting to Azure Storage for {book_folder}/{filename}")
-            return RedirectResponse(url=azure_url)
+            return RedirectResponse(url=cloud_url)
         
         # Fallback to local storage with range support
         file_path = BOOK_FILES_DIR / book_folder / filename
@@ -1243,40 +1374,67 @@ async def serve_book_file(book_folder: str, filename: str, request: Request):
             filename=filename,
             headers=headers
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error serving book file {book_folder}/{filename}: {e}")
         raise HTTPException(status_code=500, detail="Error serving file")
+
+def _find_cover_image(book_folder: str) -> Optional[Path]:
+    """Find any cover image file in a book folder"""
+    folder_path = BOOK_FILES_DIR / book_folder
+    if not folder_path.exists():
+        return None
+
+    # Look for common image extensions
+    for ext in ['*.jpg', '*.jpeg', '*.png', '*.gif']:
+        images = list(folder_path.glob(ext))
+        # Prefer files with 'cover' in the name
+        for img in images:
+            if 'cover' in img.name.lower():
+                return img
+        # Otherwise return the first image found
+        if images:
+            return images[0]
+    return None
 
 @app.get("/books/cover/{book_folder}/{filename}")
 async def serve_cover_image(book_folder: str, filename: str):
     """Serve book cover images from Azure Storage or local fallback"""
     try:
         # Try Azure Storage first
-        azure_url = azure_storage.generate_cover_url(book_folder, filename)
-        if azure_url:
+        cloud_url = storage.generate_cover_url(book_folder, filename)
+        if cloud_url:
             logger.info(f"Redirecting to Azure Storage for cover {book_folder}/{filename}")
-            return RedirectResponse(url=azure_url)
-        
-        # Fallback to local storage
+            return RedirectResponse(url=cloud_url)
+
+        # Fallback to local storage - try exact filename first
         file_path = BOOK_FILES_DIR / book_folder / filename
-        
+
         if not file_path.exists():
-            raise HTTPException(status_code=404, detail="Cover image not found")
-        
+            # Try to find any cover image in the folder
+            found_cover = _find_cover_image(book_folder)
+            if found_cover:
+                file_path = found_cover
+                filename = found_cover.name
+            else:
+                raise HTTPException(status_code=404, detail="Cover image not found")
+
         # Determine media type based on file extension
         media_type = "image/jpeg"
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-            if filename.lower().endswith('.png'):
-                media_type = "image/png"
-            elif filename.lower().endswith('.gif'):
-                media_type = "image/gif"
-        
+        if filename.lower().endswith('.png'):
+            media_type = "image/png"
+        elif filename.lower().endswith('.gif'):
+            media_type = "image/gif"
+
         logger.info(f"Serving cover from local storage: {book_folder}/{filename}")
         return FileResponse(
             path=file_path,
             media_type=media_type,
             filename=filename
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error serving cover image {book_folder}/{filename}: {e}")
         raise HTTPException(status_code=500, detail="Error serving cover image")
@@ -1288,6 +1446,327 @@ class CompletionRequest(BaseModel):
     max_tokens: Optional[int] = None
     temperature: Optional[float] = None
     use_cache: Optional[bool] = True
+
+
+# =====================================================
+# AI CHAT ENDPOINT (Context-Aware Persona Chat)
+# =====================================================
+
+class AIChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
+class AIChatRequest(BaseModel):
+    """Request to the /ai/chat endpoint for context-aware persona chat."""
+    book_id: str                          # Which book the user is reading (e.g., "The Great Gatsby")
+    chapter: int                          # Current chapter number
+    timestamp_seconds: float              # Current position in chapter (seconds)
+    persona_id: str                       # Which persona to chat with (e.g., "jay-gatsby", "english-teacher")
+    message: str                          # User's question
+    conversation_history: List[AIChatMessage] = []  # Previous messages in conversation
+    stream: bool = False                  # Whether to stream the response via SSE
+
+
+class AIChatResponse(BaseModel):
+    """Response from the /ai/chat endpoint."""
+    message: str                          # AI's response
+    persona_id: str                       # Which persona responded
+    persona_name: str                     # Display name for UI
+    chapters_used: List[int]             # Which chapters were in context
+    token_estimate: int                   # Estimated tokens used for context
+    voice_config: Optional[dict] = None   # Voice settings for TTS
+
+
+async def stream_llm_response(llm_url: str, llm_request: dict, built, chat_logger, request_id: str):
+    """
+    Stream response from LLM Gateway via SSE (Server-Sent Events).
+    Proxies the stream from LLM Gateway to the client.
+    """
+    import json
+    full_response = ""
+    llm_start_time = time.time()
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            async with client.stream(
+                "POST",
+                f"{llm_url}/chat",
+                json=llm_request
+            ) as response:
+                if response.status_code != 200:
+                    error_msg = f"LLM service returned status {response.status_code}"
+                    yield f"data: {json.dumps({'error': error_msg})}\n\n"
+                    return
+
+                async for line in response.aiter_lines():
+                    if line:
+                        yield f"{line}\n\n"
+                        # Try to extract content for logging
+                        if line.startswith("data: "):
+                            try:
+                                data = json.loads(line[6:])
+                                if data.get("content"):
+                                    full_response += data["content"]
+                            except:
+                                pass
+
+        # Log complete response after streaming finishes
+        llm_latency_ms = (time.time() - llm_start_time) * 1000
+        if full_response:
+            chat_logger.log_response(
+                request_id=request_id,
+                response_text=full_response,
+                latency_ms=llm_latency_ms,
+                model="streamed"
+            )
+        chat_logger.log_complete(request_id)
+
+    except Exception as e:
+        logger.error(f"Streaming error: {e}")
+        import json
+        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+
+@app.post("/ai/chat")
+async def ai_chat(request: AIChatRequest, user_id: str = Depends(get_current_user_id)):
+    """
+    Context-aware AI chat with book personas.
+
+    This endpoint allows users to chat with AI personas (book characters or teachers)
+    that have context about the book up to the user's current reading position.
+    The AI will never reveal spoilers beyond where the user has read.
+
+    Set stream=true to receive Server-Sent Events for real-time streaming.
+
+    Example request:
+    {
+        "book_id": "The Great Gatsby",
+        "chapter": 2,
+        "timestamp_seconds": 300,
+        "persona_id": "jay-gatsby",
+        "message": "What do you think of the green light?",
+        "stream": true
+    }
+    """
+    global prompt_builder
+
+    # Initialize chat logger and request tracking
+    chat_logger = get_chat_logger()
+    request_id = str(uuid.uuid4())[:8]
+    llm_start_time = None
+
+    if not prompt_builder:
+        raise HTTPException(
+            status_code=503,
+            detail="AI Chat service not initialized. Please try again later."
+        )
+
+    try:
+        # Log incoming request
+        chat_logger.log_request(
+            request_id=request_id,
+            user_message=request.message,
+            book_id=request.book_id,
+            chapter=request.chapter,
+            timestamp_seconds=request.timestamp_seconds,
+            persona_id=request.persona_id,
+            user_id=user_id
+        )
+
+        # Build the prompt with context and persona
+        built = await prompt_builder.build(
+            book_id=request.book_id,
+            chapter=request.chapter,
+            timestamp_seconds=request.timestamp_seconds,
+            persona_id=request.persona_id
+        )
+
+        if not built:
+            chat_logger.log_error(request_id, f"Persona '{request.persona_id}' not found")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Persona '{request.persona_id}' not found for book '{request.book_id}'"
+            )
+
+        # Log context after prompt building
+        chat_logger.log_context(
+            request_id=request_id,
+            system_prompt=built.system_prompt,
+            chapters_included=built.context.chapters_included,
+            token_estimate=built.context.token_estimate,
+            persona_name=built.persona.name,
+            timestamp_seconds=request.timestamp_seconds
+        )
+
+        # Prepare messages for LLM Gateway
+        messages = [
+            {"role": "system", "content": built.system_prompt}
+        ]
+
+        # Add conversation history
+        for msg in request.conversation_history:
+            messages.append({"role": msg.role, "content": msg.content})
+
+        # Add the new user message
+        messages.append({"role": "user", "content": request.message})
+
+        # Call LLM Gateway
+        llm_request = {
+            "messages": messages,
+            "temperature": built.persona.temperature,
+            "max_tokens": 1000,
+            "stream": request.stream
+        }
+
+        # Handle streaming response
+        if request.stream:
+            logger.info(
+                f"AI Chat (streaming): user={user_id}, book={request.book_id}, "
+                f"persona={request.persona_id}, chapters={built.context.chapters_included}"
+            )
+            return StreamingResponse(
+                stream_llm_response(LLM_URL, llm_request, built, chat_logger, request_id),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"
+                }
+            )
+
+        # Non-streaming response (original behavior)
+        llm_start_time = time.time()
+        model_used = None
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{LLM_URL}/chat",
+                json=llm_request
+            )
+
+            if response.status_code != 200:
+                # Try fallback to /complete endpoint
+                logger.warning(f"LLM /chat failed, trying /complete endpoint")
+                fallback_request = {
+                    "prompt": f"{built.system_prompt}\n\nUser: {request.message}\n\nAssistant:",
+                    "max_tokens": 1000
+                }
+                response = await client.post(
+                    f"{LLM_URL}/complete",
+                    json=fallback_request
+                )
+
+            if response.status_code != 200:
+                chat_logger.log_error(request_id, "LLM service unavailable")
+                raise HTTPException(
+                    status_code=502,
+                    detail="LLM service unavailable"
+                )
+
+            llm_response = response.json()
+
+        llm_latency_ms = (time.time() - llm_start_time) * 1000
+
+        # Extract the response text and model info
+        response_text = ""
+        if "content" in llm_response:
+            response_text = llm_response["content"]
+        elif "text" in llm_response:
+            response_text = llm_response["text"]
+        elif "choices" in llm_response and len(llm_response["choices"]) > 0:
+            response_text = llm_response["choices"][0].get("message", {}).get("content", "")
+        else:
+            response_text = str(llm_response)
+
+        # Get model name from response if available
+        model_used = llm_response.get("model", "unknown")
+
+        # Log LLM response
+        chat_logger.log_response(
+            request_id=request_id,
+            response_text=response_text,
+            latency_ms=llm_latency_ms,
+            model=model_used
+        )
+
+        # Prepare voice config for TTS
+        voice_config = None
+        if built.persona.voice:
+            voice_config = {
+                "provider": built.persona.voice.provider,
+                "voice_id": built.persona.voice.voice_id,
+                "style": built.persona.voice.style,
+                "rate": built.persona.voice.rate,
+                "pitch": built.persona.voice.pitch
+            }
+
+        logger.info(
+            f"AI Chat: user={user_id}, book={request.book_id}, "
+            f"persona={request.persona_id}, chapters={built.context.chapters_included}"
+        )
+
+        # Complete the chat log (writes to file)
+        chat_logger.log_complete(request_id)
+
+        return AIChatResponse(
+            message=response_text,
+            persona_id=built.persona.id,
+            persona_name=built.persona.name,
+            chapters_used=built.context.chapters_included,
+            token_estimate=built.context.token_estimate,
+            voice_config=voice_config
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"AI Chat error: {e}")
+        chat_logger.log_error(request_id, str(e))
+        raise HTTPException(status_code=500, detail="AI Chat processing failed")
+
+
+@app.get("/ai/personas/{book_id}")
+async def get_ai_personas(book_id: str):
+    """
+    Get available AI personas for a book.
+
+    Returns both book-specific personas (characters) and global personas (teachers).
+    """
+    global persona_manager
+
+    if not persona_manager:
+        raise HTTPException(
+            status_code=503,
+            detail="AI Chat service not initialized"
+        )
+
+    try:
+        personas = await persona_manager.get_personas_for_book(book_id)
+
+        return {
+            "book_id": book_id,
+            "personas": [
+                {
+                    "id": p.id,
+                    "name": p.name,
+                    "type": p.type,
+                    "description": p.description,
+                    "is_book_specific": p.book_id is not None,
+                    "voice": {
+                        "provider": p.voice.provider,
+                        "voice_id": p.voice.voice_id
+                    } if p.voice else None
+                }
+                for p in personas
+            ]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting personas for {book_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get personas")
+
 
 @app.post("/complete")
 async def complete_text(request: CompletionRequest):
@@ -1355,6 +1834,8 @@ async def text_to_speech(request: TTSRequest):
                     "Content-Disposition": "attachment; filename=tts_output.wav"
                 }
             )
+    except HTTPException:
+        raise
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
@@ -1429,12 +1910,10 @@ class ContextRequest(BaseModel):
 class SaveProgressRequest(BaseModel):
     book_id: str
     position: float  # Position in seconds
-    chapter_id: Optional[str] = None
 
 class ProgressResponse(BaseModel):
     book_id: str
     position: float
-    chapter_id: Optional[str] = None
     updated_at: str
 
 class BookmarkRequest(BaseModel):
@@ -1463,48 +1942,80 @@ async def save_user_progress(request: SaveProgressRequest, user_id: str = Depend
         success = save_user_reading_progress(
             user_id=user_id,
             book_id=request.book_id,
-            position=request.position,
-            chapter_id=request.chapter_id
+            position=request.position
         )
-        
+
         if not success:
             raise HTTPException(status_code=500, detail="Failed to save progress")
-        
+
         return ProgressResponse(
             book_id=request.book_id,
             position=request.position,
-            chapter_id=request.chapter_id,
             updated_at=datetime.now().isoformat()
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error saving user progress: {e}")
         raise HTTPException(status_code=500, detail="Failed to save progress")
 
+@app.get("/bookstore/user/progress")
+async def get_all_user_progress(user_id: str = Depends(get_current_user_id)):
+    """Get all reading progress for the current user"""
+    try:
+        from db_utils import get_all_user_reading_progress
+
+        progress_list = get_all_user_reading_progress(user_id=user_id)
+
+        # Convert list to dictionary keyed by book_id
+        progress_dict = {}
+        for p in progress_list:
+            book_id = p.get('book_id')
+            updated_at = p.get('updated_at')
+            if updated_at:
+                updated_at_str = updated_at.isoformat() if hasattr(updated_at, 'isoformat') else str(updated_at)
+            else:
+                updated_at_str = datetime.now().isoformat()
+
+            progress_dict[book_id] = {
+                "position": float(p.get('current_position_seconds', 0.0)),
+                "updated_at": updated_at_str
+            }
+
+        return {"progress": progress_dict}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting all user progress: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get progress")
+
 @app.get("/bookstore/user/progress/{book_id}", response_model=ProgressResponse)
 async def get_user_progress(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Get user's reading progress for a book"""
+    validate_uuid(book_id, "book_id")
     try:
         from db_utils import get_user_reading_progress
-        
+
         progress = get_user_reading_progress(user_id=user_id, book_id=book_id)
-        
+
         if not progress:
             # Return default progress if none saved
             return ProgressResponse(
                 book_id=book_id,
                 position=0.0,
-                chapter_id=None,
                 updated_at=datetime.now().isoformat()
             )
-        
+
         return ProgressResponse(
             book_id=book_id,
-            position=float(progress.get('position', 0.0)),
-            chapter_id=progress.get('chapter_id'),
+            position=float(progress.get('current_position_seconds', 0.0)),
             updated_at=progress.get('updated_at', datetime.now()).isoformat() if progress.get('updated_at') else datetime.now().isoformat()
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting user progress: {e}")
         raise HTTPException(status_code=500, detail="Failed to get progress")
@@ -1532,7 +2043,9 @@ async def save_user_bookmark(request: BookmarkRequest, user_id: str = Depends(ge
             note=request.note,
             created_at=datetime.now().isoformat()
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error saving bookmark: {e}")
         raise HTTPException(status_code=500, detail="Failed to save bookmark")
@@ -1540,22 +2053,25 @@ async def save_user_bookmark(request: BookmarkRequest, user_id: str = Depends(ge
 @app.get("/bookstore/user/bookmarks/{book_id}")
 async def get_user_bookmarks(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Get all bookmarks for a book"""
+    validate_uuid(book_id, "book_id")
     try:
         from db_utils import get_user_bookmarks
-        
+
         bookmarks = get_user_bookmarks(user_id=user_id, book_id=book_id)
         
         return [
             BookmarkResponse(
                 id=str(bookmark.get('id', '')),
                 book_id=book_id,
-                position=float(bookmark.get('position', 0.0)),
-                note=bookmark.get('note'),
+                position=float(bookmark.get('position_seconds', 0.0)),
+                note=bookmark.get('notes'),
                 created_at=bookmark.get('created_at', datetime.now()).isoformat() if bookmark.get('created_at') else datetime.now().isoformat()
             )
             for bookmark in bookmarks
         ]
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting bookmarks: {e}")
         raise HTTPException(status_code=500, detail="Failed to get bookmarks")
@@ -1576,6 +2092,8 @@ async def get_context(query: str, book_id: Optional[str] = None):
             response = await client.get(f"{CONTEXT_URL}/search", params=params)
             response.raise_for_status()
             return response.json()
+    except HTTPException:
+        raise
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=str(e))
     except Exception as e:
@@ -1611,6 +2129,8 @@ async def get_positional_context(request: ContextRequest):
             "chapter_name": request.chapter_name,
             "position": request.current_position
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting positional context: {e}")
         raise HTTPException(status_code=500, detail="Context retrieval failed")
@@ -1787,7 +2307,7 @@ async def populate_sample_books():
                 'publication_date': '1925-04-10',
                 'file_path': 'The Great Gatsby',
                 'total_chapters': 9,
-                'cover_image_url': '/books/cover/The Great Gatsby/gatsby_cover.jpg',
+                'cover_image_url': '/books/cover/The Great Gatsby/cover.jpg',
                 'sample_audio_url': '/books/The Great Gatsby/gatsby_sample.mp3',
                 'sample_duration': 180,
                 'average_rating': 4.2,
@@ -1810,7 +2330,7 @@ async def populate_sample_books():
                 'publication_date': '1813-01-28',
                 'file_path': 'Pride and Prejudice',
                 'total_chapters': 61,
-                'cover_image_url': '/books/cover/Pride and Prejudice/pride_cover.jpg',
+                'cover_image_url': '/books/cover/Pride and Prejudice/cover.jpg',
                 'sample_audio_url': '/books/Pride and Prejudice/pride_sample.mp3',
                 'sample_duration': 180,
                 'average_rating': 4.5,
@@ -1833,7 +2353,7 @@ async def populate_sample_books():
                 'publication_date': '1949-06-08',
                 'file_path': '1984',
                 'total_chapters': 23,
-                'cover_image_url': '/books/cover/1984/1984_cover.jpg',
+                'cover_image_url': '/books/cover/1984/cover.jpg',
                 'sample_audio_url': '/books/1984/1984_sample.mp3',
                 'sample_duration': 180,
                 'average_rating': 4.4,
@@ -1856,7 +2376,7 @@ async def populate_sample_books():
                 'publication_date': '1997-06-26',
                 'file_path': 'Harry Potter and the Sorcerers Stone',
                 'total_chapters': 17,
-                'cover_image_url': '/books/cover/Harry Potter/hp1_cover.jpg',
+                'cover_image_url': '/books/cover/Harry Potter and the Sorcerers Stone/cover.jpg',
                 'sample_audio_url': '/books/Harry Potter/hp1_sample.mp3',
                 'sample_duration': 180,
                 'average_rating': 4.8,
@@ -1879,7 +2399,7 @@ async def populate_sample_books():
                 'publication_date': '1960-07-11',
                 'file_path': 'To Kill a Mockingbird',
                 'total_chapters': 31,
-                'cover_image_url': '/books/cover/To Kill a Mockingbird/mockingbird_cover.jpg',
+                'cover_image_url': '/books/cover/To Kill a Mockingbird/cover.jpg',
                 'sample_audio_url': '/books/To Kill a Mockingbird/mockingbird_sample.mp3',
                 'sample_duration': 180,
                 'average_rating': 4.7,
@@ -1925,10 +2445,136 @@ async def populate_sample_books():
             "books_added": added_books,
             "total_books_in_database": total_books
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Failed to populate books: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to populate books: {str(e)}")
+
+# Audio streaming endpoints
+@app.get("/audio/{book_title}/{filename}")
+async def stream_audio_file(book_title: str, filename: str):
+    """Stream audio file from Azure Blob Storage or local fallback"""
+    try:
+        # First try Azure Storage
+        cloud_url = storage.generate_audio_url(book_title, filename)
+        if cloud_url:
+            logger.info(f"Redirecting to Azure Storage URL for {book_title}/{filename}")
+            return RedirectResponse(url=cloud_url, status_code=302)
+
+        # Fallback to local file
+        local_path = storage.get_fallback_local_path(book_title, filename)
+        if local_path and os.path.exists(local_path):
+            logger.info(f"Serving local file: {local_path}")
+            return FileResponse(
+                path=local_path,
+                media_type='audio/mpeg',
+                filename=filename
+            )
+
+        # File not found
+        logger.warning(f"Audio file not found: {book_title}/{filename}")
+        raise HTTPException(status_code=404, detail=f"Audio file not found: {filename}")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error streaming audio file {book_title}/{filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error accessing audio file")
+
+@app.get("/audio/stream/{book_title}/{filename}")
+async def get_audio_stream_url(book_title: str, filename: str):
+    """Get streaming URL for audio file (mobile app friendly)"""
+    try:
+        # Generate streaming URL from Azure
+        stream_url = storage.get_stream_url(f"{book_title}/{filename}")
+        if stream_url:
+            return {
+                "status": "success",
+                "stream_url": stream_url,
+                "expires_in_hours": 1,
+                "book_title": book_title,
+                "filename": filename
+            }
+
+        # Fallback to API endpoint
+        fallback_url = f"{app_config.get_service_url('api_gateway')}/audio/{book_title}/{filename}"
+        return {
+            "status": "fallback",
+            "stream_url": fallback_url,
+            "expires_in_hours": 24,
+            "book_title": book_title,
+            "filename": filename,
+            "note": "Using local file fallback"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating stream URL for {book_title}/{filename}: {e}")
+        raise HTTPException(status_code=500, detail="Error generating stream URL")
+
+@app.get("/books/{book_title}/chapters")
+async def list_book_chapters(book_title: str):
+    """List all audio chapters for a book"""
+    try:
+        # Try Azure Storage first
+        cloud_files = storage.list_book_audio_files(book_title)
+        if cloud_files:
+            chapters = []
+            for i, file_path in enumerate(cloud_files, 1):
+                filename = os.path.basename(file_path)
+                chapters.append({
+                    "chapter_number": i,
+                    "filename": filename,
+                    "title": filename.replace('.mp3', '').replace('_', ' ').title(),
+                    "stream_url": f"/audio/stream/{book_title}/{filename}",
+                    "download_url": f"/audio/{book_title}/{filename}"
+                })
+
+            return {
+                "book_title": book_title,
+                "total_chapters": len(chapters),
+                "chapters": chapters,
+                "source": "cloud_storage"
+            }
+
+        # Fallback to local files
+        local_dir = Path(f"book_files/{book_title}")
+        if local_dir.exists():
+            audio_files = sorted(list(local_dir.glob("*.mp3")))
+            chapters = []
+            for i, file_path in enumerate(audio_files, 1):
+                chapters.append({
+                    "chapter_number": i,
+                    "filename": file_path.name,
+                    "title": file_path.stem.replace('_', ' ').title(),
+                    "stream_url": f"/audio/stream/{book_title}/{file_path.name}",
+                    "download_url": f"/audio/{book_title}/{file_path.name}"
+                })
+
+            return {
+                "book_title": book_title,
+                "total_chapters": len(chapters),
+                "chapters": chapters,
+                "source": "local_files"
+            }
+
+        # No chapters found
+        return {
+            "book_title": book_title,
+            "total_chapters": 0,
+            "chapters": [],
+            "source": "none",
+            "message": "No audio chapters found for this book"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error listing chapters for {book_title}: {e}")
+        raise HTTPException(status_code=500, detail="Error listing book chapters")
 
 if __name__ == "__main__":
     import uvicorn

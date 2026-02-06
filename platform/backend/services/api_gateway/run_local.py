@@ -27,34 +27,26 @@ if current_pythonpath:
     new_paths.append(current_pythonpath)
 os.environ['PYTHONPATH'] = ':'.join(new_paths)
 
-print(f"🔧 Python path configured:")
-print(f"   - Core modules: {core_path}")
-print(f"   - Project root: {project_root}")
-print(f"   - PYTHONPATH: {os.environ['PYTHONPATH']}")
+print(f"Python path configured: {project_root}")
 
 # Set default environment variables for local development
 if 'DATABASE_URL' not in os.environ:
     os.environ['DATABASE_URL'] = 'postgresql://betterbooks:testpassword123@localhost:5432/betterbooks'
-    print(f"🔧 Set DATABASE_URL for local development")
 
 if 'JWT_SECRET_KEY' not in os.environ:
     os.environ['JWT_SECRET_KEY'] = 'test-secret-key-for-testing'
-    print(f"🔧 Set JWT_SECRET_KEY for local development")
 
 if 'AZURE_OPENAI_API_KEY' not in os.environ:
     os.environ['AZURE_OPENAI_API_KEY'] = 'test-key'
-    print(f"🔧 Set AZURE_OPENAI_API_KEY for local development")
 
 if 'AZURE_OPENAI_ENDPOINT' not in os.environ:
     os.environ['AZURE_OPENAI_ENDPOINT'] = 'https://your-resource.openai.azure.com/'
-    print(f"🔧 Set AZURE_OPENAI_ENDPOINT for local development")
 
 if 'AZURE_OPENAI_DEPLOYMENT_NAME' not in os.environ:
     os.environ['AZURE_OPENAI_DEPLOYMENT_NAME'] = 'gpt-4o-mini'
-    print(f"🔧 Set AZURE_OPENAI_DEPLOYMENT_NAME for local development")
 
 # Import and run the main app
-print(f"🚀 Starting API Gateway...")
+print("Starting API Gateway on port 8000...")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

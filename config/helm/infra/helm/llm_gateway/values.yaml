@@ -1,6 +1,0 @@
-image:
-  repository: betterbooksacr.azurecr.io/llm_gateway
-  tag: latest
-service:
-  type: LoadBalancer
-  port: 8002

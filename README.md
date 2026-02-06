@@ -1,136 +1,76 @@
-# EchoWright - Audiobooks with AI Chat
+# BetterBooks
 
-An MVP audiobook platform that combines traditional audiobook listening with AI-powered chat companions - like "Audible with an AI chatbot".
+AI-powered audiobook platform with interactive chat features.
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
-- **Docker & Docker Compose**
-- **Flutter 3.0+** (for mobile app)
+- Browse and purchase audiobooks
+- AI chat with book personas (via Ollama or Azure OpenAI)
+- Credit-based purchase system
+- JWT authentication
 
-### Setup
-1. **Clone and start:**
-   ```bash
-   git clone https://github.com/username/betterbooks.git
-   cd BetterBooks
-   export AZURE_OPENAI_API_KEY=your-azure-key
-   export AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   export AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o-mini
-   docker-compose up --build
-   ```
-
-2. **Access the platform:**
-   - **API Gateway:** http://localhost:8000 (local) or http://128.203.92.141:8000 (Azure)
-   - **Mobile App:** `cd platform/mobile/mobile_app && flutter run`
-
-## ✨ Current MVP Features
-
-### Core Platform
-- **📚 Book Library** - Browse and manage audiobooks
-- **🎵 Audio Playback** - Stream audiobooks with standard controls
-- **👤 User Accounts** - Email/password authentication
-- **💳 Credits System** - Purchase books with credits
-
-### AI Features
-- **🤖 AI Chat Companions** - Chat with AI personas while listening
-- **🎭 Multiple Personas** - English Teacher, Language Tutor, General Helper
-- **💬 Context-Aware** - AI knows what book you're listening to
-- **🔤 Text & Voice** - Chat via text or voice interaction
-
-## 🏗️ Architecture
-
-```mermaid
-graph TD
-    A[Mobile App] --> B[API Gateway :8000]
-    B --> C[LLM Gateway :8002]
-    B --> D[PostgreSQL Database]
-    C --> E[Azure OpenAI GPT-4o]
-    B --> F[Azure Blob Storage]
-    D --> G[Books & Categories Tables]
-    D --> H[Users & Authentication]
-    D --> I[AI Personas System]
-```
-
-### Services
-- **API Gateway** (port 8000) - Main backend API
-- **LLM Gateway** (port 8002) - AI persona management
-- **PostgreSQL** - User data, books, libraries
-- **Mobile App** - Flutter iOS/Android app
-
-## 📱 Mobile App
-
-The main user interface is a Flutter mobile app with:
-- **Home Screen** - Browse books and continue listening
-- **Player Screen** - Audio controls + AI chat interface
-- **Library Screen** - Your purchased books
-- **Chat Screen** - Full conversation history with AI personas
+## Quick Start
 
 ```bash
-cd platform/mobile/mobile_app
-flutter pub get
-flutter run
+# 1. Start database
+docker-compose up -d postgres redis
+
+# 2. Run backend services
+source venv/bin/activate
+
+# Terminal 1 - API Gateway (port 8000)
+cd platform/backend/services/api_gateway
+DATABASE_URL="postgresql://betterbooks:betterbooks@localhost:5432/betterbooks" \
+JWT_SECRET_KEY="dev-secret" \
+PYTHONPATH="$PWD/../../../.." \
+python -m uvicorn main:app --port 8000
+
+# Terminal 2 - LLM Gateway (port 8002)
+cd platform/backend/services/llm_gateway
+USE_OLLAMA=true OLLAMA_URL="http://localhost:11434" OLLAMA_MODEL=tinyllama \
+PYTHONPATH="$PWD/../../../.." \
+python -m uvicorn main:app --port 8002
+
+# 3. Open web app
+cd platform/frontend/simple_web
+python -m http.server 3000
+# Then visit http://localhost:3000
 ```
 
-## 🛠️ Development
+## Architecture
 
-### Local Backend
-```bash
-# Start all services
-docker-compose up --build
-
-# Run tests
-pytest tests/unit/ -v
+```
+┌─────────────────┐     ┌─────────────────┐
+│   Web Browser   │────▶│   API Gateway   │────▶ PostgreSQL
+│   (port 3000)   │     │   (port 8000)   │
+└─────────────────┘     └────────┬────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │   LLM Gateway   │────▶ Ollama/Azure
+                        │   (port 8002)   │
+                        └─────────────────┘
 ```
 
-### Key Files
-- `platform/backend/services/api_gateway/` - Main backend API
-- `platform/backend/services/llm_gateway/` - AI chat functionality  
-- `platform/mobile/mobile_app/` - Flutter mobile app
-- `config/helm/` - Kubernetes deployment
+## Project Structure
 
-## 📋 Current Status
-
-### ✅ Working
-- Basic authentication (email/password)
-- Book catalog and library management
-- Audio playback functionality
-- AI personas and chat system
-- Flutter mobile app UI
-
-### 🚧 In Progress
-- Real database connections for all services
-- Azure blob storage for audio files
-- Email verification system
-- Real payment integration
-
-### 🔧 Known Issues
-See [backLog.md](backLog.md) and [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) for current bugs and technical debt.
-
-## 🚀 Deployment
-
-### Local Development
-```bash
-docker-compose up --build
+```
+BetterBooks/
+├── core/                    # Shared Python modules
+│   ├── auth/               # JWT authentication
+│   ├── database/           # PostgreSQL models
+│   └── infrastructure/     # Logging, caching
+├── platform/
+│   ├── backend/services/
+│   │   ├── api_gateway/    # Main API
+│   │   └── llm_gateway/    # AI chat
+│   └── frontend/simple_web # Web app
+├── book_files/             # Audio & covers
+└── docker-compose.yml
 ```
 
-### Production (Azure)
-See [azure_progress.md](azure_progress.md) for current Azure deployment status.
+## Stack
 
-## 📖 Documentation
-
-- [CLAUDE.md](CLAUDE.md) - Development commands and architecture
-- [completeFeatures.md](completeFeatures.md) - Long-term feature vision
-- [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md) - Current technical debt and priorities
-- [backLog.md](backLog.md) - Bug reports and feature requests
-
-## 🎯 Vision
-
-The goal is to create an audiobook platform where:
-1. Users browse and purchase audiobooks (like Audible)
-2. While listening, they can chat with AI personas about the content
-3. AI provides educational insights, answers questions, and enhances comprehension
-4. Different personas offer different perspectives (teacher, tutor, character analysis)
-
----
-
-**Current Focus:** Getting the MVP to production-ready state with working authentication, real book data, and stable AI chat functionality.
+- **Backend**: Python 3.13, FastAPI, PostgreSQL
+- **Frontend**: Vanilla HTML/CSS/JS
+- **AI**: Ollama (local) or Azure OpenAI

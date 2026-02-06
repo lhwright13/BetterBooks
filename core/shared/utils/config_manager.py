@@ -1,8 +1,9 @@
 """
-Shared Configuration Manager for EchoWright Services
+Shared Configuration Manager for BetterBooks Services
 
 Provides secure, centralized configuration management across all microservices.
 Handles environment variables, validation, and secure secret loading.
+Supports AWS Secrets Manager for production deployments.
 """
 
 import os
@@ -14,6 +15,59 @@ from dataclasses import dataclass
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+# AWS Secrets Manager support (optional)
+_secrets_client = None
+_secrets_cache: Dict[str, str] = {}
+
+def _get_secrets_client():
+    """Lazily initialize AWS Secrets Manager client"""
+    global _secrets_client
+    if _secrets_client is None:
+        try:
+            import boto3
+            _secrets_client = boto3.client('secretsmanager', region_name=os.getenv('AWS_REGION', 'us-east-1'))
+        except ImportError:
+            logger.debug("boto3 not available - AWS Secrets Manager disabled")
+        except Exception as e:
+            logger.debug(f"Could not initialize Secrets Manager client: {e}")
+    return _secrets_client
+
+def get_secret(key: str, default: Optional[str] = None) -> Optional[str]:
+    """
+    Get a secret value with fallback chain:
+    1. Environment variable (for local dev)
+    2. AWS Secrets Manager (for production)
+    3. Default value
+    """
+    # First, check environment variable
+    env_value = os.getenv(key)
+    if env_value:
+        return env_value
+
+    # Check cache
+    if key in _secrets_cache:
+        return _secrets_cache[key]
+
+    # Try AWS Secrets Manager
+    secret_name = os.getenv('AWS_SECRET_NAME', 'betterbooks/production')
+    client = _get_secrets_client()
+
+    if client:
+        try:
+            response = client.get_secret_value(SecretId=secret_name)
+            secret_data = json.loads(response['SecretString'])
+
+            # Cache all secrets from this response
+            _secrets_cache.update(secret_data)
+
+            if key in secret_data:
+                logger.debug(f"Retrieved {key} from AWS Secrets Manager")
+                return secret_data[key]
+        except Exception as e:
+            logger.debug(f"Could not retrieve secret {key} from Secrets Manager: {e}")
+
+    return default
 
 class Environment(Enum):
     DEVELOPMENT = "development"
@@ -131,7 +185,7 @@ class ConfigManager:
     
     def get_security_config(self) -> SecurityConfig:
         """Get security configuration"""
-        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:8080")
+        cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000")
         cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
         
         return SecurityConfig(
@@ -185,15 +239,15 @@ class ConfigManager:
         )
     
     def get_required(self, key: str) -> str:
-        """Get required environment variable or raise error"""
-        value = os.getenv(key)
+        """Get required configuration value (env var or Secrets Manager) or raise error"""
+        value = get_secret(key)
         if not value:
-            raise ValueError(f"Required environment variable {key} is not set")
+            raise ValueError(f"Required configuration {key} is not set (checked env vars and Secrets Manager)")
         return value
-    
+
     def get_optional(self, key: str, default: str = None) -> Optional[str]:
-        """Get optional environment variable with default"""
-        return os.getenv(key, default)
+        """Get optional configuration value with default (env var or Secrets Manager)"""
+        return get_secret(key, default)
     
     def get_int(self, key: str, default: int = 0) -> int:
         """Get integer environment variable with default"""
@@ -253,37 +307,50 @@ class ConfigManager:
         # Check for explicit service URL environment variables first
         service_env_vars = {
             "api_gateway": "API_GATEWAY_URL",
-            "context_service": "CONTEXT_SERVICE_URL", 
+            "context_service": "CONTEXT_SERVICE_URL",
             "llm_gateway": "LLM_GATEWAY_URL",
             "tts_service": "TTS_SERVICE_URL",
             "transcription_service": "TRANSCRIPTION_SERVICE_URL"
         }
-        
+
         # Use explicit URL if provided
         env_var = service_env_vars.get(service)
         if env_var and os.getenv(env_var):
             url = os.getenv(env_var)
             logger.debug(f"Using explicit URL for {service}: {url}")
             return url
-        
-        # Determine base host based on environment
-        if self.environment == Environment.DEVELOPMENT and os.getenv("RUNNING_OUTSIDE_DOCKER"):
-            base_host = "localhost"
-        else:
-            base_host = service  # Docker service name
-            
+
         # Default port mappings
         default_ports = {
             "api_gateway": "8000",
-            "context_service": "8001", 
+            "context_service": "8001",
             "llm_gateway": "8002",
             "tts_service": "8003",
             "transcription_service": "8004",
         }
-        
+
         port = os.getenv(f"{service.upper()}_PORT", default_ports.get(service, "8000"))
+
+        # Determine base host based on environment
+        # Check explicit flag first
+        if os.getenv("RUNNING_OUTSIDE_DOCKER"):
+            base_host = "localhost"
+        elif self.environment == Environment.DEVELOPMENT:
+            # In development, try to auto-detect if we're in Docker
+            # by checking if the Docker hostname resolves
+            import socket
+            try:
+                socket.gethostbyname(service)
+                base_host = service  # Docker service name resolves
+            except socket.gaierror:
+                # Docker hostname doesn't resolve, use localhost
+                base_host = "localhost"
+                logger.debug(f"Docker hostname '{service}' not resolvable, using localhost")
+        else:
+            base_host = service  # Docker service name
+
         url = f"http://{base_host}:{port}"
-        
+
         logger.debug(f"Generated service URL for {service}: {url}")
         return url
     
