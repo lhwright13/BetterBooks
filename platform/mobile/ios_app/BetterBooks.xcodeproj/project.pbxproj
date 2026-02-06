@@ -19,12 +19,27 @@
 		AA6F71E8340D5F761CFC5888 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB25F13E3932D5F1A235D43 /* VoiceService.swift */; };
 		C530D30C305D0784CC09DF8A /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1885946643322849FD8791 /* Models.swift */; };
 		CBC963D2B3EC378B181CF289 /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96B3E3B54861345E4F11BFEF /* MiniPlayerView.swift */; };
+		DC5A92C145742AA195C94A8B /* VoiceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEE15C595436159FC963B0A /* VoiceServiceTests.swift */; };
+		DD18D4AE90FE6B52ABEBB85A /* APIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD72B5986103BB27FB5A61B /* APIServiceTests.swift */; };
+		E174E285F85CF6841A312359 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63660B1774D87DF96DDA2B6 /* ModelsTests.swift */; };
 		F24F55F865EC192436306DB2 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 326005B7FFE25771F2B074D2 /* LibraryView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2FBA8EC1D395F969129045C2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D31072F3DF439B1849ACAA63 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 577792B981A6C69CC951373B;
+			remoteInfo = BetterBooks;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		326005B7FFE25771F2B074D2 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		32BBF4B3E828BF606381EFFC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		3DEE15C595436159FC963B0A /* VoiceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceServiceTests.swift; sourceTree = "<group>"; };
+		6CD72B5986103BB27FB5A61B /* APIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTests.swift; sourceTree = "<group>"; };
 		72B940D12C0294E86A0EAAB7 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
 		7E859AE4170D513D78003862 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		86BADDE418C0B2F57CF2A060 /* BetterBooks.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BetterBooks.entitlements; sourceTree = "<group>"; };
@@ -32,10 +47,12 @@
 		9208CCFC8044D7A3701DDA03 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		92C2CE4FA68E73504E7B107E /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
 		96B3E3B54861345E4F11BFEF /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
+		A7DCE0EB782545D6EF29006A /* BetterBooksTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BetterBooksTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6A3874404A44723B2F4D73D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CBB25F13E3932D5F1A235D43 /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
 		D1B1414F915446E907E1B811 /* VoiceChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceChatView.swift; sourceTree = "<group>"; };
 		E83A62DB559C598E7DFB69B0 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
+		F63660B1774D87DF96DDA2B6 /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
 		FDD8DDB24DE4BB68B1D6705E /* BetterBooksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterBooksApp.swift; sourceTree = "<group>"; };
 		FDFBEB52901AA43374F23900 /* BetterBooks.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BetterBooks.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -44,6 +61,7 @@
 		07E424FF55D6CD11232292D6 = {
 			isa = PBXGroup;
 			children = (
+				E973C7A202E3B6982D60EBEC /* BetterBooksTests */,
 				4544CB59B6A0D71D86D34A33 /* Resources */,
 				AAC4C38ACE870A694626CC8D /* Sources */,
 				DEE57026B1B8010D7938421D /* Products */,
@@ -84,13 +102,42 @@
 			isa = PBXGroup;
 			children = (
 				FDFBEB52901AA43374F23900 /* BetterBooks.app */,
+				A7DCE0EB782545D6EF29006A /* BetterBooksTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E973C7A202E3B6982D60EBEC /* BetterBooksTests */ = {
+			isa = PBXGroup;
+			children = (
+				6CD72B5986103BB27FB5A61B /* APIServiceTests.swift */,
+				F63660B1774D87DF96DDA2B6 /* ModelsTests.swift */,
+				3DEE15C595436159FC963B0A /* VoiceServiceTests.swift */,
+			);
+			path = BetterBooksTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		25B94AB3357950708956C6C8 /* BetterBooksTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 762B215AABD3CDEC10C4B1E8 /* Build configuration list for PBXNativeTarget "BetterBooksTests" */;
+			buildPhases = (
+				459309303A1B2614590AFAE1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3D8064919D387009CDBB6843 /* PBXTargetDependency */,
+			);
+			name = BetterBooksTests;
+			packageProductDependencies = (
+			);
+			productName = BetterBooksTests;
+			productReference = A7DCE0EB782545D6EF29006A /* BetterBooksTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		577792B981A6C69CC951373B /* BetterBooks */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DEDAC237043BAA48888FC1FF /* Build configuration list for PBXNativeTarget "BetterBooks" */;
@@ -132,11 +179,22 @@
 			projectRoot = "";
 			targets = (
 				577792B981A6C69CC951373B /* BetterBooks */,
+				25B94AB3357950708956C6C8 /* BetterBooksTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		459309303A1B2614590AFAE1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DD18D4AE90FE6B52ABEBB85A /* APIServiceTests.swift in Sources */,
+				E174E285F85CF6841A312359 /* ModelsTests.swift in Sources */,
+				DC5A92C145742AA195C94A8B /* VoiceServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		569727DBF2DBBB4D3E43E0A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -158,6 +216,14 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3D8064919D387009CDBB6843 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 577792B981A6C69CC951373B /* BetterBooks */;
+			targetProxy = 2FBA8EC1D395F969129045C2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		460E1411C1E10033C4FD2FDF /* Release */ = {
@@ -327,9 +393,50 @@
 			};
 			name = Debug;
 		};
+		A5452077A887E366C193C7AE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.betterbooks.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BetterBooks.app/BetterBooks";
+			};
+			name = Release;
+		};
+		B2569303887341E77D6DBEFF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.betterbooks.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/BetterBooks.app/BetterBooks";
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		762B215AABD3CDEC10C4B1E8 /* Build configuration list for PBXNativeTarget "BetterBooksTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2569303887341E77D6DBEFF /* Debug */,
+				A5452077A887E366C193C7AE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		DEDAC237043BAA48888FC1FF /* Build configuration list for PBXNativeTarget "BetterBooks" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
