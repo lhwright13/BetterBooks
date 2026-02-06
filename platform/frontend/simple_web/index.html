@@ -521,6 +521,54 @@
             cursor: not-allowed;
         }
 
+        /* Voice Chat Button */
+        .btn-voice {
+            background: #4a90d9;
+            border: none;
+            color: #fff;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn-voice:hover {
+            background: #5aa0e9;
+            transform: scale(1.05);
+        }
+
+        .btn-voice.recording {
+            background: #e94560;
+            animation: pulse 1s infinite;
+        }
+
+        .btn-voice.processing {
+            background: #f5a623;
+        }
+
+        .btn-voice:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .voice-status {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+            text-align: center;
+            margin-top: 5px;
+            min-height: 16px;
+        }
+
         /* Audio Player Page */
         .player-container {
             max-width: 600px;
@@ -1201,7 +1249,11 @@
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" id="chat-input" placeholder="Ask about the book...">
                         <button class="btn-send" id="btn-send" onclick="sendMessage()">Send</button>
+                        <button class="btn-voice" id="btn-voice" onclick="toggleVoiceChat()" title="Voice Chat">
+                            <span id="voice-icon">🎤</span>
+                        </button>
                     </div>
+                    <div class="voice-status" id="voice-status"></div>
                 </div>
             </div>
         </div>
@@ -2347,6 +2399,196 @@
 
             sendBtn.disabled = false;
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Voice Chat State and Functions
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let voiceAudioPlayer = null;
+
+        function setVoiceStatus(status) {
+            document.getElementById('voice-status').textContent = status;
+        }
+
+        function setVoiceButtonState(state) {
+            const btn = document.getElementById('btn-voice');
+            const icon = document.getElementById('voice-icon');
+            btn.classList.remove('recording', 'processing');
+
+            switch(state) {
+                case 'idle':
+                    icon.textContent = '🎤';
+                    btn.disabled = false;
+                    setVoiceStatus('');
+                    break;
+                case 'recording':
+                    btn.classList.add('recording');
+                    icon.textContent = '⏹';
+                    setVoiceStatus('Recording... Click to stop');
+                    break;
+                case 'processing':
+                    btn.classList.add('processing');
+                    icon.textContent = '⏳';
+                    btn.disabled = true;
+                    setVoiceStatus('Processing...');
+                    break;
+                case 'playing':
+                    icon.textContent = '🔊';
+                    setVoiceStatus('Playing response...');
+                    break;
+            }
+        }
+
+        async function toggleVoiceChat() {
+            if (!currentChatBook) {
+                setVoiceStatus('Select a book first');
+                return;
+            }
+
+            if (isRecording) {
+                stopRecording();
+            } else {
+                await startRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+
+                    if (audioChunks.length > 0) {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await processVoiceChat(audioBlob);
+                    }
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                setVoiceButtonState('recording');
+
+            } catch (err) {
+                console.error('Microphone access error:', err);
+                setVoiceStatus('Microphone access denied');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+                setVoiceButtonState('processing');
+            }
+        }
+
+        async function processVoiceChat(audioBlob) {
+            updateChatContext();
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('audio', audioBlob, 'recording.webm');
+            if (currentChatBook?.id) {
+                formData.append('book_id', currentChatBook.id);
+            }
+            formData.append('chapter', chatContext.chapter);
+            formData.append('timestamp_seconds', chatContext.timestamp);
+            if (selectedPersona?.id) {
+                formData.append('persona_id', selectedPersona.id);
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/voice/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.detail || 'Voice chat failed');
+                }
+
+                const data = await res.json();
+
+                // Display transcription and response in chat
+                const messagesDiv = document.getElementById('chat-messages');
+                const personaName = selectedPersona?.name || 'AI Assistant';
+
+                // User's transcribed message
+                messagesDiv.innerHTML += `
+                    <div class="message user">
+                        <div class="message-label">You (voice)</div>
+                        <div class="message-content">${escapeHtml(data.transcription)}</div>
+                    </div>
+                `;
+
+                // AI response
+                messagesDiv.innerHTML += `
+                    <div class="message assistant">
+                        <div class="message-label">${personaName}</div>
+                        <div class="message-content">${escapeHtml(data.response_text)}</div>
+                    </div>
+                `;
+
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+                // Add to chat history
+                chatHistory.push({ role: 'user', content: data.transcription });
+                chatHistory.push({ role: 'assistant', content: data.response_text });
+
+                // Play audio response if available
+                if (data.response_audio_base64) {
+                    setVoiceButtonState('playing');
+                    await playAudioResponse(data.response_audio_base64);
+                }
+
+                setVoiceButtonState('idle');
+
+            } catch (err) {
+                console.error('Voice chat error:', err);
+                setVoiceStatus(`Error: ${err.message}`);
+                setTimeout(() => setVoiceButtonState('idle'), 3000);
+            }
+        }
+
+        async function playAudioResponse(base64Audio) {
+            return new Promise((resolve) => {
+                const audioData = atob(base64Audio);
+                const audioArray = new Uint8Array(audioData.length);
+                for (let i = 0; i < audioData.length; i++) {
+                    audioArray[i] = audioData.charCodeAt(i);
+                }
+                const audioBlob = new Blob([audioArray], { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                if (voiceAudioPlayer) {
+                    voiceAudioPlayer.pause();
+                }
+                voiceAudioPlayer = new Audio(audioUrl);
+                voiceAudioPlayer.onended = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    resolve();
+                };
+                voiceAudioPlayer.onerror = () => {
+                    URL.revokeObjectURL(audioUrl);
+                    resolve();
+                };
+                voiceAudioPlayer.play().catch(() => resolve());
+            });
         }
 
         async function handleStreamingResponse(response, contentEl, userMessage, personaName) {

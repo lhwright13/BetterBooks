@@ -1120,6 +1120,178 @@ async def get_voice_config():
             "response_timeout_seconds": 30
         }
 
+
+# Voice Service Endpoints (local STT/TTS)
+# ========================================
+
+class TranscriptionResponse(BaseModel):
+    text: str
+    confidence: float
+    language: str = "en"
+
+class SynthesisRequest(BaseModel):
+    text: str
+    voice: str = "default"
+    speed: float = 1.0
+
+@app.post("/voice/transcribe", response_model=TranscriptionResponse)
+async def transcribe_audio_endpoint(
+    audio: UploadFile = File(...),
+    language: str = "en"
+):
+    """
+    Transcribe audio to text using local Whisper.
+
+    Accepts: wav, mp3, webm, ogg, flac, m4a
+    Returns: transcribed text with confidence score
+    """
+    from voice_service import transcribe_audio
+
+    # Validate file type
+    allowed_types = ["audio/wav", "audio/mpeg", "audio/mp3", "audio/webm",
+                     "audio/ogg", "audio/flac", "audio/x-m4a", "audio/mp4"]
+    content_type = audio.content_type or ""
+    if not any(t in content_type for t in ["audio", "octet-stream"]):
+        raise HTTPException(status_code=400, detail=f"Invalid file type: {content_type}. Must be audio.")
+
+    # Read audio content
+    audio_bytes = await audio.read()
+
+    # Size limit: 25MB
+    if len(audio_bytes) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Audio file too large (max 25MB)")
+
+    try:
+        text, confidence = await transcribe_audio(audio_bytes, audio.filename or "audio.wav", language)
+        return TranscriptionResponse(text=text, confidence=confidence, language=language)
+    except Exception as e:
+        logger.error(f"Transcription error: {e}")
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+
+
+@app.post("/voice/synthesize")
+async def synthesize_speech_endpoint(request: SynthesisRequest):
+    """
+    Convert text to speech using local TTS.
+
+    Returns: WAV audio file
+    """
+    from voice_service import synthesize_speech
+
+    if not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+    # Text length limit
+    if len(request.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text too long (max 5000 characters)")
+
+    # Validate speed
+    if not 0.5 <= request.speed <= 2.0:
+        raise HTTPException(status_code=400, detail="Speed must be between 0.5 and 2.0")
+
+    try:
+        audio_bytes = await synthesize_speech(request.text, request.voice, request.speed)
+        return Response(
+            content=audio_bytes,
+            media_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=response.wav"}
+        )
+    except Exception as e:
+        logger.error(f"TTS error: {e}")
+        raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {str(e)}")
+
+
+@app.post("/voice/chat")
+async def voice_chat_local(
+    audio: UploadFile = File(...),
+    book_id: Optional[str] = None,
+    chapter: Optional[int] = None,
+    timestamp_seconds: Optional[float] = None,
+    persona_id: Optional[str] = None,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Complete voice chat: audio in -> AI response -> audio out
+
+    Uses local STT (Whisper) and TTS (Coqui) by default.
+    Integrates with book context and personas.
+    """
+    from voice_service import transcribe_audio, synthesize_speech
+
+    # Read and validate audio
+    audio_bytes = await audio.read()
+    if len(audio_bytes) > 25 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Audio file too large (max 25MB)")
+
+    try:
+        # Step 1: Transcribe user's speech
+        user_text, confidence = await transcribe_audio(audio_bytes, audio.filename or "audio.wav")
+
+        if not user_text.strip():
+            raise HTTPException(status_code=400, detail="No speech detected in audio")
+
+        logger.info(f"Voice chat transcription: '{user_text[:100]}...' (confidence: {confidence:.2f})")
+
+        # Step 2: Get AI response via LLM Gateway
+        # Build context-aware request
+        messages = [{"role": "user", "content": user_text}]
+
+        completion_request = {
+            "messages": messages,
+            "book_id": book_id,
+            "chapter": chapter,
+            "timestamp_seconds": timestamp_seconds,
+            "persona_id": persona_id
+        }
+
+        async with httpx.AsyncClient() as client:
+            llm_response = await client.post(
+                f"{LLM_URL}/complete",
+                json=completion_request,
+                timeout=30.0
+            )
+
+            if llm_response.status_code != 200:
+                logger.error(f"LLM Gateway error: {llm_response.text}")
+                raise HTTPException(status_code=500, detail="Failed to get AI response")
+
+            response_data = llm_response.json()
+            ai_text = response_data.get("content", "I'm sorry, I couldn't process your request.")
+
+        # Step 3: Synthesize AI response to speech
+        # Map persona to voice
+        voice = "default"
+        if persona_id:
+            persona_voice_map = {
+                "gatsby": "gatsby",
+                "nick": "nick",
+                "daisy": "daisy",
+                "english_teacher": "teacher",
+                "language_tutor": "tutor"
+            }
+            voice = persona_voice_map.get(persona_id.lower(), "default")
+
+        audio_response = await synthesize_speech(ai_text, voice=voice)
+
+        # Return multipart response with both text and audio
+        import base64
+        audio_b64 = base64.b64encode(audio_response).decode('utf-8')
+
+        return {
+            "transcription": user_text,
+            "confidence": confidence,
+            "response_text": ai_text,
+            "response_audio_base64": audio_b64,
+            "audio_format": "wav"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Voice chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"Voice chat failed: {str(e)}")
+
+
 @app.get("/bookstore/books/{book_id}/download", response_model=BookDownloadResponse)
 async def get_book_download_links(book_id: str, user_id: str = Depends(get_current_user_id)):
     """Get download links for all chapters of a purchased book"""
