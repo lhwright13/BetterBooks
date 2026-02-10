@@ -12,16 +12,15 @@ struct BetterBooksApp: App {
     }
 }
 
-/// Global app state shared across views
+/// Global app state — demo mode, no auth required
 @MainActor
 class AppState: ObservableObject {
-    @Published var isAuthenticated = false
-    @Published var currentUser: User?
-    @Published var authToken: String?
+    // Navigation
+    @Published var selectedBook: Book?
+    @Published var selectedPersona: Persona?
 
     // Player state
-    @Published var currentBook: Book?
-    @Published var currentChapter: Int = 0
+    @Published var currentChapter: Int = 1
     @Published var isPlaying = false
     @Published var playbackPosition: TimeInterval = 0
 
@@ -30,32 +29,32 @@ class AppState: ObservableObject {
     let audioService = AudioService()
     let voiceService = VoiceService()
 
+    // Demo auth token (obtained silently)
+    @Published var authToken: String?
+
     init() {
-        // Load saved auth token
-        if let token = UserDefaults.standard.string(forKey: "authToken") {
-            self.authToken = token
-            self.isAuthenticated = true
-            Task { await loadUser() }
+        Task { await autoLogin() }
+    }
+
+    /// Silently create/login a demo account for API access
+    private func autoLogin() async {
+        let email = "demo@betterbooks.app"
+        let password = "demopass123"
+
+        do {
+            // Try signin first
+            let response = try await apiService.login(email: email, password: password)
+            self.authToken = response.token
+            await apiService.setAuthToken(response.token)
+        } catch {
+            // If signin fails, try signup
+            do {
+                let response = try await apiService.signup(email: email, password: password, name: "Demo User")
+                self.authToken = response.token
+                await apiService.setAuthToken(response.token)
+            } catch {
+                print("Demo auto-login failed: \(error.localizedDescription)")
+            }
         }
-    }
-
-    func login(email: String, password: String) async throws {
-        let response = try await apiService.login(email: email, password: password)
-        self.authToken = response.token
-        self.currentUser = response.user
-        self.isAuthenticated = true
-        UserDefaults.standard.set(response.token, forKey: "authToken")
-    }
-
-    func logout() {
-        authToken = nil
-        currentUser = nil
-        isAuthenticated = false
-        UserDefaults.standard.removeObject(forKey: "authToken")
-    }
-
-    private func loadUser() async {
-        // Load user profile from saved token
-        // Implementation depends on your API
     }
 }

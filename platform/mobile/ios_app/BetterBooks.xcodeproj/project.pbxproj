@@ -9,20 +9,17 @@
 /* Begin PBXBuildFile section */
 		00258308C5F78C9514AD665C /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72B940D12C0294E86A0EAAB7 /* APIService.swift */; };
 		0393FCF16EA1F33FA23CBEB2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32BBF4B3E828BF606381EFFC /* ContentView.swift */; };
-		08F911A7D44044FB07431B23 /* VoiceChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B1414F915446E907E1B811 /* VoiceChatView.swift */; };
-		0B9BDC73A41F10D63FB07536 /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83A62DB559C598E7DFB69B0 /* BrowseView.swift */; };
-		1BD433D959AF14429DD5BF52 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A3874404A44723B2F4D73D /* ProfileView.swift */; };
 		1F104BD1B4AD504CEC5C27A0 /* BetterBooksApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDD8DDB24DE4BB68B1D6705E /* BetterBooksApp.swift */; };
 		3464FDB7F2D07120E2D09FE4 /* AudioService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92C2CE4FA68E73504E7B107E /* AudioService.swift */; };
-		4E16D671838C24E9264DAC12 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E859AE4170D513D78003862 /* AuthView.swift */; };
-		7CF9959B5A950F04AA464EC7 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9208CCFC8044D7A3701DDA03 /* PlayerView.swift */; };
 		AA6F71E8340D5F761CFC5888 /* VoiceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB25F13E3932D5F1A235D43 /* VoiceService.swift */; };
 		C530D30C305D0784CC09DF8A /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1885946643322849FD8791 /* Models.swift */; };
-		CBC963D2B3EC378B181CF289 /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96B3E3B54861345E4F11BFEF /* MiniPlayerView.swift */; };
 		DC5A92C145742AA195C94A8B /* VoiceServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEE15C595436159FC963B0A /* VoiceServiceTests.swift */; };
 		DD18D4AE90FE6B52ABEBB85A /* APIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CD72B5986103BB27FB5A61B /* APIServiceTests.swift */; };
 		E174E285F85CF6841A312359 /* ModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F63660B1774D87DF96DDA2B6 /* ModelsTests.swift */; };
-		F24F55F865EC192436306DB2 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 326005B7FFE25771F2B074D2 /* LibraryView.swift */; };
+		E5F60718293A4B5CD6E7F809 /* BookSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* BookSelectionView.swift */; };
+		F60718293A4B5C6DE7F80910 /* PersonaSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6071829A3B4C5D6 /* PersonaSelectionView.swift */; };
+		0718293A4B5C6D7EF8091011 /* PlayerChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F60718293AB4C5D6E7 /* PlayerChatView.swift */; };
+		18293A4B5C6D7E8F09101112 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F60718293A4BC5D6E7F8 /* Theme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,25 +33,22 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		326005B7FFE25771F2B074D2 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		32BBF4B3E828BF606381EFFC /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		3DEE15C595436159FC963B0A /* VoiceServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceServiceTests.swift; sourceTree = "<group>"; };
 		6CD72B5986103BB27FB5A61B /* APIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTests.swift; sourceTree = "<group>"; };
 		72B940D12C0294E86A0EAAB7 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
-		7E859AE4170D513D78003862 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
 		86BADDE418C0B2F57CF2A060 /* BetterBooks.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BetterBooks.entitlements; sourceTree = "<group>"; };
 		8D1885946643322849FD8791 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		9208CCFC8044D7A3701DDA03 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		92C2CE4FA68E73504E7B107E /* AudioService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioService.swift; sourceTree = "<group>"; };
-		96B3E3B54861345E4F11BFEF /* MiniPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerView.swift; sourceTree = "<group>"; };
 		A7DCE0EB782545D6EF29006A /* BetterBooksTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = BetterBooksTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		C6A3874404A44723B2F4D73D /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		CBB25F13E3932D5F1A235D43 /* VoiceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceService.swift; sourceTree = "<group>"; };
-		D1B1414F915446E907E1B811 /* VoiceChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceChatView.swift; sourceTree = "<group>"; };
-		E83A62DB559C598E7DFB69B0 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
 		F63660B1774D87DF96DDA2B6 /* ModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsTests.swift; sourceTree = "<group>"; };
 		FDD8DDB24DE4BB68B1D6705E /* BetterBooksApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterBooksApp.swift; sourceTree = "<group>"; };
 		FDFBEB52901AA43374F23900 /* BetterBooks.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BetterBooks.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F60718293A4B5C /* BookSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookSelectionView.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6071829A3B4C5D6 /* PersonaSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSelectionView.swift; sourceTree = "<group>"; };
+		C3D4E5F60718293AB4C5D6E7 /* PlayerChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerChatView.swift; sourceTree = "<group>"; };
+		D4E5F60718293A4BC5D6E7F8 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -82,16 +76,13 @@
 			children = (
 				72B940D12C0294E86A0EAAB7 /* APIService.swift */,
 				92C2CE4FA68E73504E7B107E /* AudioService.swift */,
-				7E859AE4170D513D78003862 /* AuthView.swift */,
 				FDD8DDB24DE4BB68B1D6705E /* BetterBooksApp.swift */,
-				E83A62DB559C598E7DFB69B0 /* BrowseView.swift */,
+				A1B2C3D4E5F60718293A4B5C /* BookSelectionView.swift */,
 				32BBF4B3E828BF606381EFFC /* ContentView.swift */,
-				326005B7FFE25771F2B074D2 /* LibraryView.swift */,
-				96B3E3B54861345E4F11BFEF /* MiniPlayerView.swift */,
 				8D1885946643322849FD8791 /* Models.swift */,
-				9208CCFC8044D7A3701DDA03 /* PlayerView.swift */,
-				C6A3874404A44723B2F4D73D /* ProfileView.swift */,
-				D1B1414F915446E907E1B811 /* VoiceChatView.swift */,
+				B2C3D4E5F6071829A3B4C5D6 /* PersonaSelectionView.swift */,
+				C3D4E5F60718293AB4C5D6E7 /* PlayerChatView.swift */,
+				D4E5F60718293A4BC5D6E7F8 /* Theme.swift */,
 				CBB25F13E3932D5F1A235D43 /* VoiceService.swift */,
 			);
 			name = Sources;
@@ -201,16 +192,13 @@
 			files = (
 				00258308C5F78C9514AD665C /* APIService.swift in Sources */,
 				3464FDB7F2D07120E2D09FE4 /* AudioService.swift in Sources */,
-				4E16D671838C24E9264DAC12 /* AuthView.swift in Sources */,
 				1F104BD1B4AD504CEC5C27A0 /* BetterBooksApp.swift in Sources */,
-				0B9BDC73A41F10D63FB07536 /* BrowseView.swift in Sources */,
+				E5F60718293A4B5CD6E7F809 /* BookSelectionView.swift in Sources */,
 				0393FCF16EA1F33FA23CBEB2 /* ContentView.swift in Sources */,
-				F24F55F865EC192436306DB2 /* LibraryView.swift in Sources */,
-				CBC963D2B3EC378B181CF289 /* MiniPlayerView.swift in Sources */,
 				C530D30C305D0784CC09DF8A /* Models.swift in Sources */,
-				7CF9959B5A950F04AA464EC7 /* PlayerView.swift in Sources */,
-				1BD433D959AF14429DD5BF52 /* ProfileView.swift in Sources */,
-				08F911A7D44044FB07431B23 /* VoiceChatView.swift in Sources */,
+				F60718293A4B5C6DE7F80910 /* PersonaSelectionView.swift in Sources */,
+				0718293A4B5C6D7EF8091011 /* PlayerChatView.swift in Sources */,
+				18293A4B5C6D7E8F09101112 /* Theme.swift in Sources */,
 				AA6F71E8340D5F761CFC5888 /* VoiceService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

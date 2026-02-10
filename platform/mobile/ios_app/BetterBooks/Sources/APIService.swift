@@ -73,6 +73,51 @@ actor APIService {
         return response.personas
     }
 
+    func getPersonasByTitle(bookTitle: String) async throws -> [Persona] {
+        let encoded = bookTitle.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? bookTitle
+        let response: PersonasResponse = try await get("/ai/personas/\(encoded)")
+        return response.personas
+    }
+
+    // MARK: - Text Chat
+
+    func textChat(body: [String: Any]) async throws -> String {
+        guard let url = URL(string: "\(baseURL)/ai/chat") else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        // Parse JSON response — try multiple possible keys
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let text = json["response"] as? String { return text }
+            if let text = json["content"] as? String { return text }
+            if let text = json["message"] as? String { return text }
+        }
+
+        // Fallback: return raw string
+        return String(data: data, encoding: .utf8) ?? "No response."
+    }
+
     // MARK: - Progress
 
     func saveProgress(bookId: String, chapter: Int, position: TimeInterval) async throws {

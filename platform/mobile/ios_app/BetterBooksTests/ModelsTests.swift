@@ -107,24 +107,24 @@ final class ModelsTests: XCTestCase {
 
     func testPersonaDisplayEmoji() throws {
         let testCases: [(String, String)] = [
-            ("gatsby-persona", "🎩"),
-            ("nick-carraway", "📝"),
-            ("daisy-buchanan", "🌸"),
-            ("english-teacher", "📚"),
-            ("language-tutor", "🎓"),
-            ("unknown-persona", "🤖")
+            ("Jay Gatsby", "🎩"),
+            ("Nick Carraway", "📝"),
+            ("Daisy Buchanan", "🌸"),
+            ("English Teacher", "📚"),
+            ("Language Tutor", "🎓"),
+            ("Unknown Persona", "🎭")
         ]
 
-        for (id, expectedEmoji) in testCases {
+        for (name, expectedEmoji) in testCases {
             let persona = Persona(
-                id: id,
-                name: "Test",
-                description: "Test",
+                id: "test-id",
+                name: name,
+                description: "Test description",
                 avatarUrl: nil,
                 voiceId: nil,
                 isGlobal: false
             )
-            XCTAssertEqual(persona.displayEmoji, expectedEmoji, "Failed for persona id: \(id)")
+            XCTAssertEqual(persona.displayEmoji, expectedEmoji, "Failed for persona name: \(name)")
         }
     }
 
