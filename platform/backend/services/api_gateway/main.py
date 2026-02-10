@@ -1233,21 +1233,26 @@ async def voice_chat_local(
         logger.info(f"Voice chat transcription: '{user_text[:100]}...' (confidence: {confidence:.2f})")
 
         # Step 2: Get AI response via LLM Gateway
-        # Build context-aware request
+        # Build context-aware request using /chat endpoint
         messages = [{"role": "user", "content": user_text}]
 
-        completion_request = {
+        # Add system prompt for context if we have book/persona info
+        if book_id or persona_id:
+            system_content = "You are a helpful audiobook companion."
+            if persona_id:
+                system_content = f"You are the {persona_id} persona from the audiobook. Stay in character."
+            messages.insert(0, {"role": "system", "content": system_content})
+
+        chat_request = {
             "messages": messages,
-            "book_id": book_id,
-            "chapter": chapter,
-            "timestamp_seconds": timestamp_seconds,
-            "persona_id": persona_id
+            "max_tokens": 500,
+            "temperature": 0.7
         }
 
         async with httpx.AsyncClient() as client:
             llm_response = await client.post(
-                f"{LLM_URL}/complete",
-                json=completion_request,
+                f"{LLM_URL}/chat",
+                json=chat_request,
                 timeout=30.0
             )
 
@@ -1256,7 +1261,7 @@ async def voice_chat_local(
                 raise HTTPException(status_code=500, detail="Failed to get AI response")
 
             response_data = llm_response.json()
-            ai_text = response_data.get("content", "I'm sorry, I couldn't process your request.")
+            ai_text = response_data.get("content", response_data.get("response", "I'm sorry, I couldn't process your request."))
 
         # Step 3: Synthesize AI response to speech
         # Map persona to voice

@@ -275,8 +275,16 @@ async def _synthesize_local(text: str, voice: str, speed: float) -> bytes:
 
 
 async def _synthesize_pyttsx3(text: str, voice: str, speed: float) -> bytes:
-    """Fallback synthesis using pyttsx3."""
+    """Fallback synthesis using macOS 'say' command or pyttsx3."""
     import asyncio
+    import subprocess
+    import platform
+
+    # On macOS, use 'say' command which works reliably
+    if platform.system() == "Darwin":
+        return await _synthesize_macos_say(text, voice, speed)
+
+    # On other platforms, use pyttsx3
     import pyttsx3
 
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -285,7 +293,7 @@ async def _synthesize_pyttsx3(text: str, voice: str, speed: float) -> bytes:
     try:
         def _synthesize():
             engine = pyttsx3.init()
-            engine.setProperty('rate', int(150 * speed))  # Default is ~150 wpm
+            engine.setProperty('rate', int(150 * speed))
             engine.save_to_file(text, temp_path)
             engine.runAndWait()
 
@@ -300,6 +308,70 @@ async def _synthesize_pyttsx3(text: str, voice: str, speed: float) -> bytes:
             os.unlink(temp_path)
         except:
             pass
+
+
+async def _synthesize_macos_say(text: str, voice: str, speed: float) -> bytes:
+    """Use macOS 'say' command for TTS - reliable and high quality."""
+    import asyncio
+    import subprocess
+
+    # Create temp file for AIFF output
+    with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as f:
+        aiff_path = f.name
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+        wav_path = f.name
+
+    try:
+        # Map speed to words per minute (default ~175 wpm)
+        rate = int(175 * speed)
+
+        # Choose voice based on persona or use default
+        voice_map = {
+            "default": "Samantha",
+            "male": "Daniel",
+            "female": "Samantha",
+            "british": "Daniel",
+            "narrator": "Alex",
+        }
+        selected_voice = voice_map.get(voice, "Samantha")
+
+        # Run 'say' command
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            lambda: subprocess.run(
+                ["say", "-v", selected_voice, "-r", str(rate), "-o", aiff_path, text],
+                check=True,
+                capture_output=True
+            )
+        )
+
+        # Convert AIFF to WAV using afconvert (macOS built-in)
+        await loop.run_in_executor(
+            None,
+            lambda: subprocess.run(
+                ["afconvert", "-f", "WAVE", "-d", "LEI16@22050", aiff_path, wav_path],
+                check=True,
+                capture_output=True
+            )
+        )
+
+        with open(wav_path, "rb") as f:
+            audio_bytes = f.read()
+
+        logger.info(f"macOS TTS: {len(text)} chars -> {len(audio_bytes)} bytes audio")
+        return audio_bytes
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"macOS say command failed: {e}")
+        raise RuntimeError(f"TTS failed: {e}")
+
+    finally:
+        for path in [aiff_path, wav_path]:
+            try:
+                os.unlink(path)
+            except:
+                pass
 
 
 async def _synthesize_cloud(text: str, voice: str, speed: float) -> bytes:
