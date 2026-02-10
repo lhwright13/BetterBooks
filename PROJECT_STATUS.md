@@ -1,6 +1,6 @@
 # BetterBooks Project Status
 
-**Last Updated:** February 5, 2026
+**Last Updated:** February 9, 2026
 
 ## Goal
 Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
@@ -23,11 +23,14 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 
 ### Phase 3: iOS App (COMPLETE)
 - [x] XcodeGen project structure
-- [x] SwiftUI views: VoiceChatView, PlayerView, LibraryView, BrowseView
+- [x] Demo-ready 3-screen flow: Book -> Persona -> Player+Chat
+- [x] PlayerChatView with integrated audio player and voice/text chat
 - [x] VoiceService with AVAudioRecorder/AVAudioPlayer
 - [x] AudioService for audiobook playback
 - [x] APIService (actor-based) for backend communication
-- [x] Models: User, Book, Persona, ChatMessage, VoiceChatResponse
+- [x] Theme.swift with EW design system
+- [x] Auto-login demo mode (no auth required)
+- [x] Fallback data for offline demo
 
 ### Phase 4: Test Coverage (COMPLETE)
 - [x] Python unit tests: 147 tests passing
@@ -55,9 +58,9 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 ## Next Steps
 
 ### Phase 5: Integration Testing (IN PROGRESS)
-- [ ] Test voice chat end-to-end (record -> transcribe -> LLM -> TTS -> playback)
-- [ ] Test iOS app on simulator
-- [ ] Test persona switching with voice
+- [x] Test voice chat end-to-end (record -> transcribe -> LLM -> TTS -> playback)
+- [ ] Test iOS app on simulator (BLOCKED: needs iOS 26.2 runtime in Xcode)
+- [x] Test persona switching with voice
 - [ ] Test context-aware responses (spoiler prevention)
 
 ### Phase 6: Demo Polish
