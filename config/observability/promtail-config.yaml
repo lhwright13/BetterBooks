@@ -1,6 +1,3 @@
-# Promtail Configuration - Log Collection Agent
-# Collects logs from Docker containers and sends to Loki
-
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
@@ -12,32 +9,26 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Scrape Docker container logs
   - job_name: docker
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
-      # Keep all containers (remove restrictive filter for local dev)
       - source_labels: ['__meta_docker_container_name']
         regex: '.+'
         action: keep
 
-      # Use container name as job label
       - source_labels: ['__meta_docker_container_name']
         regex: '/?(.*)'
         target_label: container
 
-      # Add compose service name
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: service
 
-      # Add compose project name
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
         target_label: project
 
     pipeline_stages:
-      # Try to parse JSON logs
       - json:
           expressions:
             level: level
@@ -46,12 +37,10 @@ scrape_configs:
             trace_id: trace_id
             span_id: span_id
 
-      # Add extracted fields as labels
       - labels:
           level:
           trace_id:
 
-      # Parse timestamp if present
       - timestamp:
           source: timestamp
           format: RFC3339Nano

@@ -1,22 +1,7 @@
-"""Utility functions for customizing prompts before sending them to the LLM."""
-
 import re
-from typing import Any, Dict
 
 
-def modify_prompt(prompt: str, options: Dict[str, Any] | None = None) -> str:
-    """Return a prompt extended with optional style instructions.
-
-    Parameters
-    ----------
-    prompt:
-        The original user prompt.
-    options:
-        Optional dictionary allowing callers to influence the tone, length,
-        persona, etc.  Unknown keys are ignored so additional values can be
-        added in the future without breaking callers.
-    """
-
+def modify_prompt(prompt: str, options: dict | None = None) -> str:
     if not options:
         options = {}
 
@@ -34,11 +19,11 @@ def modify_prompt(prompt: str, options: Dict[str, Any] | None = None) -> str:
     if persona:
         extras.append(f"Respond as the {persona}.")
 
+    filtered_prompt = re.sub(r"[^\w\s.,!?'\"]", '', prompt)
+
     if not extras:
-        # Remove emojis and other non-TTS-friendly characters
-        return re.sub(r"[^\w\s.,!?'\"]", '', prompt)
+        return filtered_prompt
 
     preprompt = " ".join(extras)
     preprompt += " Do not use markdown formatting, asterisks, or special characters in your response. Use plain text only."
-    filtered_prompt = re.sub(r"[^\w\s.,!?'\"]", '', prompt)
     return f"{preprompt}\n\n{filtered_prompt}"

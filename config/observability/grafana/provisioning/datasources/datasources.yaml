@@ -1,9 +1,6 @@
-# Grafana Data Sources - Auto-provisioned
-
 apiVersion: 1
 
 datasources:
-  # Prometheus - Metrics
   - name: Prometheus
     type: prometheus
     access: proxy
@@ -11,7 +8,6 @@ datasources:
     isDefault: true
     editable: false
 
-  # Loki - Logs
   - name: Loki
     type: loki
     access: proxy
@@ -19,13 +15,11 @@ datasources:
     editable: false
     jsonData:
       derivedFields:
-        # Link trace_id in logs to Jaeger traces
         - datasourceUid: jaeger
           matcherRegex: '"trace_id":"([a-f0-9]+)"'
           name: TraceID
           url: '$${__value.raw}'
 
-  # Jaeger - Traces
   - name: Jaeger
     uid: jaeger
     type: jaeger

@@ -1,36 +1,17 @@
 #!/usr/bin/env python3
-"""
-Transcript Generator for BetterBooks
-
-Generates transcript.json files from audio files using OpenAI Whisper.
-Outputs timestamped chunks compatible with the context engine.
-
-Usage:
-    python generate_transcripts.py --book "The Great Gatsby"
-    python generate_transcripts.py --all
-    python generate_transcripts.py --book "Moby Dick" --model large
-
-Requirements:
-    pip install openai-whisper
-
-Note: Whisper models range from 'tiny' (fastest) to 'large' (most accurate).
-For audiobooks, 'base' or 'small' usually provide good results.
-"""
 
 import argparse
 import json
-import os
+import re
 import sys
 from pathlib import Path
 from typing import Optional
 
-# Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 BOOK_FILES_DIR = PROJECT_ROOT / "book_files"
 
-# Book metadata for generating transcripts
 BOOK_METADATA = {
     "The Great Gatsby": {
         "author": "F. Scott Fitzgerald",
@@ -55,15 +36,7 @@ BOOK_METADATA = {
 }
 
 
-def transcribe_audio_file(audio_path: Path, model) -> dict:
-    """Transcribe a single audio file and return segments with timestamps."""
-    print(f"  Transcribing: {audio_path.name}")
-    result = model.transcribe(str(audio_path), word_timestamps=False)
-    return result
-
-
 def create_chunks_from_segments(segments: list, chunk_duration: float = 30.0) -> list:
-    """Convert Whisper segments into larger chunks for context."""
     if not segments:
         return []
 
@@ -76,7 +49,6 @@ def create_chunks_from_segments(segments: list, chunk_duration: float = 30.0) ->
     }
 
     for segment in segments[1:]:
-        # If adding this segment would exceed chunk duration, start a new chunk
         if segment["end"] - current_chunk["start"] > chunk_duration:
             chunks.append(current_chunk)
             current_chunk = {
@@ -86,19 +58,14 @@ def create_chunks_from_segments(segments: list, chunk_duration: float = 30.0) ->
                 "text": segment["text"].strip()
             }
         else:
-            # Add to current chunk
             current_chunk["end"] = segment["end"]
             current_chunk["text"] += " " + segment["text"].strip()
 
-    # Don't forget the last chunk
     chunks.append(current_chunk)
     return chunks
 
 
 def get_chapter_number(filename: str) -> Optional[int]:
-    """Extract chapter number from filename."""
-    import re
-    # Match patterns like "Chapter 1.mp3", "chapter_01.mp3", "01.mp3", "Book 01.mp3"
     patterns = [
         r"[Cc]hapter\s*(\d+)",
         r"[Bb]ook\s*(\d+)",
@@ -113,7 +80,6 @@ def get_chapter_number(filename: str) -> Optional[int]:
 
 
 def generate_transcript(book_name: str, model_name: str = "base", force: bool = False):
-    """Generate transcript.json for a book."""
     book_dir = BOOK_FILES_DIR / book_name
 
     if not book_dir.exists():
@@ -125,13 +91,11 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
         print(f"Transcript already exists for {book_name}. Use --force to overwrite.")
         return False
 
-    # Get book metadata
     metadata = BOOK_METADATA.get(book_name, {
         "author": "Unknown",
         "book_id": book_name.lower().replace(" ", "-")
     })
 
-    # Find audio files
     audio_files = sorted(book_dir.glob("*.mp3"))
     if not audio_files:
         print(f"No MP3 files found in {book_dir}")
@@ -141,7 +105,6 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
     print(f"Found {len(audio_files)} audio files")
     print(f"Using Whisper model: {model_name}")
 
-    # Load Whisper model
     try:
         import whisper
     except ImportError:
@@ -152,7 +115,6 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
     print(f"Loading Whisper model '{model_name}'...")
     model = whisper.load_model(model_name)
 
-    # Process each chapter
     chapters = []
     for audio_file in audio_files:
         chapter_num = get_chapter_number(audio_file.name)
@@ -160,13 +122,10 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
             print(f"  Warning: Could not determine chapter number for {audio_file.name}")
             chapter_num = len(chapters) + 1
 
-        # Transcribe
-        result = transcribe_audio_file(audio_file, model)
+        print(f"  Transcribing: {audio_file.name}")
+        result = model.transcribe(str(audio_file), word_timestamps=False)
 
-        # Get duration from the last segment
         duration = result["segments"][-1]["end"] if result["segments"] else 0
-
-        # Create chunks
         chunks = create_chunks_from_segments(result["segments"])
 
         chapter_data = {
@@ -179,10 +138,8 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
 
         print(f"  Chapter {chapter_num}: {len(chunks)} chunks, {round(duration)}s")
 
-    # Sort chapters by number
     chapters.sort(key=lambda x: x["chapter"])
 
-    # Create transcript document
     transcript = {
         "book_id": metadata["book_id"],
         "title": book_name,
@@ -191,7 +148,6 @@ def generate_transcript(book_name: str, model_name: str = "base", force: bool = 
         "chapters": chapters
     }
 
-    # Write to file
     with open(transcript_path, "w", encoding="utf-8") as f:
         json.dump(transcript, f, indent=2, ensure_ascii=False)
 

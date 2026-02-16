@@ -1,18 +1,3 @@
-"""
-Simple Authentication Routes for BetterBooks API Gateway
-
-This module provides authentication endpoints that work with the existing
-core.auth.auth module without complex dependencies like Supabase.
-
-Supports:
-- Email/password registration and login
-- Google OAuth sign in
-- Apple Sign In  
-- JWT token management
-- Email verification
-- Password reset
-"""
-
 import os
 import logging
 import threading
@@ -24,43 +9,29 @@ from fastapi import APIRouter, HTTPException, status, Depends, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr
 
-# Import existing auth functionality
 from core.auth.auth import (
     create_access_token, create_refresh_token, verify_token,
     create_user, authenticate_user, create_or_update_oauth_user,
     get_current_user, UserRole, User, UserRegistration, USERS_DB
 )
 
-# Import email service
 from core.services.email_service import get_email_service
 
 logger = logging.getLogger(__name__)
 
-# Create router
 router = APIRouter()
-
-# Security
 security = HTTPBearer()
 
-# =====================================================
-# RATE LIMITING
-# =====================================================
 
 class RateLimiter:
-    """
-    Simple in-memory rate limiter for authentication endpoints.
-    Uses a sliding window approach with automatic cleanup of old entries.
-    """
 
     def __init__(self):
-        # Dict mapping IP -> list of request timestamps
         self._requests: Dict[str, list] = defaultdict(list)
         self._lock = threading.Lock()
         self._last_cleanup = datetime.utcnow()
         self._cleanup_interval = timedelta(minutes=5)
 
     def _cleanup_old_entries(self, window_seconds: int = 60):
-        """Remove entries older than the largest window we care about."""
         now = datetime.utcnow()
         if now - self._last_cleanup < self._cleanup_interval:
             return
@@ -70,7 +41,6 @@ class RateLimiter:
 
         ips_to_remove = []
         for ip, timestamps in self._requests.items():
-            # Filter out old timestamps
             self._requests[ip] = [ts for ts in timestamps if ts > cutoff]
             if not self._requests[ip]:
                 ips_to_remove.append(ip)
@@ -79,59 +49,42 @@ class RateLimiter:
             del self._requests[ip]
 
     def check_rate_limit(self, ip: str, max_requests: int, window_seconds: int = 60) -> Tuple[bool, int]:
-        """
-        Check if IP has exceeded rate limit.
-
-        Returns:
-            Tuple of (is_allowed, retry_after_seconds)
-        """
         now = datetime.utcnow()
         window_start = now - timedelta(seconds=window_seconds)
 
         with self._lock:
             self._cleanup_old_entries(window_seconds)
 
-            # Get requests within the window
             timestamps = self._requests[ip]
             recent_requests = [ts for ts in timestamps if ts > window_start]
 
             if len(recent_requests) >= max_requests:
-                # Calculate when the oldest request in window will expire
                 oldest_in_window = min(recent_requests)
                 retry_after = int((oldest_in_window + timedelta(seconds=window_seconds) - now).total_seconds()) + 1
                 return False, max(retry_after, 1)
 
-            # Record this request
             self._requests[ip].append(now)
-            # Keep only recent timestamps
             self._requests[ip] = [ts for ts in self._requests[ip] if ts > window_start]
 
             return True, 0
 
 
-# Global rate limiter instance
 _rate_limiter = RateLimiter()
 
-# Rate limit settings
-SIGNIN_RATE_LIMIT = 5  # 5 attempts per minute
-SIGNUP_RATE_LIMIT = 3  # 3 attempts per minute
-RATE_LIMIT_WINDOW = 60  # 60 seconds
+SIGNIN_RATE_LIMIT = 5
+SIGNUP_RATE_LIMIT = 3
+RATE_LIMIT_WINDOW = 60
 
 
 def get_client_ip(request: Request) -> str:
-    """Extract client IP from request, handling proxies."""
-    # Check X-Forwarded-For header first (for proxied requests)
     forwarded_for = request.headers.get("X-Forwarded-For")
     if forwarded_for:
-        # Take the first IP in the chain (original client)
         return forwarded_for.split(",")[0].strip()
 
-    # Check X-Real-IP header
     real_ip = request.headers.get("X-Real-IP")
     if real_ip:
         return real_ip.strip()
 
-    # Fall back to direct client IP
     if request.client:
         return request.client.host
 
@@ -139,7 +92,6 @@ def get_client_ip(request: Request) -> str:
 
 
 def check_signin_rate_limit(request: Request):
-    """Dependency to check signin rate limit."""
     ip = get_client_ip(request)
     allowed, retry_after = _rate_limiter.check_rate_limit(ip, SIGNIN_RATE_LIMIT, RATE_LIMIT_WINDOW)
 
@@ -153,7 +105,6 @@ def check_signin_rate_limit(request: Request):
 
 
 def check_signup_rate_limit(request: Request):
-    """Dependency to check signup rate limit."""
     ip = get_client_ip(request)
     allowed, retry_after = _rate_limiter.check_rate_limit(ip, SIGNUP_RATE_LIMIT, RATE_LIMIT_WINDOW)
 
@@ -166,12 +117,7 @@ def check_signup_rate_limit(request: Request):
         )
 
 
-# =====================================================
-# HELPER FUNCTIONS
-# =====================================================
-
 def get_user_by_email(email: str) -> Optional[User]:
-    """Get user by email from storage"""
     for user_id, user_record in USERS_DB.items():
         if user_record["email"] == email:
             return User(
@@ -186,9 +132,6 @@ def get_user_by_email(email: str) -> Optional[User]:
             )
     return None
 
-# =====================================================
-# REQUEST/RESPONSE MODELS
-# =====================================================
 
 class GoogleSignInRequest(BaseModel):
     id_token: str
@@ -225,15 +168,9 @@ class EmailVerificationRequest(BaseModel):
 class PasswordResetRequest(BaseModel):
     email: EmailStr
 
-# Note: OAuth implementations removed - features coming soon
-
-# =====================================================
-# AUTHENTICATION ENDPOINTS
-# =====================================================
 
 @router.post("/auth/google")
 async def google_sign_in(request: GoogleSignInRequest):
-    """Google OAuth sign in - Coming Soon"""
     logger.info("Google sign in attempted - feature not yet available")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -242,7 +179,6 @@ async def google_sign_in(request: GoogleSignInRequest):
 
 @router.post("/auth/apple")
 async def apple_sign_in(request: AppleSignInRequest):
-    """Apple Sign In - Coming Soon"""
     logger.info("Apple sign in attempted - feature not yet available")
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -254,16 +190,13 @@ async def email_sign_up(
     request: EmailSignUpRequest,
     _: None = Depends(check_signup_rate_limit)
 ):
-    """Email/password sign up"""
     try:
-        # Check if user already exists
         if get_user_by_email(request.email):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="User with this email already exists"
             )
-            
-        # Create new user
+
         user_registration = UserRegistration(
             email=request.email,
             username=request.email,
@@ -271,32 +204,29 @@ async def email_sign_up(
             role=UserRole.USER
         )
         user = await create_user(user_registration)
-        
-        # Send verification email
+
         try:
             email_service = get_email_service()
             await email_service.send_verification_email(
                 email=request.email,
-                verification_token="dummy-token-for-now",  # TODO: Implement proper verification
+                verification_token="dummy-token-for-now",
                 user_name=user.display_name
             )
         except Exception as e:
             logger.warning(f"Failed to send verification email: {e}")
-            # Don't fail registration if email fails
-            
+
         logger.info(f"Created new email user: {user.email}")
-        
-        # Generate tokens  
+
         access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
         refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
-        
+
         return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_at=int((datetime.utcnow() + timedelta(minutes=30)).timestamp()),
             user=user.to_dict()
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -311,29 +241,26 @@ async def email_sign_in(
     request: EmailSignInRequest,
     _: None = Depends(check_signin_rate_limit)
 ):
-    """Email/password sign in"""
     try:
-        # Authenticate user
         user = await authenticate_user(request.email, request.password)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid email or password"
             )
-            
+
         logger.info(f"Email sign in successful: {user.email}")
-        
-        # Generate tokens
+
         access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
         refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
-        
+
         return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
             expires_at=int((datetime.utcnow() + timedelta(minutes=30)).timestamp()),
             user=user.to_dict()
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -345,20 +272,17 @@ async def email_sign_in(
 
 @router.post("/auth/refresh", response_model=AuthResponse)
 async def refresh_token_endpoint(request: RefreshTokenRequest):
-    """Refresh access token"""
     try:
-        # Verify refresh token
         payload = verify_token(request.refresh_token, "refresh")
         email = payload.get("sub")
         user_id = payload.get("user_id")
-        
+
         if not email or not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token payload"
             )
-            
-        # Get user from database
+
         from db_utils import get_user_by_id
         user_data = get_user_by_id(user_id)
         if not user_data:
@@ -366,11 +290,10 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
             )
-            
-        # Generate new tokens
+
         access_token = create_access_token(data={"sub": email, "user_id": user_id})
         refresh_token = create_refresh_token(data={"sub": email, "user_id": user_id})
-        
+
         return AuthResponse(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -386,7 +309,7 @@ async def refresh_token_endpoint(request: RefreshTokenRequest):
                 "created_at": user_data.get("created_at").isoformat() if user_data.get("created_at") else None
             }
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -401,103 +324,61 @@ async def logout(
     request: Optional[LogoutRequest] = None,
     authorization: str = Header(None)
 ):
-    """Logout user - invalidates token on server side"""
     try:
-        # Extract user info from token for logging purposes
         user_email = "unknown"
         if authorization and authorization.startswith("Bearer "):
             try:
                 token = authorization.split(" ")[1]
                 payload = verify_token(token)
                 user_email = payload.get("sub", "unknown")
-            except:
-                # Token might be invalid, but we still want to allow logout
+            except Exception:
                 pass
-        
+
         logger.info(f"User logged out: {user_email}")
-        
-        # TODO: In a real implementation, you would invalidate the token here
-        # For now, we just return success since JWT tokens are stateless
         return {"message": "Successfully logged out"}
-        
+
     except Exception as e:
         logger.error(f"Logout error: {e}")
-        # Still return success - logout should always work
         return {"message": "Successfully logged out"}
-
-# Removed duplicate endpoint - using /auth/me instead
-
-# =====================================================
-# EMAIL VERIFICATION ENDPOINTS
-# =====================================================
-
-# Email verification endpoint removed - using unverified emails
 
 @router.post("/password/reset")
 async def request_password_reset(request: PasswordResetRequest):
-    """Request password reset"""
     try:
         user = get_user_by_email(request.email)
-        if not user:
-            # For security, don't reveal if email exists
-            return {"message": "If an account with this email exists, a password reset link has been sent"}
-            
-        email_service = get_email_service()
-        success = await email_service.send_password_reset_email(
-            email=request.email,
-            reset_token="dummy-token",  # TODO: Generate proper token
-            user_name=user.display_name
-        )
-        
-        return {"message": "If an account with this email exists, a password reset link has been sent"}
-        
+        if user:
+            email_service = get_email_service()
+            await email_service.send_password_reset_email(
+                email=request.email,
+                reset_token="dummy-token",
+                user_name=user.display_name
+            )
     except Exception as e:
         logger.error(f"Password reset request failed: {e}")
-        return {"message": "If an account with this email exists, a password reset link has been sent"}
 
-# =====================================================
-# USER PROFILE
-# =====================================================
+    return {"message": "If an account with this email exists, a password reset link has been sent"}
 
 @router.get("/auth/me", response_model=dict)
 async def get_current_user_info(authorization: str = Header(None)):
-    """Get current user information from database"""
     try:
         from db_utils import get_user_by_id
-        
-        # Extract JWT token and get user ID
+
         if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=401,
-                detail="Missing or invalid authorization header"
-            )
-        
+            raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+
         token = authorization.split(" ")[1]
-        
-        # Verify the token and get user info
+
         user_data = verify_token(token, "access")
         if not user_data:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid or expired token"
-            )
-        
-        # Extract user ID from token
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
         user_id = user_data.get("user_id")
         if not user_id:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid token payload"
-            )
-        
-        # Get user data from database
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+
         user_db_data = get_user_by_id(user_id)
         if not user_db_data:
-            raise HTTPException(
-                status_code=404,
-                detail="User not found"
-            )
-        
+            raise HTTPException(status_code=404, detail="User not found")
+
         return {
             "id": user_db_data.get("id"),
             "email": user_db_data.get("email"),
@@ -506,26 +387,18 @@ async def get_current_user_info(authorization: str = Header(None)):
             "is_verified": user_db_data.get("email_verified", True),
             "created_at": user_db_data.get("created_at").isoformat() if user_db_data.get("created_at") else None,
             "role": user_db_data.get("role", "user"),
-            "subscription_status": "free",  # Default subscription status
-            "avatar_url": None  # No avatar URL implemented yet
+            "subscription_status": "free",
+            "avatar_url": None
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error getting user info: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error"
-        )
-
-# =====================================================
-# HEALTH CHECK
-# =====================================================
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/auth/health")
 async def health_check():
-    """Authentication service health check"""
     return {
         "status": "ok",
         "service": "authentication",

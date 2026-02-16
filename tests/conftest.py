@@ -1,33 +1,19 @@
-"""
-Pytest Fixtures for BetterBooks Unit Tests
-
-Provides mock objects, sample data, and test utilities for testing
-core modules without requiring a real database connection.
-"""
-
 import json
-import os
 import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any, Dict, List
+from unittest.mock import MagicMock
 
 import pytest
 
-# Add project root to path for imports
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 
-# -----------------------------------------------------------------------------
-# Sample Test Data
-# -----------------------------------------------------------------------------
-
 @pytest.fixture
 def sample_user_data() -> Dict[str, Any]:
-    """Sample user data for testing authentication and user operations."""
     return {
         "id": "user_12345",
         "email": "testuser@example.com",
@@ -42,24 +28,7 @@ def sample_user_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_admin_data() -> Dict[str, Any]:
-    """Sample admin user data."""
-    return {
-        "id": "admin_001",
-        "email": "admin@betterbooks.com",
-        "username": "admin",
-        "display_name": "Administrator",
-        "role": "admin",
-        "is_active": True,
-        "email_verified": True,
-        "created_at": datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-        "hashed_password": "$2b$12$XyZaBcDeFgHiJkLmNoPqRs"
-    }
-
-
-@pytest.fixture
 def sample_book_data() -> Dict[str, Any]:
-    """Sample book data for testing book-related operations."""
     return {
         "id": "book_gatsby_001",
         "title": "The Great Gatsby",
@@ -78,7 +47,6 @@ def sample_book_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_books_list() -> List[Dict[str, Any]]:
-    """List of sample books for testing browse and library functions."""
     return [
         {
             "id": "book_gatsby_001",
@@ -118,7 +86,6 @@ def sample_books_list() -> List[Dict[str, Any]]:
 
 @pytest.fixture
 def sample_user_credits() -> Dict[str, Any]:
-    """Sample user credits data."""
     return {
         "total_credits": 10,
         "used_credits": 3,
@@ -128,7 +95,6 @@ def sample_user_credits() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_user_library() -> Dict[str, Any]:
-    """Sample user library data."""
     return {
         "books": [
             {
@@ -144,44 +110,8 @@ def sample_user_library() -> Dict[str, Any]:
     }
 
 
-# -----------------------------------------------------------------------------
-# Mock Database Connection
-# -----------------------------------------------------------------------------
-
-@pytest.fixture
-def mock_db_connection():
-    """Mock psycopg2 database connection for testing db_utils."""
-    mock_conn = MagicMock()
-    mock_cursor = MagicMock()
-
-    # Set up cursor as context manager
-    mock_cursor.__enter__ = MagicMock(return_value=mock_cursor)
-    mock_cursor.__exit__ = MagicMock(return_value=False)
-
-    # Set up connection as context manager
-    mock_conn.__enter__ = MagicMock(return_value=mock_conn)
-    mock_conn.__exit__ = MagicMock(return_value=False)
-    mock_conn.cursor = MagicMock(return_value=mock_cursor)
-
-    return mock_conn, mock_cursor
-
-
-@pytest.fixture
-def mock_db_cursor_with_user(mock_db_connection, sample_user_data):
-    """Mock database cursor that returns user data."""
-    mock_conn, mock_cursor = mock_db_connection
-    mock_cursor.fetchone.return_value = sample_user_data
-    return mock_conn, mock_cursor
-
-
-# -----------------------------------------------------------------------------
-# Sample Transcript Data
-# -----------------------------------------------------------------------------
-
 @pytest.fixture
 def sample_transcript_data() -> Dict[str, Any]:
-    """Sample transcript JSON data for testing context retrieval."""
-    # Note: Each chunk text must be >100 chars average to not be detected as placeholder
     return {
         "book_id": "the-great-gatsby",
         "title": "The Great Gatsby",
@@ -251,7 +181,6 @@ def sample_transcript_data() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_placeholder_transcript() -> Dict[str, Any]:
-    """Sample placeholder transcript (short text, has note)."""
     return {
         "book_id": "placeholder-book",
         "title": "Placeholder Book",
@@ -268,23 +197,16 @@ def sample_placeholder_transcript() -> Dict[str, Any]:
     }
 
 
-# -----------------------------------------------------------------------------
-# Temporary Book Files Directory
-# -----------------------------------------------------------------------------
-
 @pytest.fixture
 def temp_book_files_dir(sample_transcript_data):
-    """Create a temporary book_files directory with test data."""
     with tempfile.TemporaryDirectory() as tmpdir:
         book_dir = Path(tmpdir) / "the-great-gatsby"
         book_dir.mkdir(parents=True)
 
-        # Write transcript.json
         transcript_path = book_dir / "transcript.json"
         with open(transcript_path, "w", encoding="utf-8") as f:
             json.dump(sample_transcript_data, f)
 
-        # Create personas directory with sample persona
         personas_dir = book_dir / "personas"
         personas_dir.mkdir()
 
@@ -308,7 +230,6 @@ def temp_book_files_dir(sample_transcript_data):
 
 @pytest.fixture
 def temp_config_dir():
-    """Create a temporary config directory with global personas."""
     with tempfile.TemporaryDirectory() as tmpdir:
         personas_dir = Path(tmpdir) / "personas"
         personas_dir.mkdir(parents=True)
@@ -351,26 +272,8 @@ def temp_config_dir():
         yield tmpdir
 
 
-# -----------------------------------------------------------------------------
-# JWT and Auth Mocks
-# -----------------------------------------------------------------------------
-
-@pytest.fixture
-def mock_jwt_secret():
-    """Provide a test JWT secret key."""
-    return "test-jwt-secret-key-for-unit-tests"
-
-
-@pytest.fixture
-def mock_bcrypt_available():
-    """Mock bcrypt availability."""
-    with patch.dict("sys.modules", {"bcrypt": MagicMock()}):
-        yield
-
-
 @pytest.fixture
 def mock_redis_client():
-    """Mock Redis client for session/rate limiting tests."""
     mock_client = MagicMock()
     mock_client.get.return_value = None
     mock_client.setex.return_value = True
@@ -380,13 +283,8 @@ def mock_redis_client():
     return mock_client
 
 
-# -----------------------------------------------------------------------------
-# Progress Tracking Fixtures
-# -----------------------------------------------------------------------------
-
 @pytest.fixture
 def sample_reading_progress() -> Dict[str, Any]:
-    """Sample reading progress data."""
     return {
         "user_id": "user_12345",
         "book_id": "book_gatsby_001",
@@ -401,7 +299,6 @@ def sample_reading_progress() -> Dict[str, Any]:
 
 @pytest.fixture
 def sample_bookmark_data() -> Dict[str, Any]:
-    """Sample bookmark data."""
     return {
         "id": "bookmark_001",
         "user_id": "user_12345",
@@ -412,27 +309,8 @@ def sample_bookmark_data() -> Dict[str, Any]:
     }
 
 
-# -----------------------------------------------------------------------------
-# Async Test Utilities
-# -----------------------------------------------------------------------------
-
-@pytest.fixture
-def async_mock():
-    """Create an async mock for async function testing."""
-    def _create_async_mock(return_value=None):
-        mock = AsyncMock()
-        mock.return_value = return_value
-        return mock
-    return _create_async_mock
-
-
-# -----------------------------------------------------------------------------
-# Environment Setup
-# -----------------------------------------------------------------------------
-
 @pytest.fixture(autouse=True)
 def setup_test_environment(monkeypatch):
-    """Set up test environment variables."""
     monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret-key-for-unit-tests")
     monkeypatch.setenv("REDIS_URL", "redis://localhost:6379/15")
     monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/test_db")

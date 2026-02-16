@@ -1,5 +1,3 @@
-# Loki Configuration - Log Aggregation (Simple local setup)
-
 auth_enabled: false
 
 server:

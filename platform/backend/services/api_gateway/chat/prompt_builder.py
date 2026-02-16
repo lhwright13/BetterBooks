@@ -1,12 +1,4 @@
-"""
-Prompt Builder
-
-Combines persona system prompts with book context to create
-complete prompts for the LLM. Handles spoiler prevention by
-only including text up to the user's current position.
-"""
-
-from typing import List, Optional
+from typing import Optional
 from dataclasses import dataclass
 
 from context import IContextRetriever, ContextResult
@@ -15,19 +7,12 @@ from personas import IPersonaManager, PersonaConfig
 
 @dataclass
 class BuiltPrompt:
-    """Result of building a prompt."""
-    system_prompt: str           # Complete system prompt for LLM
-    persona: PersonaConfig       # The persona being used
-    context: ContextResult       # The book context retrieved
+    system_prompt: str
+    persona: PersonaConfig
+    context: ContextResult
 
 
 class PromptBuilder:
-    """
-    Builds complete LLM prompts by combining:
-    1. Persona's base system prompt
-    2. Book context (text up to current timestamp)
-    3. Spoiler prevention instructions
-    """
 
     SPOILER_BOUNDARY_INSTRUCTION = """
 CRITICAL RULE - SPOILER PREVENTION:
@@ -51,23 +36,11 @@ Use this to answer questions accurately while staying in character.
 
 """
 
-    def __init__(
-        self,
-        context_retriever: IContextRetriever,
-        persona_manager: IPersonaManager
-    ):
-        """
-        Initialize the prompt builder.
-
-        Args:
-            context_retriever: For fetching book text
-            persona_manager: For loading personas
-        """
+    def __init__(self, context_retriever: IContextRetriever, persona_manager: IPersonaManager):
         self.context_retriever = context_retriever
         self.persona_manager = persona_manager
 
     def _format_timestamp(self, seconds: float) -> str:
-        """Format seconds as MM:SS."""
         minutes = int(seconds // 60)
         secs = int(seconds % 60)
         return f"{minutes}:{secs:02d}"
@@ -80,26 +53,10 @@ Use this to answer questions accurately while staying in character.
         persona_id: str,
         max_context_tokens: int = 12000
     ) -> Optional[BuiltPrompt]:
-        """
-        Build a complete prompt for the LLM.
-
-        Args:
-            book_id: The book being read
-            chapter: Current chapter number
-            timestamp_seconds: Position in current chapter
-            persona_id: Which persona to use
-            max_context_tokens: Maximum tokens for book context
-
-        Returns:
-            BuiltPrompt with system prompt, persona, and context info
-            None if persona not found
-        """
-        # Load persona
         persona = await self.persona_manager.get_persona(persona_id, book_id)
         if not persona:
             return None
 
-        # Get book context up to current position
         context = await self.context_retriever.get_context(
             book_id=book_id,
             chapter=chapter,
@@ -107,35 +64,24 @@ Use this to answer questions accurately while staying in character.
             max_tokens=max_context_tokens
         )
 
-        # Build the complete system prompt
-        system_parts = []
+        system_parts = [
+            persona.system_prompt,
+            self.SPOILER_BOUNDARY_INSTRUCTION.format(
+                chapter=chapter,
+                timestamp=self._format_timestamp(timestamp_seconds)
+            ),
+        ]
 
-        # 1. Persona's base prompt
-        system_parts.append(persona.system_prompt)
-
-        # 2. Spoiler prevention instruction
-        spoiler_instruction = self.SPOILER_BOUNDARY_INSTRUCTION.format(
-            chapter=chapter,
-            timestamp=self._format_timestamp(timestamp_seconds)
-        )
-        system_parts.append(spoiler_instruction)
-
-        # 3. Book context (if available)
         if context.text:
-            context_section = self.CONTEXT_HEADER + context.text
-            system_parts.append(context_section)
-
-            # Add truncation notice if needed
+            system_parts.append(self.CONTEXT_HEADER + context.text)
             if context.truncated:
                 system_parts.append(
                     f"\n[Note: Earlier chapters were truncated. "
                     f"Context includes chapters {context.chapters_included}]"
                 )
 
-        full_system_prompt = "\n\n".join(system_parts)
-
         return BuiltPrompt(
-            system_prompt=full_system_prompt,
+            system_prompt="\n\n".join(system_parts),
             persona=persona,
             context=context
         )
@@ -145,17 +91,10 @@ Use this to answer questions accurately while staying in character.
         persona_id: str,
         book_id: Optional[str] = None
     ) -> Optional[BuiltPrompt]:
-        """
-        Build a simple prompt without book context.
-
-        Useful for general questions to global personas
-        when not reading a specific book.
-        """
         persona = await self.persona_manager.get_persona(persona_id, book_id)
         if not persona:
             return None
 
-        # Create empty context
         empty_context = ContextResult(
             text="",
             token_estimate=0,

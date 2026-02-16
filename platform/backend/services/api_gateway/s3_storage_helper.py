@@ -1,8 +1,3 @@
-"""
-AWS S3 Storage Helper for API Gateway
-Wrapper for serving files from AWS S3
-"""
-
 import os
 import logging
 from datetime import datetime
@@ -10,7 +5,6 @@ from typing import Optional, List
 
 logger = logging.getLogger(__name__)
 
-# AWS S3 imports with fallback
 try:
     import boto3
     from botocore.exceptions import ClientError
@@ -22,7 +16,6 @@ except ImportError:
 
 
 class S3StorageHelper:
-    """Helper for AWS S3 Storage operations"""
 
     def __init__(self):
         self.bucket_name = os.getenv("AWS_S3_BUCKET_NAME")
@@ -55,7 +48,6 @@ class S3StorageHelper:
             logger.info("AWS S3 not configured, will serve files locally")
 
     def _generate_presigned_url(self, key: str, expiry_seconds: int) -> Optional[str]:
-        """Generate a presigned URL or CloudFront URL"""
         if not self.enabled:
             return None
 
@@ -73,17 +65,14 @@ class S3StorageHelper:
             return None
 
     def generate_audio_url(self, book_folder: str, filename: str) -> Optional[str]:
-        """Generate a presigned URL for an audio file"""
         key = f"audiobooks/{book_folder}/{filename}"
-        return self._generate_presigned_url(key, expiry_seconds=3600)  # 1 hour
+        return self._generate_presigned_url(key, expiry_seconds=3600)
 
     def generate_cover_url(self, book_folder: str, filename: str) -> Optional[str]:
-        """Generate a presigned URL for a cover image"""
         key = f"covers/{book_folder}/{filename}"
-        return self._generate_presigned_url(key, expiry_seconds=86400)  # 24 hours
+        return self._generate_presigned_url(key, expiry_seconds=86400)
 
     def generate_download_urls(self, file_paths: List[str], expiry_hours: int = 24) -> dict:
-        """Generate download URLs for multiple files with longer expiry"""
         if not self.enabled:
             return {}
 
@@ -94,11 +83,9 @@ class S3StorageHelper:
             url = self._generate_presigned_url(key, expiry_seconds)
             if url:
                 urls[file_path] = url
-
         return urls
 
     def check_file_exists(self, file_path: str) -> bool:
-        """Check if a file exists in S3"""
         if not self.enabled:
             return False
 
@@ -116,27 +103,23 @@ class S3StorageHelper:
             return False
 
     def upload_audio_file(self, local_file_path: str, s3_path: str) -> bool:
-        """Upload an audio file to S3"""
         if not self.enabled:
             logger.warning("AWS S3 not enabled, cannot upload file")
             return False
 
         try:
             key = f"audiobooks/{s3_path}"
-
-            extra_args = {
-                'ContentType': 'audio/mpeg',
-                'Metadata': {
-                    'original_filename': os.path.basename(local_file_path),
-                    'upload_timestamp': datetime.utcnow().isoformat()
-                }
-            }
-
             self.s3_client.upload_file(
                 local_file_path,
                 self.bucket_name,
                 key,
-                ExtraArgs=extra_args
+                ExtraArgs={
+                    'ContentType': 'audio/mpeg',
+                    'Metadata': {
+                        'original_filename': os.path.basename(local_file_path),
+                        'upload_timestamp': datetime.utcnow().isoformat()
+                    }
+                }
             )
 
             logger.info(f"Successfully uploaded {local_file_path} to s3://{self.bucket_name}/{key}")
@@ -147,7 +130,6 @@ class S3StorageHelper:
             return False
 
     def upload_cover_image(self, local_file_path: str, s3_path: str) -> bool:
-        """Upload a cover image to S3"""
         if not self.enabled:
             logger.warning("AWS S3 not enabled, cannot upload image")
             return False
@@ -155,20 +137,17 @@ class S3StorageHelper:
         try:
             key = f"covers/{s3_path}"
             content_type = 'image/png' if local_file_path.lower().endswith('.png') else 'image/jpeg'
-
-            extra_args = {
-                'ContentType': content_type,
-                'Metadata': {
-                    'original_filename': os.path.basename(local_file_path),
-                    'upload_timestamp': datetime.utcnow().isoformat()
-                }
-            }
-
             self.s3_client.upload_file(
                 local_file_path,
                 self.bucket_name,
                 key,
-                ExtraArgs=extra_args
+                ExtraArgs={
+                    'ContentType': content_type,
+                    'Metadata': {
+                        'original_filename': os.path.basename(local_file_path),
+                        'upload_timestamp': datetime.utcnow().isoformat()
+                    }
+                }
             )
 
             logger.info(f"Successfully uploaded {local_file_path} to s3://{self.bucket_name}/{key}")
@@ -179,12 +158,10 @@ class S3StorageHelper:
             return False
 
     def get_stream_url(self, file_path: str, expiry_hours: int = 1) -> Optional[str]:
-        """Get a streaming URL for audio files"""
         key = f"audiobooks/{file_path}"
         return self._generate_presigned_url(key, expiry_seconds=expiry_hours * 3600)
 
     def list_book_audio_files(self, book_folder: str) -> List[str]:
-        """List all audio files for a specific book"""
         if not self.enabled:
             return []
 
@@ -208,6 +185,5 @@ class S3StorageHelper:
             return []
 
     def get_fallback_local_path(self, book_folder: str, filename: str) -> Optional[str]:
-        """Get local file path as fallback when S3 is unavailable"""
         from storage_helper import get_fallback_local_path
         return get_fallback_local_path(book_folder, filename)

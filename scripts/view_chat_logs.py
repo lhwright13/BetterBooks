@@ -1,37 +1,20 @@
 #!/usr/bin/env python3
-"""
-Chat Log Viewer - CLI tool for reviewing AI chat interactions.
-
-Usage:
-    python scripts/view_chat_logs.py                    # View today's logs
-    python scripts/view_chat_logs.py --date 2025-11-27  # View specific date
-    python scripts/view_chat_logs.py --book "The Great Gatsby"  # Filter by book
-    python scripts/view_chat_logs.py --request abc123 --full    # Show full details
-    python scripts/view_chat_logs.py --tail 10          # Show last 10 interactions
-"""
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 
-# ANSI color codes
 class Colors:
-    HEADER = '\033[95m'
-    BLUE = '\033[94m'
     CYAN = '\033[96m'
     GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
     BOLD = '\033[1m'
     DIM = '\033[2m'
     RESET = '\033[0m'
 
-    # Box drawing
     TOP_LEFT = '\u250c'
     BOTTOM_LEFT = '\u2514'
     HORIZONTAL = '\u2500'
@@ -40,50 +23,32 @@ class Colors:
 
 
 def colorize(text: str, color: str, use_color: bool = True) -> str:
-    """Apply color if enabled."""
     if use_color:
         return f"{color}{text}{Colors.RESET}"
     return text
 
 
 def truncate(text: str, max_len: int = 80) -> str:
-    """Truncate text with ellipsis."""
     if len(text) <= max_len:
         return text
     return text[:max_len - 3] + "..."
 
 
 def format_timestamp(ts: str) -> str:
-    """Format ISO timestamp to readable format."""
     try:
         dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
         return dt.strftime("%H:%M:%S")
-    except:
+    except (ValueError, AttributeError):
         return ts[:8] if len(ts) >= 8 else ts
 
 
 def load_logs(log_dir: Path, date: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Load log entries from JSON Lines files."""
-    logs = []
-
-    if date:
-        log_file = log_dir / f"{date}.jsonl"
-        if log_file.exists():
-            with open(log_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    if line.strip():
-                        logs.append(json.loads(line))
-    else:
-        # Load today's logs
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        log_file = log_dir / f"{today}.jsonl"
-        if log_file.exists():
-            with open(log_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    if line.strip():
-                        logs.append(json.loads(line))
-
-    return logs
+    date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    log_file = log_dir / f"{date}.jsonl"
+    if not log_file.exists():
+        return []
+    with open(log_file, 'r', encoding='utf-8') as f:
+        return [json.loads(line) for line in f if line.strip()]
 
 
 def filter_logs(
@@ -92,7 +57,6 @@ def filter_logs(
     persona: Optional[str] = None,
     request_id: Optional[str] = None
 ) -> List[Dict[str, Any]]:
-    """Filter logs by criteria."""
     filtered = logs
 
     if book:
@@ -108,7 +72,6 @@ def filter_logs(
 
 
 def print_summary(log: Dict[str, Any], use_color: bool = True):
-    """Print a summary line for a log entry."""
     request_id = log.get('request_id', 'unknown')
     timestamp = format_timestamp(log.get('timestamp', ''))
     user_msg = truncate(log.get('user', {}).get('message', ''), 50)
@@ -117,7 +80,6 @@ def print_summary(log: Dict[str, Any], use_color: bool = True):
     latency = log.get('response', {}).get('latency_ms', 0)
     response_len = len(log.get('response', {}).get('text', ''))
 
-    # Format: [time] [id] user message | book | persona | latency | response_len
     line = f"[{colorize(timestamp, Colors.DIM, use_color)}] "
     line += f"[{colorize(request_id, Colors.CYAN, use_color)}] "
     line += f'"{user_msg}" '
@@ -130,19 +92,16 @@ def print_summary(log: Dict[str, Any], use_color: bool = True):
 
 
 def print_full(log: Dict[str, Any], use_color: bool = True):
-    """Print full details for a log entry."""
     request_id = log.get('request_id', 'unknown')
     timestamp = log.get('timestamp', '')
     user = log.get('user', {})
     context = log.get('context', {})
     response = log.get('response', {})
 
-    # Header
     header = f"{Colors.TOP_LEFT}{Colors.HORIZONTAL} CHAT [{request_id}] @ {timestamp} "
     header += Colors.HORIZONTAL * (70 - len(f" CHAT [{request_id}] @ {timestamp} "))
     print(colorize(header, Colors.CYAN, use_color))
 
-    # User section
     print(colorize(f"{Colors.VERTICAL} ", Colors.CYAN, use_color) +
           colorize("USER", Colors.BOLD, use_color))
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
@@ -150,7 +109,6 @@ def print_full(log: Dict[str, Any], use_color: bool = True):
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
           f"Message: \"{user.get('message', '')}\"")
 
-    # Context section
     print(colorize(f"{Colors.TEE_RIGHT}{Colors.HORIZONTAL} CONTEXT ", Colors.CYAN, use_color) +
           colorize(Colors.HORIZONTAL * 60, Colors.CYAN, use_color))
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
@@ -164,18 +122,15 @@ def print_full(log: Dict[str, Any], use_color: bool = True):
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
           f"Token estimate: {context.get('token_estimate', 0):,}")
 
-    # System prompt (if available)
     system_prompt = context.get('system_prompt', '')
     if system_prompt:
         print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
               colorize("System Prompt:", Colors.BOLD, use_color))
-        # Wrap and indent the system prompt
         for i in range(0, len(system_prompt), 80):
             chunk = system_prompt[i:i+80]
             print(colorize(f"{Colors.VERTICAL}     ", Colors.CYAN, use_color) +
                   colorize(chunk, Colors.DIM, use_color))
 
-    # Response section
     print(colorize(f"{Colors.TEE_RIGHT}{Colors.HORIZONTAL} RESPONSE ", Colors.CYAN, use_color) +
           colorize(Colors.HORIZONTAL * 59, Colors.CYAN, use_color))
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
@@ -185,21 +140,18 @@ def print_full(log: Dict[str, Any], use_color: bool = True):
     print(colorize(f"{Colors.VERTICAL}   ", Colors.CYAN, use_color) +
           colorize("Text:", Colors.BOLD, use_color))
 
-    # Wrap and indent the response text
     response_text = response.get('text', '')
     for i in range(0, len(response_text), 80):
         chunk = response_text[i:i+80]
         print(colorize(f"{Colors.VERTICAL}     ", Colors.CYAN, use_color) +
               colorize(chunk, Colors.GREEN, use_color))
 
-    # Footer
     footer = f"{Colors.BOTTOM_LEFT}" + Colors.HORIZONTAL * 71
     print(colorize(footer, Colors.CYAN, use_color))
     print()
 
 
 def list_available_dates(log_dir: Path):
-    """List all available log dates."""
     if not log_dir.exists():
         print("No log directory found.")
         return
@@ -212,7 +164,6 @@ def list_available_dates(log_dir: Path):
     print("Available log dates:")
     for f in log_files:
         date = f.stem
-        # Count entries
         count = sum(1 for line in open(f) if line.strip())
         print(f"  {date}: {count} interactions")
 
@@ -250,18 +201,15 @@ Examples:
     log_dir = Path(args.log_dir)
     use_color = not args.no_color and sys.stdout.isatty()
 
-    # List available dates
     if args.list_dates:
         list_available_dates(log_dir)
         return
 
-    # Check if log directory exists
     if not log_dir.exists():
         print(f"Log directory not found: {log_dir}")
         print("No chat interactions have been logged yet.")
         return
 
-    # Load logs
     logs = load_logs(log_dir, args.date)
     if not logs:
         date_str = args.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -269,17 +217,14 @@ Examples:
         print("Use --list-dates to see available dates.")
         return
 
-    # Filter logs
     logs = filter_logs(logs, args.book, args.persona, args.request)
     if not logs:
         print("No logs match the filter criteria.")
         return
 
-    # Apply tail
     if args.tail:
         logs = logs[-args.tail:]
 
-    # Print logs
     if args.full or args.request:
         for log in logs:
             print_full(log, use_color)

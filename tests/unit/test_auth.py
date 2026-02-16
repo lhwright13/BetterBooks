@@ -1,34 +1,13 @@
-"""
-Unit Tests for Authentication Module
-
-Tests for /Users/lhwri/BetterBooks/core/auth/auth.py
-
-Covers:
-- JWT token creation and validation
-- Password hashing and verification
-- Token expiration handling
-- User role validation
-"""
-
 import os
-import sys
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import patch
 
 import pytest
 
-# Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
 
 class TestPasswordHashing:
-    """Tests for password hashing and verification functions."""
 
     def test_hash_password_returns_string(self):
-        """hash_password should return a string hash."""
-        # Import with mocked dependencies
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.bcrypt") as mock_bcrypt:
@@ -45,7 +24,6 @@ class TestPasswordHashing:
                     mock_bcrypt.hashpw.assert_called_once()
 
     def test_verify_password_correct(self):
-        """verify_password should return True for correct password."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.bcrypt") as mock_bcrypt:
@@ -59,7 +37,6 @@ class TestPasswordHashing:
                     mock_bcrypt.checkpw.assert_called_once()
 
     def test_verify_password_incorrect(self):
-        """verify_password should return False for incorrect password."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.bcrypt") as mock_bcrypt:
@@ -73,10 +50,8 @@ class TestPasswordHashing:
 
 
 class TestJWTTokenCreation:
-    """Tests for JWT token creation functions."""
 
     def test_create_access_token_contains_required_fields(self):
-        """Access token should contain user data and expiration."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.jwt") as mock_jwt:
@@ -88,7 +63,6 @@ class TestJWTTokenCreation:
                     result = create_access_token(token_data)
 
                     assert result == "mock.jwt.token"
-                    # Verify encode was called with correct structure
                     call_args = mock_jwt.encode.call_args
                     encoded_data = call_args[0][0]
                     assert "sub" in encoded_data
@@ -97,7 +71,6 @@ class TestJWTTokenCreation:
                     assert encoded_data["type"] == "access"
 
     def test_create_access_token_with_custom_expiry(self):
-        """Access token should respect custom expiry delta."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.jwt") as mock_jwt:
@@ -111,15 +84,12 @@ class TestJWTTokenCreation:
 
                     call_args = mock_jwt.encode.call_args
                     encoded_data = call_args[0][0]
-                    # Verify exp is roughly 2 hours from now
                     exp_time = encoded_data["exp"]
                     now = datetime.now(timezone.utc)
                     expected_exp = now + custom_delta
-                    # Allow 5 second tolerance
                     assert abs((exp_time - expected_exp).total_seconds()) < 5
 
     def test_create_refresh_token_has_correct_type(self):
-        """Refresh token should have type='refresh'."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.jwt") as mock_jwt:
@@ -137,10 +107,8 @@ class TestJWTTokenCreation:
 
 
 class TestJWTTokenValidation:
-    """Tests for JWT token validation."""
 
     def test_verify_token_valid_access_token(self):
-        """verify_token should decode valid access tokens."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 with patch("core.auth.auth.jwt") as mock_jwt:
@@ -159,10 +127,8 @@ class TestJWTTokenValidation:
                     assert result["type"] == "access"
 
     def test_verify_token_expired_raises_error(self):
-        """verify_token should raise AuthError for expired tokens."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
-                # Need to import jwt to access the exception
                 import jwt as real_jwt
                 with patch("core.auth.auth.jwt") as mock_jwt:
                     mock_jwt.ExpiredSignatureError = real_jwt.ExpiredSignatureError
@@ -177,7 +143,6 @@ class TestJWTTokenValidation:
                     assert "expired" in str(exc_info.value.detail).lower()
 
     def test_verify_token_invalid_raises_error(self):
-        """verify_token should raise AuthError for invalid tokens."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 import jwt as real_jwt
@@ -194,18 +159,15 @@ class TestJWTTokenValidation:
                     assert "invalid" in str(exc_info.value.detail).lower()
 
     def test_verify_token_wrong_type_raises_error(self):
-        """verify_token should raise AuthError when token type doesn't match."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret-key"}):
             with patch("core.auth.auth.redis_client", None):
                 import jwt as real_jwt
                 with patch("core.auth.auth.jwt") as mock_jwt:
-                    # Set up exception classes for the mock
                     mock_jwt.ExpiredSignatureError = real_jwt.ExpiredSignatureError
                     mock_jwt.InvalidTokenError = real_jwt.InvalidTokenError
-                    # Return refresh token when access expected
                     mock_payload = {
                         "sub": "user_123",
-                        "type": "refresh",  # Wrong type
+                        "type": "refresh",
                         "exp": datetime.now(timezone.utc) + timedelta(hours=1)
                     }
                     mock_jwt.decode.return_value = mock_payload
@@ -215,15 +177,12 @@ class TestJWTTokenValidation:
                     with pytest.raises(AuthError) as exc_info:
                         verify_token("token.with.wrong.type", "access")
 
-                    # The error message may vary - just verify AuthError was raised
                     assert exc_info.value.status_code == 401
 
 
 class TestUserRoles:
-    """Tests for user role enum and role-based access."""
 
     def test_user_role_enum_values(self):
-        """UserRole enum should have correct values."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import UserRole
@@ -233,7 +192,6 @@ class TestUserRoles:
                 assert UserRole.GUEST.value == "guest"
 
     def test_require_admin_allows_admin(self):
-        """require_admin should allow admin users."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import require_admin, User, UserRole
@@ -248,13 +206,10 @@ class TestUserRoles:
                     created_at=datetime.now(timezone.utc)
                 )
 
-                # require_admin returns a function that takes current_user
-                # When called directly with a User, it should return the user
                 result = require_admin(current_user=admin_user)
                 assert result == admin_user
 
     def test_require_admin_denies_regular_user(self):
-        """require_admin should deny non-admin users."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import require_admin, User, UserRole, PermissionError
@@ -274,10 +229,8 @@ class TestUserRoles:
 
 
 class TestTokenBlacklisting:
-    """Tests for token blacklisting functionality."""
 
     def test_blacklist_token_with_redis(self, mock_redis_client):
-        """blacklist_token should add token to Redis blacklist."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", mock_redis_client):
                 from core.auth.auth import blacklist_token
@@ -289,24 +242,20 @@ class TestTokenBlacklisting:
                 assert "blacklist:token.to.blacklist" in str(call_args)
 
     def test_blacklist_token_without_redis(self):
-        """blacklist_token should handle missing Redis gracefully."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import blacklist_token
 
-                # Should not raise an exception
                 blacklist_token("token.to.blacklist")
 
 
 class TestRateLimiting:
-    """Tests for rate limiting functionality."""
 
     @pytest.mark.asyncio
     async def test_check_rate_limit_under_limit(self, mock_redis_client):
-        """check_rate_limit should allow requests under the limit."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", mock_redis_client):
-                mock_redis_client.incr.return_value = 5  # Under default 60 limit
+                mock_redis_client.incr.return_value = 5
 
                 from core.auth.auth import check_rate_limit
 
@@ -316,10 +265,9 @@ class TestRateLimiting:
 
     @pytest.mark.asyncio
     async def test_check_rate_limit_exceeds_limit(self, mock_redis_client):
-        """check_rate_limit should raise error when limit exceeded."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", mock_redis_client):
-                mock_redis_client.incr.return_value = 100  # Over default 60 limit
+                mock_redis_client.incr.return_value = 100
 
                 from core.auth.auth import check_rate_limit, RateLimitError
 
@@ -328,7 +276,6 @@ class TestRateLimiting:
 
     @pytest.mark.asyncio
     async def test_check_rate_limit_without_redis(self):
-        """check_rate_limit should skip limiting when Redis unavailable."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import check_rate_limit
@@ -339,10 +286,8 @@ class TestRateLimiting:
 
 
 class TestUserModel:
-    """Tests for User model and serialization."""
 
     def test_user_model_creation(self, sample_user_data):
-        """User model should be created with valid data."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import User, UserRole
@@ -363,7 +308,6 @@ class TestUserModel:
                 assert user.role == UserRole.USER
 
     def test_user_to_dict(self, sample_user_data):
-        """User.to_dict should return proper dictionary representation."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import User, UserRole
@@ -388,10 +332,8 @@ class TestUserModel:
 
 
 class TestAuthModels:
-    """Tests for authentication-related Pydantic models."""
 
     def test_user_registration_model(self):
-        """UserRegistration model should validate input."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import UserRegistration, UserRole
@@ -404,10 +346,9 @@ class TestAuthModels:
 
                 assert registration.email == "newuser@example.com"
                 assert registration.username == "newuser"
-                assert registration.role == UserRole.USER  # Default
+                assert registration.role == UserRole.USER
 
     def test_user_login_model(self):
-        """UserLogin model should validate login input."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import UserLogin
@@ -421,7 +362,6 @@ class TestAuthModels:
                 assert login.password == "password123"
 
     def test_token_response_model(self):
-        """TokenResponse model should have correct structure."""
         with patch.dict(os.environ, {"JWT_SECRET_KEY": "test-secret"}):
             with patch("core.auth.auth.redis_client", None):
                 from core.auth.auth import TokenResponse
@@ -434,4 +374,4 @@ class TestAuthModels:
                 assert response.access_token == "access.token.here"
                 assert response.refresh_token == "refresh.token.here"
                 assert response.token_type == "bearer"
-                assert response.expires_in == 30 * 60  # 30 minutes in seconds
+                assert response.expires_in == 30 * 60

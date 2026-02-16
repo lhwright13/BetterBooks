@@ -1,28 +1,14 @@
-"""
-Email Service for EchoWright Authentication
-
-Provides email functionality for user authentication including:
-- Email verification
-- Password reset
-- Welcome emails
-- Account notifications
-
-Supports multiple email providers (SendGrid, AWS SES) with fallback capabilities.
-Includes retry logic, error handling, and template management.
-"""
-
 import os
 import logging
 import secrets
 import asyncio
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 from enum import Enum
 from dataclasses import dataclass
 
-# Email providers
 import sendgrid
-from sendgrid.helpers.mail import Mail, Email, To, Content
+from sendgrid.helpers.mail import Mail, Email, To
 import boto3
 from botocore.exceptions import ClientError
 
@@ -30,14 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class EmailProvider(Enum):
-    """Supported email providers"""
     SENDGRID = "sendgrid"
     AWS_SES = "aws_ses"
     SMTP = "smtp"
 
 
 class EmailTemplate(Enum):
-    """Available email templates"""
     VERIFICATION = "email_verification"
     WELCOME = "welcome"
     PASSWORD_RESET = "password_reset"
@@ -47,7 +31,6 @@ class EmailTemplate(Enum):
 
 @dataclass
 class EmailConfig:
-    """Email service configuration"""
     provider: EmailProvider
     from_email: str
     from_name: str
@@ -57,29 +40,14 @@ class EmailConfig:
 
 
 class EmailServiceError(Exception):
-    """Custom exception for email service errors"""
     pass
 
 
 class EmailService:
-    """
-    Email service with multiple provider support and template management
-    
-    Features:
-    - Multiple email providers (SendGrid, AWS SES)
-    - Template management with dynamic content
-    - Retry logic with exponential backoff
-    - Async email sending
-    - Token generation for verification
-    - Rate limiting and error handling
-    """
-    
+
     def __init__(self, config: Optional[EmailConfig] = None):
-        """Initialize email service with configuration"""
         self.config = config or self._load_config()
         self.client = self._init_client()
-        
-        # Template configurations
         self.templates = {
             EmailTemplate.VERIFICATION: {
                 "subject": "Verify your EchoWright account",
@@ -106,26 +74,23 @@ class EmailService:
         logger.info(f"Email service initialized with provider: {self.config.provider.value}")
 
     def _load_config(self) -> EmailConfig:
-        """Load email configuration from environment variables"""
         provider_name = os.getenv("EMAIL_PROVIDER", "sendgrid").lower()
-        
         try:
             provider = EmailProvider(provider_name)
         except ValueError:
             logger.warning(f"Unknown email provider: {provider_name}, defaulting to SendGrid")
             provider = EmailProvider.SENDGRID
-        
+
         return EmailConfig(
             provider=provider,
             from_email=os.getenv("FROM_EMAIL", "noreply@echowright.com"),
             from_name=os.getenv("FROM_NAME", "EchoWright"),
-            templates={},  # Will be populated from environment or defaults
+            templates={},
             max_retries=int(os.getenv("EMAIL_MAX_RETRIES", "3")),
             retry_delay=int(os.getenv("EMAIL_RETRY_DELAY", "5"))
         )
 
     def _init_client(self):
-        """Initialize email client based on provider"""
         if self.config.provider == EmailProvider.SENDGRID:
             api_key = os.getenv("SENDGRID_API_KEY")
             if not api_key:
@@ -144,30 +109,17 @@ class EmailService:
             raise EmailServiceError(f"Unsupported email provider: {self.config.provider}")
 
     def generate_verification_token(self) -> str:
-        """Generate a secure verification token"""
         return secrets.token_urlsafe(32)
 
     def generate_reset_token(self) -> str:
-        """Generate a secure password reset token"""
         return secrets.token_urlsafe(32)
 
     async def send_verification_email(
-        self, 
-        email: str, 
-        verification_token: str, 
+        self,
+        email: str,
+        verification_token: str,
         user_name: Optional[str] = None
     ) -> bool:
-        """
-        Send email verification email
-        
-        Args:
-            email: Recipient email address
-            verification_token: Verification token for the link
-            user_name: Optional user name for personalization
-            
-        Returns:
-            bool: True if email sent successfully
-        """
         frontend_url = os.getenv("FRONTEND_URL", "https://app.echowright.com")
         verification_url = f"{frontend_url}/verify-email?token={verification_token}"
         
@@ -186,22 +138,11 @@ class EmailService:
         )
 
     async def send_welcome_email(
-        self, 
-        email: str, 
+        self,
+        email: str,
         user_name: str,
         subscription_plan: Optional[str] = None
     ) -> bool:
-        """
-        Send welcome email to new user
-        
-        Args:
-            email: Recipient email address
-            user_name: User's display name
-            subscription_plan: Optional subscription plan info
-            
-        Returns:
-            bool: True if email sent successfully
-        """
         template_data = {
             "user_name": user_name,
             "app_name": "EchoWright",
@@ -218,26 +159,13 @@ class EmailService:
         )
 
     async def send_password_reset_email(
-        self, 
-        email: str, 
-        reset_token: str, 
+        self,
+        email: str,
+        reset_token: str,
         user_name: Optional[str] = None
     ) -> bool:
-        """
-        Send password reset email
-        
-        Args:
-            email: Recipient email address
-            reset_token: Password reset token
-            user_name: Optional user name for personalization
-            
-        Returns:
-            bool: True if email sent successfully
-        """
         frontend_url = os.getenv("FRONTEND_URL", "https://app.echowright.com")
         reset_url = f"{frontend_url}/reset-password?token={reset_token}"
-        
-        # Token expires in 1 hour
         expires_at = datetime.utcnow() + timedelta(hours=1)
         
         template_data = {
@@ -255,61 +183,12 @@ class EmailService:
             template_data=template_data
         )
 
-    async def send_subscription_confirmation_email(
-        self, 
-        email: str, 
-        user_name: str,
-        plan_name: str,
-        amount: str,
-        billing_cycle: str
-    ) -> bool:
-        """
-        Send subscription confirmation email
-        
-        Args:
-            email: Recipient email address
-            user_name: User's display name
-            plan_name: Subscription plan name
-            amount: Subscription amount
-            billing_cycle: Billing cycle (monthly/annual)
-            
-        Returns:
-            bool: True if email sent successfully
-        """
-        template_data = {
-            "user_name": user_name,
-            "plan_name": plan_name,
-            "amount": amount,
-            "billing_cycle": billing_cycle,
-            "app_name": "EchoWright",
-            "app_url": os.getenv("FRONTEND_URL", "https://app.echowright.com"),
-            "manage_subscription_url": f"{os.getenv('FRONTEND_URL', 'https://app.echowright.com')}/account/subscription",
-            "support_email": "support@echowright.com"
-        }
-        
-        return await self._send_templated_email(
-            email=email,
-            template=EmailTemplate.SUBSCRIPTION_CONFIRMATION,
-            template_data=template_data
-        )
-
     async def _send_templated_email(
         self,
         email: str,
         template: EmailTemplate,
         template_data: Dict[str, Any]
     ) -> bool:
-        """
-        Send templated email with retry logic
-        
-        Args:
-            email: Recipient email address
-            template: Email template to use
-            template_data: Data to populate template
-            
-        Returns:
-            bool: True if email sent successfully
-        """
         for attempt in range(self.config.max_retries):
             try:
                 if self.config.provider == EmailProvider.SENDGRID:
@@ -338,17 +217,13 @@ class EmailService:
         template: EmailTemplate,
         template_data: Dict[str, Any]
     ) -> bool:
-        """Send email using SendGrid"""
         try:
             template_config = self.templates[template]
-            
             message = Mail(
                 from_email=Email(self.config.from_email, self.config.from_name),
                 to_emails=To(email),
                 subject=template_config["subject"]
             )
-            
-            # Add template data as dynamic template data
             message.dynamic_template_data = template_data
             message.template_id = template_config["template_id"]
             
@@ -365,10 +240,8 @@ class EmailService:
         template: EmailTemplate,
         template_data: Dict[str, Any]
     ) -> bool:
-        """Send email using AWS SES"""
         try:
             template_config = self.templates[template]
-            
             response = await asyncio.to_thread(
                 self.client.send_templated_email,
                 Source=f"{self.config.from_name} <{self.config.from_email}>",
@@ -383,82 +256,12 @@ class EmailService:
             logger.error(f"SES error: {e}")
             return False
 
-    async def verify_email_deliverability(self, email: str) -> bool:
-        """
-        Verify if email address is deliverable (basic validation)
-        
-        Args:
-            email: Email address to verify
-            
-        Returns:
-            bool: True if email appears deliverable
-        """
-        # Basic email format validation
-        import re
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not re.match(pattern, email):
-            return False
-        
-        # Additional checks can be added here (MX record lookup, etc.)
-        return True
 
-    async def get_email_status(self, message_id: str) -> Optional[Dict[str, Any]]:
-        """
-        Get delivery status of sent email (if supported by provider)
-        
-        Args:
-            message_id: Email message ID
-            
-        Returns:
-            Dict with status information or None
-        """
-        # Implementation depends on provider capabilities
-        # This is a placeholder for future enhancement
-        return None
-
-
-# Global email service instance
 _email_service: Optional[EmailService] = None
 
 
 def get_email_service() -> EmailService:
-    """Get global email service instance"""
     global _email_service
     if _email_service is None:
         _email_service = EmailService()
     return _email_service
-
-
-# Convenience functions for common email operations
-async def send_verification_email(email: str, token: str, user_name: Optional[str] = None) -> bool:
-    """Send verification email"""
-    service = get_email_service()
-    return await service.send_verification_email(email, token, user_name)
-
-
-async def send_welcome_email(email: str, user_name: str, subscription_plan: Optional[str] = None) -> bool:
-    """Send welcome email"""
-    service = get_email_service()
-    return await service.send_welcome_email(email, user_name, subscription_plan)
-
-
-async def send_password_reset_email(email: str, token: str, user_name: Optional[str] = None) -> bool:
-    """Send password reset email"""
-    service = get_email_service()
-    return await service.send_password_reset_email(email, token, user_name)
-
-
-async def generate_and_send_verification_email(email: str, user_name: Optional[str] = None) -> str:
-    """Generate verification token and send email"""
-    service = get_email_service()
-    token = service.generate_verification_token()
-    await service.send_verification_email(email, token, user_name)
-    return token
-
-
-async def generate_and_send_reset_email(email: str, user_name: Optional[str] = None) -> str:
-    """Generate reset token and send email"""
-    service = get_email_service()
-    token = service.generate_reset_token()
-    await service.send_password_reset_email(email, token, user_name)
-    return token
