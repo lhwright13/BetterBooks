@@ -287,10 +287,13 @@ async def stream_azure_tts(
 
     def _do_synth():
         try:
-            result = synthesizer.speak_ssml_async(ssml).get()
+            future = synthesizer.speak_ssml_async(ssml)
+            result = future.get(timeout=30)
             if result.reason == speechsdk.ResultReason.Canceled:
                 details = result.cancellation_details
                 logger.error(f"Azure TTS canceled: {details.reason} - {details.error_details}")
+        except TimeoutError:
+            logger.error("Azure TTS synthesis timed out after 30s")
         except Exception as e:
             logger.error(f"Azure TTS synthesis exception: {e}")
         finally:
@@ -307,7 +310,11 @@ async def stream_azure_tts(
     except asyncio.TimeoutError:
         logger.error("Azure TTS audio queue timed out")
 
-    await synth_task
+    # Don't block indefinitely - the synth thread has its own 30s timeout
+    try:
+        await asyncio.wait_for(synth_task, timeout=35.0)
+    except asyncio.TimeoutError:
+        logger.error("Azure TTS synth task did not finish, abandoning")
 
 
 async def synthesize_speech_azure(

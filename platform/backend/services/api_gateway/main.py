@@ -35,7 +35,7 @@ def validate_uuid(value: str, name: str = "id") -> None:
 
 CONTEXT_URL = app_config.get_service_url("context_service")
 LLM_URL = app_config.get_service_url("llm_gateway")
-TTS_URL = app_config.get_service_url("tts_service")
+
 
 _docker_path = Path("/app/book_files")
 _local_path = Path(__file__).parent.parent.parent.parent.parent / "book_files"
@@ -588,8 +588,7 @@ async def test_bookstore_endpoints():
             },
             "services": {
                 "llm_gateway": LLM_URL,
-                "context_service": CONTEXT_URL,
-                "tts_service": TTS_URL
+                "context_service": CONTEXT_URL
             },
             "version": "1.0.0"
         }
@@ -611,7 +610,7 @@ async def list_all_books(
 ):
     """Simple book list endpoint - returns basic book information"""
     try:
-        books_data = get_browse_books(limit=limit, offset=offset)
+        books_data = db_get_browse_books(limit=limit, offset=offset)
 
         books = [
             {
@@ -1051,15 +1050,18 @@ async def websocket_voice_chat(ws: WebSocket):
     Authentication: pass token as query param ?token=... since browsers
     cannot set headers on WebSocket connections.
     """
-    # Authenticate via query param
+    # Authenticate via query param (required)
     token = ws.query_params.get("token")
-    if token:
-        try:
-            from core.auth.auth import verify_token
-            verify_token(token)
-        except Exception:
-            await ws.close(code=4001, reason="Invalid token")
-            return
+    if not token:
+        await ws.close(code=4001, reason="Missing token")
+        return
+
+    try:
+        from core.auth.auth import verify_token
+        verify_token(token)
+    except Exception:
+        await ws.close(code=4001, reason="Invalid token")
+        return
 
     await ws.accept()
 
@@ -1912,37 +1914,6 @@ async def complete_text(request: CompletionRequest):
             "fallback": True
         }
 
-class TTSRequest(BaseModel):
-    text: str
-    voice: Optional[str] = None
-    speed: Optional[float] = None
-
-@app.post("/tts")
-async def text_to_speech(request: TTSRequest):
-    """Proxy text-to-speech requests to TTS Service"""
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(
-                f"{TTS_URL}/tts",
-                json=request.dict()
-            )
-            response.raise_for_status()
-            
-            # Return audio content with appropriate headers
-            return Response(
-                content=response.content,
-                media_type="audio/wav",
-                headers={
-                    "Content-Disposition": "attachment; filename=tts_output.wav"
-                }
-            )
-    except HTTPException:
-        raise
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error generating speech: {e}")
-        raise HTTPException(status_code=500, detail="Text-to-speech failed")
 
 @app.get("/configs")
 async def list_configs():

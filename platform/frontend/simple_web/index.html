@@ -1243,20 +1243,45 @@ function leavePlayer() {
     showScreen('persona-screen');
 }
 
-function loadChapters() {
-    const count = selectedBook.chapters || CHAPTER_COUNTS[selectedBook.title] || 10;
+async function loadChapters() {
     chapters = [];
-
     const select = document.getElementById('chapter-select');
     select.innerHTML = '';
 
+    // Try to fetch real chapter list from backend
+    try {
+        const resp = await fetch(`${API_URL}/books/${encodeURIComponent(selectedBook.title)}/chapters`);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.chapters && data.chapters.length > 0) {
+                data.chapters.forEach((ch, idx) => {
+                    chapters.push({
+                        number: ch.chapter_number || idx + 1,
+                        title: ch.title || `Chapter ${idx + 1}`,
+                        audioUrl: `${API_URL}/audio/${encodeURIComponent(selectedBook.title)}/${encodeURIComponent(ch.filename)}`
+                    });
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = ch.title || `Chapter ${idx + 1}`;
+                    select.appendChild(opt);
+                });
+                currentChapter = 0;
+                loadChapter(0);
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to fetch chapters from API, using fallback:', e);
+    }
+
+    // Fallback: generate chapter list from known counts
+    const count = selectedBook.chapters || CHAPTER_COUNTS[selectedBook.title] || 10;
     for (let i = 1; i <= count; i++) {
         chapters.push({
             number: i,
             title: `Chapter ${i}`,
-            audioUrl: `${API_URL}/audio/${encodeURIComponent(selectedBook.title)}/Chapter ${i}.mp3`
+            audioUrl: `${API_URL}/audio/${encodeURIComponent(selectedBook.title)}/${encodeURIComponent('Chapter ' + i + '.mp3')}`
         });
-
         const opt = document.createElement('option');
         opt.value = i - 1;
         opt.textContent = `Chapter ${i}`;
@@ -1433,10 +1458,19 @@ function removeTypingIndicator() {
     if (el) el.remove();
 }
 
+let isSendingMessage = false;
+
 async function sendTextMessage() {
+    if (isSendingMessage) return;
+
     const input = document.getElementById('text-input');
     const message = input.value.trim();
     if (!message) return;
+
+    isSendingMessage = true;
+    const sendBtn = document.getElementById('send-btn');
+    if (sendBtn) sendBtn.disabled = true;
+    input.disabled = true;
 
     input.value = '';
     addMessage('user', message);
@@ -1535,6 +1569,13 @@ async function sendTextMessage() {
             ? "Could not reach the server. Make sure the API is running on port 8000."
             : "Something went wrong processing your message. Please try again.";
         addMessage('system-msg', errorMsg);
+    } finally {
+        isSendingMessage = false;
+        const sendBtn = document.getElementById('send-btn');
+        if (sendBtn) sendBtn.disabled = false;
+        const input = document.getElementById('text-input');
+        if (input) input.disabled = false;
+        if (input) input.focus();
     }
 }
 
@@ -1868,7 +1909,8 @@ function escapeHtml(str) {
 }
 
 function escapeAttr(str) {
-    return str.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+              .replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/\\/g, '&#92;');
 }
 
 function showToast(message, isError = false) {
