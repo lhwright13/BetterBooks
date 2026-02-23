@@ -42,9 +42,6 @@ class JsonContextRetriever(IContextRetriever):
         return self.book_files_path / book_id / "transcript.json"
 
     def _is_placeholder_transcript(self, transcript: dict) -> bool:
-        if transcript.get("note"):
-            return True
-
         total_chars = 0
         total_chunks = 0
         for chapter in transcript.get("chapters", []):
@@ -52,7 +49,10 @@ class JsonContextRetriever(IContextRetriever):
                 total_chars += len(chunk.get("text", ""))
                 total_chunks += 1
 
-        return total_chunks > 0 and total_chars / total_chunks < 100
+        if total_chunks == 0:
+            return True
+
+        return total_chars / total_chunks < 100
 
     def _load_transcript(self, book_id: str) -> Optional[dict]:
         if book_id in self._cache:

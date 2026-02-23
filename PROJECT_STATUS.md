@@ -1,6 +1,6 @@
 # BetterBooks Project Status
 
-**Last Updated:** February 9, 2026
+**Last Updated:** February 22, 2026
 
 ## Goal
 Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
@@ -15,9 +15,9 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 - [x] 21 endpoint bug fixes (UUID validation, HTTPException handling)
 
 ### Phase 2: Voice Chat Backend (COMPLETE)
-- [x] Local STT with faster-whisper (cloud fallback)
-- [x] Local TTS with pyttsx3 (Coqui/cloud fallback)
-- [x] Voice endpoints: /voice/transcribe, /voice/synthesize, /voice/chat
+- [x] Local STT with faster-whisper (cloud fallback via OpenAI/Azure Whisper)
+- [x] Azure Speech Services TTS with SSML, style, and rate control
+- [x] Voice endpoints: /voice/transcribe, /voice/synthesize, /voice/config
 - [x] Voice button in web app with recording/playback
 - [x] Voice configuration system (/voice/config endpoint)
 
@@ -33,16 +33,27 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 - [x] Fallback data for offline demo
 
 ### Phase 4: Test Coverage (COMPLETE)
-- [x] Python unit tests: 147 tests passing
+- [x] Python unit tests: 151 tests passing
   - test_auth.py - JWT, password hashing, rate limiting
   - test_context_engine.py - Transcripts, spoiler boundaries
   - test_personas.py - Persona loading, caching
   - test_db_utils.py - Database utilities
-  - test_voice_service.py - STT/TTS, fallbacks (24 tests)
+  - test_voice_service.py - STT, Azure TTS, SSML, SentenceAccumulator (30 tests)
 - [x] iOS unit tests: 3 test files
   - ModelsTests.swift - JSON decoding
   - APIServiceTests.swift - URL construction
   - VoiceServiceTests.swift - State management
+
+### Phase 5: WebSocket Streaming Voice Chat (COMPLETE)
+- [x] WebSocket endpoint at /ws/voice replacing old sequential HTTP pipeline
+- [x] Streaming LLM tokens to client in real time
+- [x] Concurrent TTS synthesis on sentence-sized chunks via Azure Speech Services
+- [x] SentenceAccumulator for buffering LLM tokens into TTS-ready sentences
+- [x] Web Audio API playback with pre-scheduled gapless audio
+- [x] Query-param token authentication on WebSocket
+- [x] Concurrent write safety with asyncio.Lock
+- [x] Removed old local TTS (pyttsx3, Coqui, macOS say)
+- [x] Bug fixes: SSML injection prevention, TTS worker cleanup, error propagation
 
 ## Current State
 
@@ -50,27 +61,25 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 |-----------|--------|-------|
 | API Gateway | Ready | Port 8000 |
 | LLM Gateway | Ready | Port 8002, Ollama |
-| Web App | Ready | Port 3000 |
-| Voice Backend | Ready | Local STT/TTS |
-| iOS App | Built | Needs simulator testing |
-| Unit Tests | 147 passing | Python + iOS |
+| Web App | Ready | Port 3000, WebSocket voice chat |
+| Voice Backend | Ready | STT (Whisper), TTS (Azure Speech) |
+| iOS App | Built | Needs WebSocket voice update |
+| Unit Tests | 151 passing | Python + iOS |
 
 ## Next Steps
 
-### Phase 5: Integration Testing (IN PROGRESS)
-- [x] Test voice chat end-to-end (record -> transcribe -> LLM -> TTS -> playback)
+### Phase 6: Integration Testing
+- [ ] End-to-end test of WebSocket voice pipeline with live services
 - [ ] Test iOS app on simulator (BLOCKED: needs iOS 26.2 runtime in Xcode)
-- [x] Test persona switching with voice
 - [ ] Test context-aware responses (spoiler prevention)
 
-### Phase 6: Demo Polish
-- [ ] Voice latency optimization
+### Phase 7: Demo Polish
 - [ ] Error handling UX (network failures, mic permissions)
 - [ ] Loading states and animations
+- [ ] iOS app - update to WebSocket voice chat
 - [ ] Demo script and talking points
 
-### Phase 7: Production Readiness
-- [ ] Cloud TTS setup (Azure Speech or similar)
+### Phase 8: Production Readiness
 - [ ] Docker containerization
 - [ ] CI/CD pipeline
 - [ ] App Store preparation
@@ -78,18 +87,18 @@ Demo/pitch ready AI audiobook platform with context-aware voice chat companions.
 ## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   iOS App   │────▶│ API Gateway │────▶│ PostgreSQL  │
-│  (SwiftUI)  │     │  (FastAPI)  │     │             │
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                           │
-      ┌────────────────────┼────────────────────┐
-      │                    │                    │
-      ▼                    ▼                    ▼
-┌───────────┐      ┌─────────────┐      ┌─────────────┐
-│  Whisper  │      │ LLM Gateway │      │    TTS      │
-│   (STT)   │      │  (Ollama)   │      │  (pyttsx3)  │
-└───────────┘      └─────────────┘      └─────────────┘
+┌─────────────┐  WebSocket  ┌─────────────┐     ┌─────────────┐
+│  Web App    │────────────▶│ API Gateway │────▶│ PostgreSQL  │
+│  (Browser)  │◀────────────│  (FastAPI)  │     │             │
+└─────────────┘  audio/text └──────┬──────┘     └─────────────┘
+                                   │
+                    ┌──────────────┼──────────────┐
+                    │              │              │
+                    ▼              ▼              ▼
+             ┌───────────┐ ┌─────────────┐ ┌──────────────┐
+             │  Whisper  │ │ LLM Gateway │ │ Azure Speech │
+             │   (STT)   │ │  (Ollama)   │ │    (TTS)     │
+             └───────────┘ └─────────────┘ └──────────────┘
 ```
 
 ## Quick Commands
@@ -120,7 +129,7 @@ xcodebuild test -scheme BetterBooks -destination 'platform=iOS Simulator,name=iP
 
 | Metric | Value |
 |--------|-------|
-| Python Tests | 147 |
+| Python Tests | 151 |
 | iOS Test Files | 3 |
 | API Endpoints | 25+ |
 | Personas | 9 |

@@ -74,33 +74,20 @@ def mock_whisper_model():
     return mock_model
 
 
-@pytest.fixture
-def mock_tts_model():
-    mock_model = MagicMock()
-
-    def mock_tts_to_file(text, file_path):
-        with wave.open(file_path, 'wb') as wav:
-            wav.setnchannels(1)
-            wav.setsampwidth(2)
-            wav.setframerate(16000)
-            wav.writeframes(b'\x00' * 16000)
-
-    mock_model.tts_to_file = mock_tts_to_file
-    return mock_model
-
-
 class TestVoiceServiceImports:
 
     def test_voice_service_imports(self):
         import voice_service
         assert hasattr(voice_service, 'transcribe_audio')
-        assert hasattr(voice_service, 'synthesize_speech')
-        assert hasattr(voice_service, 'process_voice_chat')
+        assert hasattr(voice_service, 'synthesize_speech_azure')
+        assert hasattr(voice_service, 'stream_azure_tts')
+        assert hasattr(voice_service, 'SentenceAccumulator')
+        assert hasattr(voice_service, 'build_ssml')
 
     def test_voice_service_config_defaults(self):
         import voice_service
         assert hasattr(voice_service, 'USE_LOCAL_STT')
-        assert hasattr(voice_service, 'USE_LOCAL_TTS')
+        assert hasattr(voice_service, 'is_azure_tts_available')
 
 
 class TestTranscription:
@@ -179,106 +166,125 @@ class TestTranscription:
                     assert text == "test"
 
 
-class TestSpeechSynthesis:
+class TestSentenceAccumulator:
 
-    @pytest.mark.asyncio
-    async def test_synthesize_speech_with_mock_tts(self, mock_tts_model):
+    def test_single_sentence(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-            with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                audio_bytes = await voice_service.synthesize_speech(
-                    "Hello, this is a test.",
-                    voice="default"
-                )
+        # No complete sentence yet
+        assert acc.add("Hello, how are ") == []
+        sentences = acc.add("you? ")
+        assert sentences == ["Hello, how are you?"]
 
-        assert isinstance(audio_bytes, bytes)
-        assert len(audio_bytes) > 0
-        assert audio_bytes[:4] == b'RIFF'
-
-    @pytest.mark.asyncio
-    async def test_synthesize_speech_different_voices(self, mock_tts_model):
+    def test_multiple_sentences(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        voices = ["default", "gatsby", "nick", "teacher"]
+        sentences = acc.add("First sentence. Second sentence! Third? ")
+        assert len(sentences) == 3
+        assert sentences[0] == "First sentence."
+        assert sentences[1] == "Second sentence!"
+        assert sentences[2] == "Third?"
 
-        for voice in voices:
-            with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-                with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                    audio_bytes = await voice_service.synthesize_speech(
-                        "Test message",
-                        voice=voice
-                    )
-                    assert isinstance(audio_bytes, bytes)
-
-    @pytest.mark.asyncio
-    async def test_synthesize_speech_speed_parameter(self, mock_tts_model):
+    def test_flush_remaining(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        speeds = [0.5, 1.0, 1.5, 2.0]
+        acc.add("This has no ending punctuation")
+        remaining = acc.flush()
+        assert remaining == "This has no ending punctuation"
 
-        for speed in speeds:
-            with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-                with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                    audio_bytes = await voice_service.synthesize_speech(
-                        "Test message",
-                        speed=speed
-                    )
-                    assert isinstance(audio_bytes, bytes)
-
-    @pytest.mark.asyncio
-    async def test_synthesize_pyttsx3_fallback(self):
+    def test_flush_empty(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        with patch.object(voice_service, 'get_tts_model', return_value="pyttsx3"):
-            with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                with patch.object(voice_service, '_synthesize_pyttsx3') as mock_pyttsx3:
-                    mock_pyttsx3.return_value = b'RIFF' + b'\x00' * 100
+        assert acc.flush() is None
 
-                    audio_bytes = await voice_service.synthesize_speech("Test")
-                    mock_pyttsx3.assert_called_once()
-
-
-class TestVoiceChatRoundTrip:
-
-    @pytest.mark.asyncio
-    async def test_process_voice_chat_success(self, sample_audio_bytes, mock_whisper_model, mock_tts_model):
+    def test_incremental_tokens(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        async def mock_get_ai_response(text):
-            return f"AI response to: {text}"
+        assert acc.add("I") == []
+        assert acc.add(" think") == []
+        assert acc.add(" so.") == []
+        sentences = acc.add(" And")
+        assert sentences == ["I think so."]
 
-        with patch.object(voice_service, 'get_whisper_model', return_value=mock_whisper_model):
-            with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-                with patch.object(voice_service, 'USE_LOCAL_STT', True):
-                    with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                        transcription, response_text, response_audio = await voice_service.process_voice_chat(
-                            sample_audio_bytes,
-                            "test.wav",
-                            mock_get_ai_response
-                        )
-
-        assert transcription == "Hello, this is a test transcription."
-        assert "AI response to:" in response_text
-        assert isinstance(response_audio, bytes)
-
-    @pytest.mark.asyncio
-    async def test_process_voice_chat_empty_transcription(self, sample_audio_bytes, mock_whisper_model, mock_tts_model):
+    def test_colon_does_not_split(self):
         import voice_service
+        acc = voice_service.SentenceAccumulator()
 
-        mock_whisper_model.transcribe.return_value = ([], MagicMock())
+        sentences = acc.add("Here is the thing: it works. ")
+        assert len(sentences) == 1
+        assert sentences[0] == "Here is the thing: it works."
 
-        async def mock_get_ai_response(text):
-            return "response"
 
-        with patch.object(voice_service, 'get_whisper_model', return_value=mock_whisper_model):
-            with patch.object(voice_service, 'USE_LOCAL_STT', True):
-                with pytest.raises(ValueError, match="No speech detected"):
-                    await voice_service.process_voice_chat(
-                        sample_audio_bytes,
-                        "test.wav",
-                        mock_get_ai_response
-                    )
+class TestBuildSsml:
+
+    def test_basic_ssml(self):
+        import voice_service
+        ssml = voice_service.build_ssml("Hello world", "en-US-GuyNeural")
+        assert 'voice name="en-US-GuyNeural"' in ssml
+        assert "Hello world" in ssml
+        assert "<speak" in ssml
+
+    def test_ssml_with_style(self):
+        import voice_service
+        ssml = voice_service.build_ssml("Test", "en-US-GuyNeural", style="cheerful")
+        assert 'style="cheerful"' in ssml
+        assert "mstts:express-as" in ssml
+
+    def test_ssml_escapes_special_chars(self):
+        import voice_service
+        ssml = voice_service.build_ssml("Tom & Jerry <3", "en-US-GuyNeural")
+        assert "&amp;" in ssml
+        assert "&lt;" in ssml
+        # Raw & and < should not appear
+        assert "Tom & Jerry" not in ssml
+
+    def test_ssml_rate(self):
+        import voice_service
+        ssml = voice_service.build_ssml("Test", "en-US-GuyNeural", rate=1.5)
+        assert "+50%" in ssml
+
+    def test_ssml_default_rate(self):
+        import voice_service
+        ssml = voice_service.build_ssml("Test", "en-US-GuyNeural", rate=1.0)
+        assert 'rate="default"' in ssml
+
+
+class TestAzureTtsAvailability:
+
+    def test_available_when_configured(self, monkeypatch):
+        monkeypatch.setenv("AZURE_SPEECH_KEY", "test-key")
+        monkeypatch.setenv("AZURE_SPEECH_REGION", "eastus")
+
+        import importlib
+        import voice_service
+        importlib.reload(voice_service)
+
+        assert voice_service.is_azure_tts_available() is True
+
+    def test_unavailable_when_missing_key(self, monkeypatch):
+        monkeypatch.delenv("AZURE_SPEECH_KEY", raising=False)
+        monkeypatch.setenv("AZURE_SPEECH_REGION", "eastus")
+
+        import importlib
+        import voice_service
+        importlib.reload(voice_service)
+
+        assert voice_service.is_azure_tts_available() is False
+
+    def test_unavailable_when_missing_region(self, monkeypatch):
+        monkeypatch.setenv("AZURE_SPEECH_KEY", "test-key")
+        monkeypatch.delenv("AZURE_SPEECH_REGION", raising=False)
+
+        import importlib
+        import voice_service
+        importlib.reload(voice_service)
+
+        assert voice_service.is_azure_tts_available() is False
 
 
 class TestCloudAPIFallback:
@@ -302,23 +308,6 @@ class TestCloudAPIFallback:
                     )
 
         assert text == "Cloud transcription result"
-
-    @pytest.mark.asyncio
-    async def test_synthesize_cloud_openai(self):
-        import voice_service
-
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.content = b'RIFF' + b'\x00' * 100
-
-        with patch.object(voice_service, 'USE_LOCAL_TTS', False):
-            with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
-                with patch('httpx.AsyncClient') as mock_client:
-                    mock_client.return_value.__aenter__.return_value.post = AsyncMock(return_value=mock_response)
-
-                    audio_bytes = await voice_service.synthesize_speech("Test text")
-
-        assert audio_bytes[:4] == b'RIFF'
 
     @pytest.mark.asyncio
     async def test_cloud_api_error_handling(self, sample_audio_bytes):
@@ -353,21 +342,6 @@ class TestModelLoading:
         assert model1 is model2
         assert model1 is mock_model
 
-    def test_tts_model_lazy_loading(self):
-        import voice_service
-
-        voice_service._tts_model = None
-
-        with patch('voice_service.TTS', create=True) as mock_tts:
-            mock_tts.return_value = MagicMock()
-
-            model1 = voice_service.get_tts_model()
-
-            mock_tts.reset_mock()
-
-            model2 = voice_service.get_tts_model()
-            assert model1 is model2
-
 
 class TestInputValidation:
 
@@ -383,32 +357,11 @@ class TestInputValidation:
 
         assert text == ""
 
-    @pytest.mark.asyncio
-    async def test_synthesize_empty_text(self, mock_tts_model):
-        import voice_service
-
-        with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-            with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                audio_bytes = await voice_service.synthesize_speech("")
-                assert isinstance(audio_bytes, bytes)
-
-    @pytest.mark.asyncio
-    async def test_synthesize_long_text(self, mock_tts_model):
-        import voice_service
-
-        long_text = "This is a test. " * 500
-
-        with patch.object(voice_service, 'get_tts_model', return_value=mock_tts_model):
-            with patch.object(voice_service, 'USE_LOCAL_TTS', True):
-                audio_bytes = await voice_service.synthesize_speech(long_text)
-                assert isinstance(audio_bytes, bytes)
-
 
 class TestConfiguration:
 
     def test_environment_variable_defaults(self, monkeypatch):
         monkeypatch.delenv("USE_LOCAL_STT", raising=False)
-        monkeypatch.delenv("USE_LOCAL_TTS", raising=False)
         monkeypatch.delenv("WHISPER_MODEL_SIZE", raising=False)
 
         import importlib
@@ -416,7 +369,6 @@ class TestConfiguration:
         importlib.reload(voice_service)
 
         assert voice_service.USE_LOCAL_STT == True
-        assert voice_service.USE_LOCAL_TTS == True
 
     def test_whisper_model_size_config(self, monkeypatch):
         monkeypatch.setenv("WHISPER_MODEL_SIZE", "small")
@@ -454,15 +406,16 @@ class TestVoiceEndpoints:
         from fastapi.testclient import TestClient
         from unittest.mock import patch
 
-        with patch('voice_service.synthesize_speech') as mock_synthesize:
+        with patch('voice_service.synthesize_speech_azure') as mock_synthesize:
             mock_synthesize.return_value = b"RIFF" + b'\x00' * 100
 
-            import main
-            client = TestClient(main.app)
+            with patch('voice_service.is_azure_tts_available', return_value=True):
+                import main
+                client = TestClient(main.app)
 
-            response = client.post(
-                "/voice/synthesize",
-                json={"text": "Hello world", "voice": "default", "speed": 1.0}
-            )
+                response = client.post(
+                    "/voice/synthesize",
+                    json={"text": "Hello world", "voice": "default", "speed": 1.0}
+                )
 
-            assert response.status_code in [200, 400, 500]
+                assert response.status_code in [200, 400, 500]

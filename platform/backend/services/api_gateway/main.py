@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import asyncio
 import base64
 import json
 import logging
@@ -14,7 +15,7 @@ from uuid import UUID
 
 import httpx
 import yaml
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Request, Query
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Request, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, RedirectResponse, StreamingResponse
 from pydantic import BaseModel
@@ -162,6 +163,12 @@ async def startup_validation():
     except Exception as e:
         logger.warning(f"Startup validation encountered an error: {e}")
         logger.warning("Continuing startup without validation checks")
+
+    try:
+        from voice_service import warm_models
+        await warm_models()
+    except Exception as e:
+        logger.warning(f"Voice model warm-up failed: {e}")
 
 security_config = app_config.get_security_config()
 app.add_middleware(
@@ -988,25 +995,30 @@ async def transcribe_audio_endpoint(
 @app.post("/voice/synthesize")
 async def synthesize_speech_endpoint(request: SynthesisRequest):
     """
-    Convert text to speech using local TTS.
+    Convert text to speech using Azure TTS.
 
     Returns: WAV audio file
     """
-    from voice_service import synthesize_speech
+    from voice_service import synthesize_speech_azure, is_azure_tts_available
 
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-    # Text length limit
     if len(request.text) > 5000:
         raise HTTPException(status_code=400, detail="Text too long (max 5000 characters)")
 
-    # Validate speed
     if not 0.5 <= request.speed <= 2.0:
         raise HTTPException(status_code=400, detail="Speed must be between 0.5 and 2.0")
 
+    if not is_azure_tts_available():
+        raise HTTPException(status_code=503, detail="Azure TTS not configured")
+
     try:
-        audio_bytes = await synthesize_speech(request.text, request.voice, request.speed)
+        audio_bytes = await synthesize_speech_azure(
+            request.text,
+            voice_name=request.voice if request.voice != "default" else "en-US-GuyNeural",
+            rate=request.speed
+        )
         return Response(
             content=audio_bytes,
             media_type="audio/wav",
@@ -1017,90 +1029,288 @@ async def synthesize_speech_endpoint(request: SynthesisRequest):
         raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {str(e)}")
 
 
-@app.post("/voice/chat")
-async def voice_chat_local(
-    audio: UploadFile = File(...),
-    book_id: Optional[str] = None,
-    chapter: Optional[int] = None,
-    timestamp_seconds: Optional[float] = None,
-    persona_id: Optional[str] = None,
-    user_id: str = Depends(get_current_user_id)
-):
-    """
-    Complete voice chat: audio in -> AI response -> audio out
+# ---- WebSocket Streaming Voice Chat ----
 
-    Uses local STT (Whisper) and TTS (Coqui) by default.
-    Integrates with book context and personas.
+@app.websocket("/ws/voice")
+async def websocket_voice_chat(ws: WebSocket):
     """
-    from voice_service import transcribe_audio, synthesize_speech
+    WebSocket endpoint for streaming voice chat.
 
-    audio_bytes = await audio.read()
-    if len(audio_bytes) > 25 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Audio file too large (max 25MB)")
+    Protocol:
+      Client -> Server:
+        { "type": "config", "book_id": "...", "chapter": 1, "persona_id": "...", "timestamp": 0 }
+        { "type": "audio_data", "data": "<base64 audio>" }
+
+      Server -> Client:
+        { "type": "transcription", "text": "user's words" }
+        { "type": "llm_token", "content": "word " }
+        { "type": "audio_chunk", "data": "<base64 WAV>", "format": "wav", "sequence": 0 }
+        { "type": "done" }
+        { "type": "error", "message": "..." }
+
+    Authentication: pass token as query param ?token=... since browsers
+    cannot set headers on WebSocket connections.
+    """
+    # Authenticate via query param
+    token = ws.query_params.get("token")
+    if token:
+        try:
+            from core.auth.auth import verify_token
+            verify_token(token)
+        except Exception:
+            await ws.close(code=4001, reason="Invalid token")
+            return
+
+    await ws.accept()
+
+    config = None
 
     try:
-        user_text, confidence = await transcribe_audio(audio_bytes, audio.filename or "audio.wav")
+        while True:
+            raw = await ws.receive_text()
+            try:
+                msg = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                await ws.send_json({"type": "error", "message": "Invalid JSON"})
+                continue
 
-        if not user_text.strip():
-            raise HTTPException(status_code=400, detail="No speech detected in audio")
+            msg_type = msg.get("type")
 
-        logger.info(f"Voice chat transcription: '{user_text[:100]}...' (confidence: {confidence:.2f})")
+            if msg_type == "config":
+                config = {
+                    "book_id": msg.get("book_id"),
+                    "chapter": msg.get("chapter", 1),
+                    "persona_id": msg.get("persona_id"),
+                    "timestamp": msg.get("timestamp", 0),
+                }
+                continue
 
-        messages = [{"role": "user", "content": user_text}]
-        if book_id or persona_id:
-            system_content = "You are a helpful audiobook companion."
-            if persona_id:
-                system_content = f"You are the {persona_id} persona from the audiobook. Stay in character."
-            messages.insert(0, {"role": "system", "content": system_content})
+            if msg_type == "audio_data":
+                try:
+                    audio_b64 = msg.get("data", "")
+                    audio_bytes = base64.b64decode(audio_b64)
+                except Exception:
+                    await ws.send_json({"type": "error", "message": "Invalid audio data"})
+                    continue
+                await _handle_voice_interaction(ws, audio_bytes, config or {})
+                continue
 
-        chat_request = {
-            "messages": messages,
-            "max_tokens": 500,
-            "temperature": 0.7
-        }
-
-        async with httpx.AsyncClient() as client:
-            llm_response = await client.post(
-                f"{LLM_URL}/chat",
-                json=chat_request,
-                timeout=30.0
-            )
-
-            if llm_response.status_code != 200:
-                logger.error(f"LLM Gateway error: {llm_response.text}")
-                raise HTTPException(status_code=500, detail="Failed to get AI response")
-
-            response_data = llm_response.json()
-            ai_text = response_data.get("content", response_data.get("response", "I'm sorry, I couldn't process your request."))
-
-        voice = "default"
-        if persona_id:
-            persona_voice_map = {
-                "gatsby": "gatsby",
-                "nick": "nick",
-                "daisy": "daisy",
-                "english_teacher": "teacher",
-                "language_tutor": "tutor"
-            }
-            voice = persona_voice_map.get(persona_id.lower(), "default")
-
-        audio_response = await synthesize_speech(ai_text, voice=voice)
-
-        audio_b64 = base64.b64encode(audio_response).decode('utf-8')
-
-        return {
-            "transcription": user_text,
-            "confidence": confidence,
-            "response_text": ai_text,
-            "response_audio_base64": audio_b64,
-            "audio_format": "wav"
-        }
-
-    except HTTPException:
-        raise
+    except WebSocketDisconnect:
+        pass
     except Exception as e:
-        logger.error(f"Voice chat error: {e}")
-        raise HTTPException(status_code=500, detail=f"Voice chat failed: {str(e)}")
+        logger.error(f"WebSocket voice error: {e}")
+        try:
+            await ws.send_json({"type": "error", "message": "Internal server error"})
+        except Exception:
+            pass
+
+
+async def _ws_send(ws: WebSocket, lock: asyncio.Lock, data: dict):
+    """Send JSON over WebSocket with a lock to prevent concurrent writes."""
+    async with lock:
+        await ws.send_json(data)
+
+
+async def _handle_voice_interaction(ws: WebSocket, audio_bytes: bytes, config: dict):
+    """Run the full STT -> LLM stream -> TTS stream pipeline over WebSocket."""
+    from voice_service import (
+        transcribe_audio, SentenceAccumulator,
+        synthesize_speech_azure, is_azure_tts_available
+    )
+
+    book_id = config.get("book_id")
+    chapter = config.get("chapter", 1)
+    persona_id = config.get("persona_id")
+    timestamp = config.get("timestamp", 0)
+
+    # Lock to serialize all WebSocket writes (main loop + tts worker)
+    ws_lock = asyncio.Lock()
+
+    # 1) STT
+    try:
+        user_text, confidence = await transcribe_audio(audio_bytes, "recording.webm")
+    except Exception as e:
+        logger.error(f"Voice WS STT error: {e}")
+        await _ws_send(ws, ws_lock, {"type": "error", "message": "Transcription failed"})
+        return
+
+    if not user_text.strip():
+        await _ws_send(ws, ws_lock, {"type": "error", "message": "No speech detected"})
+        return
+
+    await _ws_send(ws, ws_lock, {"type": "transcription", "text": user_text})
+
+    # 2) Build context via PromptBuilder (same as /ai/chat)
+    messages = []
+    voice_obj = None
+    if prompt_builder and book_id and persona_id:
+        try:
+            built = await prompt_builder.build(
+                book_id=book_id,
+                chapter=chapter,
+                timestamp_seconds=timestamp,
+                persona_id=persona_id
+            )
+            if built:
+                messages.append({"role": "system", "content": built.system_prompt})
+                voice_obj = getattr(built.persona, "voice", None)
+        except Exception as e:
+            logger.warning(f"Voice WS context build failed: {e}")
+
+    if not messages:
+        messages.append({
+            "role": "system",
+            "content": "You are a helpful audiobook companion. Keep responses concise for voice."
+        })
+
+    messages.append({"role": "user", "content": user_text})
+
+    # 3) Stream LLM tokens
+    llm_request = {
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 500,
+        "stream": True
+    }
+
+    accumulator = SentenceAccumulator()
+    tts_available = is_azure_tts_available()
+    audio_sequence = 0
+
+    # Resolve voice settings from persona config
+    tts_voice = "en-US-GuyNeural"
+    tts_style = None
+    tts_rate = 1.0
+    if voice_obj:
+        tts_voice = getattr(voice_obj, "voice_id", None) or tts_voice
+        tts_style = getattr(voice_obj, "style", None)
+        rate_val = getattr(voice_obj, "rate", None)
+        if rate_val is not None:
+            tts_rate = rate_val
+
+    # TTS queue: sentences are enqueued by the LLM consumer and processed
+    # sequentially by a dedicated worker so audio chunks arrive in order.
+    # Each sentence is synthesized to a complete WAV blob before sending,
+    # so the client receives self-contained audio files it can decode.
+    tts_queue: asyncio.Queue[Optional[tuple[str, int]]] = asyncio.Queue()
+
+    async def tts_worker():
+        """Process TTS sentences one-by-one, sending complete WAV blobs."""
+        try:
+            while True:
+                item = await tts_queue.get()
+                if item is None:
+                    break
+                sentence, seq = item
+                try:
+                    wav_bytes = await synthesize_speech_azure(
+                        sentence, tts_voice, tts_style, tts_rate
+                    )
+                    if wav_bytes:
+                        chunk_b64 = base64.b64encode(wav_bytes).decode("ascii")
+                        await _ws_send(ws, ws_lock, {
+                            "type": "audio_chunk",
+                            "data": chunk_b64,
+                            "format": "wav",
+                            "sequence": seq
+                        })
+                except asyncio.CancelledError:
+                    return
+                except Exception as e:
+                    logger.error(f"Voice WS TTS error (seq={seq}): {e}")
+        except asyncio.CancelledError:
+            return
+
+    # Start the TTS worker if Azure is available
+    tts_task = None
+    if tts_available:
+        tts_task = asyncio.create_task(tts_worker())
+
+    full_response = ""
+
+    async def _cleanup_tts():
+        if tts_task and not tts_task.done():
+            tts_task.cancel()
+            try:
+                await tts_task
+            except asyncio.CancelledError:
+                pass
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            async with client.stream("POST", f"{LLM_URL}/chat", json=llm_request) as response:
+                if response.status_code != 200:
+                    await _ws_send(ws, ws_lock, {"type": "error", "message": "LLM service unavailable"})
+                    await _cleanup_tts()
+                    return
+
+                async for line in response.aiter_lines():
+                    if not line or not line.startswith("data:"):
+                        continue
+
+                    payload = line[5:].lstrip()
+                    if not payload:
+                        continue
+
+                    try:
+                        data = json.loads(payload)
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+
+                    # Handle LLM errors
+                    error = data.get("error")
+                    if error:
+                        await _ws_send(ws, ws_lock, {"type": "error", "message": f"LLM error: {error}"})
+                        await _cleanup_tts()
+                        return
+
+                    if data.get("done"):
+                        break
+
+                    content = data.get("content", "")
+                    if not content:
+                        continue
+
+                    full_response += content
+
+                    # Send token to client for live text display
+                    await _ws_send(ws, ws_lock, {"type": "llm_token", "content": content})
+
+                    # Buffer into sentences and enqueue for TTS
+                    if tts_available:
+                        sentences = accumulator.add(content)
+                        for s in sentences:
+                            await tts_queue.put((s, audio_sequence))
+                            audio_sequence += 1
+
+        # Flush remaining text from accumulator
+        if tts_available:
+            remainder = accumulator.flush()
+            if remainder:
+                await tts_queue.put((remainder, audio_sequence))
+                audio_sequence += 1
+
+        # Signal the TTS worker to stop and wait for it
+        if tts_task:
+            await tts_queue.put(None)
+            await tts_task
+
+    except WebSocketDisconnect:
+        await _cleanup_tts()
+        return
+    except Exception as e:
+        logger.error(f"Voice WS LLM stream error: {e}")
+        await _cleanup_tts()
+        try:
+            await _ws_send(ws, ws_lock, {"type": "error", "message": "LLM streaming failed"})
+        except Exception:
+            pass
+        return
+
+    try:
+        await _ws_send(ws, ws_lock, {"type": "done"})
+    except Exception:
+        pass
 
 
 @app.get("/bookstore/books/{book_id}/download", response_model=BookDownloadResponse)
@@ -1988,115 +2198,6 @@ async def get_positional_context(request: ContextRequest):
     except Exception as e:
         logger.error(f"Error getting positional context: {e}")
         raise HTTPException(status_code=500, detail="Context retrieval failed")
-
-class VoiceChatRequest(BaseModel):
-    transcription: str
-    persona_config: Optional[str] = None
-    book_id: Optional[str] = None
-    current_position: Optional[float] = None
-
-class VoiceChatResponse(BaseModel):
-    transcription: str
-    response_text: str
-    response_audio: Optional[str] = None  # Base64 encoded audio response
-
-@app.post("/voice-chat", response_model=VoiceChatResponse)
-async def process_voice_chat(
-    audio_file: UploadFile = File(...),
-    persona_config: Optional[str] = None,
-    book_id: Optional[str] = None,
-    current_position: Optional[float] = None,
-    user_id: str = Depends(get_current_user_id)
-):
-    """Process uploaded voice audio for chat with AI personas"""
-    if not audio_file.content_type or not audio_file.content_type.startswith('audio/'):
-        raise HTTPException(status_code=400, detail="File must be an audio file")
-
-    audio_content = await audio_file.read()
-    if len(audio_content) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Audio file too large (max 10MB)")
-    
-    try:
-        transcription = await _transcribe_audio(audio_content, audio_file.filename)
-        if not transcription.strip():
-            raise HTTPException(status_code=400, detail="Could not transcribe audio - no speech detected")
-
-        completion_request = {
-            "messages": [{"role": "user", "content": transcription}],
-            "config": persona_config,
-            "book_id": book_id,
-            "current_position": current_position
-        }
-
-        async with httpx.AsyncClient() as client:
-            llm_response = await client.post(
-                f"{LLM_URL}/complete",
-                json=completion_request,
-                timeout=30.0
-            )
-            if llm_response.status_code != 200:
-                logger.error(f"LLM Gateway error: {llm_response.text}")
-                raise HTTPException(status_code=500, detail="Failed to get AI response")
-            response_data = llm_response.json()
-            response_text = response_data.get("content", "I'm sorry, I couldn't process your request.")
-
-        response_audio = None
-        if persona_config:
-            try:
-                async with httpx.AsyncClient() as client:
-                    tts_response = await client.post(
-                        f"{TTS_URL}/synthesize",
-                        json={"text": response_text, "config": persona_config},
-                        timeout=30.0
-                    )
-                    if tts_response.status_code == 200:
-                        response_audio = tts_response.json().get("audio")
-            except Exception as e:
-                logger.warning(f"TTS generation failed: {e}")
-        
-        return VoiceChatResponse(
-            transcription=transcription,
-            response_text=response_text,
-            response_audio=response_audio
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Voice chat processing error: {e}")
-        raise HTTPException(status_code=500, detail="Voice chat processing failed")
-
-async def _transcribe_audio(audio_content: bytes, filename: str) -> str:
-    try:
-        azure_openai_key = os.getenv("AZURE_OPENAI_API_KEY")
-        azure_openai_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-
-        if not azure_openai_key or not azure_openai_endpoint:
-            raise HTTPException(status_code=500, detail="Azure OpenAI not configured")
-
-        files = {'file': (filename or 'audio.wav', audio_content, 'audio/wav')}
-        data = {'model': 'whisper-1', 'response_format': 'text'}
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{azure_openai_endpoint}/openai/audio/transcriptions?api-version=2024-12-01-preview",
-                headers={"api-key": azure_openai_key},
-                files=files,
-                data=data,
-                timeout=30.0
-            )
-            
-            if response.status_code != 200:
-                logger.error(f"Whisper API error: {response.text}")
-                raise HTTPException(status_code=500, detail="Audio transcription failed")
-            
-            return response.text.strip()
-            
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Transcription error: {e}")
-        raise HTTPException(status_code=500, detail="Audio transcription failed")
 
 @app.post("/admin/populate-books")
 async def populate_sample_books():

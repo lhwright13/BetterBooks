@@ -26,6 +26,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.betterbooks.app
+        GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: BetterBooks
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "BetterBooks needs microphone access for voice chat with AI companions"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
