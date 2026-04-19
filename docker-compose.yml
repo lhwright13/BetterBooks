@@ -1,3 +1,8 @@
+# Local development only. The POSTGRES_PASSWORD, JWT_SECRET_KEY, and
+# Grafana admin credentials below are placeholders for running on localhost;
+# override every one of them (via .env or real secret management) before
+# pointing this file at anything public.
+
 networks:
   betterbooks_network:
     driver: bridge

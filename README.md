@@ -1,70 +1,39 @@
 # BetterBooks
 
-An AI-augmented audiobook platform. Listen to classic books and hold a conversation about the story with chapter-aware, persona-based AI characters - in text or real-time voice.
+An audiobook app with AI characters you can talk to while you listen.
 
-## Features
+You're halfway through Moby Dick and want to ask Ahab why he's so obsessed with the whale. You tap his face and ask. He answers. He only knows what's happened up to the chapter you're on, so he can't spoil anything past that point. You can do this in text or by voice, in real time.
 
-- Audiobook library with chapter navigation and progress tracking
-- Text chat with book-aware AI personas (Ahab, Gatsby, Nick, Alice, ...) that know only what you have heard
-- Real-time voice chat over WebSockets (Azure Speech STT + streaming Azure OpenAI + Azure TTS)
-- Credit-based purchase flow and per-user library
-- JWT authentication, password hashing, rate limiting
-- Runs fully local against Ollama, or against Azure OpenAI for production voice
-- Web client (single-page app) and a SwiftUI iOS client
+That's the whole idea.
 
-## Architecture
+## What's in here
 
-```
- Web / iOS client
-        |
-        v
-   API Gateway  ---> PostgreSQL (users, books, progress, chat logs)
-   (port 8000)       Redis      (sessions, rate limits)
-        |
-        v
-   LLM Gateway  ---> Ollama (local) or Azure OpenAI
-   (port 8002)
-        |
-        v
-   Voice service (WebSocket /ws/voice)
-        |
-        v
-   Azure Speech STT / TTS   (optional, for voice mode)
-```
+A FastAPI backend (API gateway + LLM gateway), a PostgreSQL schema, a small web client, and a SwiftUI iOS client. The LLM gateway talks to either a local Ollama model or Azure OpenAI. Voice mode streams audio through Azure Speech in both directions over a WebSocket.
 
-## Quick Start
+Six public-domain books are wired up out of the box: Gatsby, Moby Dick, Alice, War and Peace, the Odyssey, and Pride and Prejudice. Each has a handful of persona definitions (characters, a teacher, a language tutor) that shape the system prompt.
 
-Requires Python 3.11+, Docker, and `ollama` (if you want the local AI path).
+## Running it
+
+You need Python 3.11+, Docker, and optionally Ollama if you want to run the AI locally.
 
 ```bash
-# 1. Clone and set up the virtualenv
 git clone https://github.com/lhwright13/BetterBooks.git
 cd BetterBooks
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-
-# 2. Create a local .env from the template
 cp .env.example .env
 
-# 3. Start Postgres and Redis
 docker-compose up -d postgres redis
-
-# 4. Pull a small local model (first run only)
-ollama pull llama3.2
-
-# 5. One-command dev launcher (API gateway, LLM gateway, web server)
+ollama pull llama3.2          # skip if you're using Azure OpenAI
 bash scripts/demo.sh
-
-# Visit http://localhost:3000
-# Demo account: demo@betterbooks.app / demo1234
 ```
 
-To seed the bookstore with the six demo titles:
+Visit `http://localhost:3000`. Log in with `demo@betterbooks.app` / `demo1234`.
 
-```bash
-python scripts/seed_demo.py
-```
+To populate the bookstore, run `python scripts/seed_demo.py`.
+
+Audio files are not in the repo (they're either copyrighted or large). LibriVox has public-domain recordings of every seeded title; drop the MP3s into `book_files/<Book>/` and the app will find them.
 
 ## Running the services by hand
 
@@ -73,68 +42,59 @@ export PYTHONPATH="$PWD"
 export DATABASE_URL="postgresql://betterbooks:betterbooks@localhost:5432/betterbooks"
 export JWT_SECRET_KEY="dev-secret"
 
-# API Gateway
 python -m uvicorn platform.backend.services.api_gateway.main:app --port 8000 &
 
-# LLM Gateway (local Ollama)
 USE_OLLAMA=true OLLAMA_URL=http://localhost:11434 OLLAMA_MODEL=llama3.2 \
   python -m uvicorn platform.backend.services.llm_gateway.main:app --port 8002 &
 
-# Web server
 python -m http.server 3000 --directory platform/frontend/simple_web
 ```
 
-For Azure OpenAI instead of Ollama, set `USE_OLLAMA=false` and provide `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_NAME`. Voice chat also needs `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION`.
+For Azure OpenAI, set `USE_OLLAMA=false` and provide `AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_NAME`. Voice mode also needs `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION`.
 
-## Project layout
+## Layout
 
 ```
-BetterBooks/
-  core/
-    auth/                  JWT, password hashing, rate limiting
-    database/              PostgreSQL schema and data access
-    infrastructure/        Logging, metrics, caching helpers
-  platform/
-    backend/services/
-      api_gateway/         Auth, bookstore, library, progress, voice WS
-      llm_gateway/         Ollama / Azure OpenAI adapter
-    frontend/simple_web/   Single-page web client
-    mobile/ios_app/        SwiftUI iOS client
-  tests/unit/              Pytest suite (151 tests)
-  scripts/                 demo.sh launcher and seed_demo.py
-  docs/                    Design notes and architecture
-  book_files/              Audio and cover assets (gitignored)
-  docker-compose.yml
+core/
+  auth/                 JWT, password hashing, rate limiting
+  database/             PostgreSQL schema and data access
+  infrastructure/       Logging, metrics, caching helpers
+platform/
+  backend/services/
+    api_gateway/        Auth, bookstore, library, progress, voice WS
+    llm_gateway/        Ollama / Azure OpenAI adapter
+  frontend/simple_web/  Single-page web client
+  mobile/ios_app/       SwiftUI iOS client
+tests/unit/             Pytest suite (151 tests)
+scripts/                demo.sh launcher and seed_demo.py
+book_files/             Persona JSON and transcripts (audio is gitignored)
+docker-compose.yml
 ```
 
-## API surface
+## API
 
-**Auth**: `POST /auth/signup`, `POST /auth/signin`
+Auth: `POST /auth/signup`, `POST /auth/signin`
 
-**Bookstore**: `GET /bookstore/browse`, `GET /bookstore/categories`, `GET /bookstore/user/credits`, `GET /bookstore/user/library`, `POST /bookstore/purchase`
+Bookstore: `GET /bookstore/browse`, `/bookstore/categories`, `/bookstore/user/credits`, `/bookstore/user/library`, `POST /bookstore/purchase`
 
-**Player state**: `GET/POST /progress/{book_id}`, bookmarks, wishlist
+Player state: `GET /POST /progress/{book_id}`, plus bookmarks and wishlist
 
-**AI chat**: `POST /complete` (LLM Gateway), `GET /ai/personas/{book_id}`
+AI chat: `POST /complete` (LLM gateway), `GET /ai/personas/{book_id}`
 
-**Voice (real-time)**: `WS /ws/voice` (bi-directional streaming), `GET /voice/config`, `POST /voice/transcribe`, `POST /voice/synthesize`
+Voice: `WS /ws/voice` (bi-directional streaming), `GET /voice/config`, `POST /voice/transcribe`, `POST /voice/synthesize`
 
-## Testing
+## Tests
 
 ```bash
 source venv/bin/activate
 python -m pytest tests/unit/ -v
 ```
 
-151 tests covering auth, context engine, personas, DB utilities, and the voice service.
+151 tests, mostly around auth, the context engine (chapter-aware retrieval and spoiler boundaries), persona loading, DB utilities, and the voice service.
 
 ## Stack
 
-- Python 3.11+, FastAPI, Uvicorn, WebSockets
-- PostgreSQL, Redis
-- Ollama (local) or Azure OpenAI
-- Azure Speech (STT / streaming TTS)
-- SwiftUI (iOS), vanilla HTML / CSS / JS (web)
+Python 3.11+, FastAPI, Uvicorn, WebSockets. PostgreSQL and Redis. Ollama or Azure OpenAI. Azure Speech for STT and streaming TTS. SwiftUI for iOS; plain HTML/CSS/JS for the web client.
 
 ## License
 

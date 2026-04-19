@@ -1042,7 +1042,7 @@ async function autoLogin() {
             token = data.access_token;
         }
     } catch (e) {
-        console.log('Auto-login failed, running without auth:', e.message);
+        // Auto-login is best-effort; fall through to unauthenticated mode.
     }
 }
 
@@ -1067,7 +1067,6 @@ async function loadBooks() {
         }
     } catch (e) {
         apiReachable = false;
-        console.log('Using fallback book data');
     }
 
     const container = document.getElementById('books-container');
@@ -1155,7 +1154,6 @@ async function loadPersonas(book) {
         }
     } catch (e) {
         personaApiFailed = true;
-        console.log('Persona load failed, using fallback');
     }
 
     // Fallback personas if none loaded
@@ -1388,7 +1386,6 @@ audioPlayer.addEventListener('ended', () => {
 });
 
 audioPlayer.addEventListener('error', () => {
-    console.log('Audio load error for chapter', currentChapter + 1);
     setAudioBuffering(false);
     showToast('Audio not available for this chapter.', true);
 });
