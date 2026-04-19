@@ -6,7 +6,7 @@
 
 ## Executive Summary
 
-Echowright transforms passive audiobook listening into active literary engagement. Users can pause at any moment to speak with AI companions who understand exactly where they are in the story—asking questions, exploring themes, or getting in-character commentary from personas like Nick Carraway himself.
+Echowright transforms passive audiobook listening into active literary engagement. Users can pause at any moment to speak with AI companions who understand exactly where they are in the story-asking questions, exploring themes, or getting in-character commentary from personas like Nick Carraway himself.
 
 Unlike AI tools that reduce books to summaries, Echowright moves in the opposite direction: **amplifying meaning rather than flattening it**.
 
@@ -16,27 +16,27 @@ Unlike AI tools that reduce books to summaries, Echowright moves in the opposite
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                     CURRENT AUDIOBOOK EXPERIENCE                        │
+│ CURRENT AUDIOBOOK EXPERIENCE │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   User listening to "The Great Gatsby" Chapter 3...                     │
-│                                                                         │
-│   "Wait, who is Jordan Baker again?"                                    │
-│   "What did Gatsby mean by that?"                                       │
-│   "I missed something—can someone explain?"                             │
-│                                                                         │
-│   Options today:                                                        │
-│   ├── Rewind and relisten (tedious)                                     │
-│   ├── Google it (spoilers, context-free)                                │
-│   ├── Ask ChatGPT (generic, no story position awareness)                │
-│   └── Just keep listening confused (most common)                        │
-│                                                                         │
+│ │
+│ User listening to "The Great Gatsby" Chapter 3... │
+│ │
+│ "Wait, who is Jordan Baker again?" │
+│ "What did Gatsby mean by that?" │
+│ "I missed something-can someone explain?" │
+│ │
+│ Options today: │
+│ ├── Rewind and relisten (tedious) │
+│ ├── Google it (spoilers, context-free) │
+│ ├── Ask ChatGPT (generic, no story position awareness) │
+│ └── Just keep listening confused (most common) │
+│ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Pain points heard repeatedly from readers, students, and audiobook fans:**
 - "I wish I could pause and ask a character a question"
-- "I forgot who this character is—was she mentioned before?"
+- "I forgot who this character is-was she mentioned before?"
 - "I'm reading in Spanish and need help with this grammar construction"
 - "My student just wants the SparkNotes version instead of engaging with the text"
 
@@ -46,39 +46,39 @@ Unlike AI tools that reduce books to summaries, Echowright moves in the opposite
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                      ECHOWRIGHT EXPERIENCE                              │
+│ ECHOWRIGHT EXPERIENCE │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   ┌──────────────────────────────────────────────────────────┐          │
-│   │  🎧 The Great Gatsby                                     │          │
-│   │  Chapter 3 • 14:32 / 28:45                               │          │
-│   │  ════════════════●═══════════════════                    │          │
-│   │           ⏪  ▶  ⏩                                       │          │
-│   │                                                          │          │
-│   │  ┌────────────────────────────────────────────────────┐  │          │
-│   │  │  🎭 Ask AI                              [Persona ▼] │  │          │
-│   │  └────────────────────────────────────────────────────┘  │          │
-│   └──────────────────────────────────────────────────────────┘          │
-│                              │                                          │
-│                              ▼                                          │
-│   ┌──────────────────────────────────────────────────────────┐          │
-│   │  User: "Who is Jordan Baker?"                            │          │
-│   │                                                          │          │
-│   │  🎭 Nick Carraway:                                       │          │
-│   │  "Ah, Jordan. I met her just this evening at my         │          │
-│   │  cousin Daisy's house. She's a professional golfer,     │          │
-│   │  rather famous actually—you may have seen her picture   │          │
-│   │  in the sporting magazines. There's something           │          │
-│   │  incurably dishonest about her, though I couldn't       │          │
-│   │  quite put my finger on it at the time..."              │          │
-│   └──────────────────────────────────────────────────────────┘          │
-│                                                                         │
-│   The AI knows:                                                         │
-│   ├── Exact position in the audiobook (Chapter 3, 14:32)               │
-│   ├── What has been revealed so far (no spoilers)                      │
-│   ├── Character voice and literary tone                                │
-│   └── Surrounding context from the text                                │
-│                                                                         │
+│ │
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ The Great Gatsby │ │
+│ │ Chapter 3 • 14:32 / 28:45 │ │
+│ │ ════════════════●═══════════════════ │ │
+│ │ ▶ │ │
+│ │ │ │
+│ │ ┌────────────────────────────────────────────────────┐ │ │
+│ │ │ Ask AI [Persona ▼] │ │ │
+│ │ └────────────────────────────────────────────────────┘ │ │
+│ └──────────────────────────────────────────────────────────┘ │
+│ │ │
+│ ▼ │
+│ ┌──────────────────────────────────────────────────────────┐ │
+│ │ User: "Who is Jordan Baker?" │ │
+│ │ │ │
+│ │ Nick Carraway: │ │
+│ │ "Ah, Jordan. I met her just this evening at my │ │
+│ │ cousin Daisy's house. She's a professional golfer, │ │
+│ │ rather famous actually-you may have seen her picture │ │
+│ │ in the sporting magazines. There's something │ │
+│ │ incurably dishonest about her, though I couldn't │ │
+│ │ quite put my finger on it at the time..." │ │
+│ └──────────────────────────────────────────────────────────┘ │
+│ │
+│ The AI knows: │
+│ ├── Exact position in the audiobook (Chapter 3, 14:32) │
+│ ├── What has been revealed so far (no spoilers) │
+│ ├── Character voice and literary tone │
+│ └── Surrounding context from the text │
+│ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -88,34 +88,34 @@ Unlike AI tools that reduce books to summaries, Echowright moves in the opposite
 
 ### 1. Context-Aware AI Companion
 
-The AI knows exactly where you are in the book. Ask a question at Chapter 3, minute 14—and the AI responds based only on what's been revealed up to that point. No spoilers. No generic answers.
+The AI knows exactly where you are in the book. Ask a question at Chapter 3, minute 14-and the AI responds based only on what's been revealed up to that point. No spoilers. No generic answers.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   CONTEXT ENGINE                            │
+│ CONTEXT ENGINE │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│   Playback Position ──► Timestamp Matching ──► Text Window │
-│         │                                           │       │
-│         │                                           ▼       │
-│         │                              ┌─────────────────┐  │
-│         │                              │ "In my younger  │  │
-│         │                              │ and more        │  │
-│         │                              │ vulnerable      │  │
-│         │                              │ years..."       │  │
-│         │                              └─────────────────┘  │
-│         │                                           │       │
-│         ▼                                           ▼       │
-│   ┌───────────┐                           ┌─────────────┐   │
-│   │  User     │ ─────────────────────────►│   LLM       │   │
-│   │  Question │                           │   +Persona  │   │
-│   └───────────┘                           └─────────────┘   │
-│                                                   │         │
-│                                                   ▼         │
-│                                         Context-Aware       │
-│                                         In-Character        │
-│                                         Response            │
-│                                                             │
+│ │
+│ Playback Position ──► Timestamp Matching ──► Text Window │
+│ │ │ │
+│ │ ▼ │
+│ │ ┌─────────────────┐ │
+│ │ │ "In my younger │ │
+│ │ │ and more │ │
+│ │ │ vulnerable │ │
+│ │ │ years..." │ │
+│ │ └─────────────────┘ │
+│ │ │ │
+│ ▼ ▼ │
+│ ┌───────────┐ ┌─────────────┐ │
+│ │ User │ ─────────────────────────►│ LLM │ │
+│ │ Question │ │ +Persona │ │
+│ └───────────┘ └─────────────┘ │
+│ │ │
+│ ▼ │
+│ Context-Aware │
+│ In-Character │
+│ Response │
+│ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -133,34 +133,34 @@ Users select personas based on their goals:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                     PERSONA ARCHITECTURE                           │
+│ PERSONA ARCHITECTURE │
 ├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐           │
-│   │  Jay Gatsby │    │    Nick     │    │   Daisy     │           │
-│   │             │    │  Carraway   │    │  Buchanan   │           │
-│   │ "Old sport, │    │ "I found    │    │ "I hope     │           │
-│   │  let me     │    │  myself     │    │  she'll be  │           │
-│   │  tell you   │    │  thinking   │    │  a fool..." │           │
-│   │  about..."  │    │  about..."  │    │             │           │
-│   └─────────────┘    └─────────────┘    └─────────────┘           │
-│          │                  │                  │                   │
-│          └──────────────────┼──────────────────┘                   │
-│                             ▼                                      │
-│                    ┌─────────────────┐                             │
-│                    │  Persona Engine │                             │
-│                    │  ─────────────  │                             │
-│                    │  • Base prompt  │                             │
-│                    │  • Voice config │                             │
-│                    │  • TTS settings │                             │
-│                    │  • Boundaries   │                             │
-│                    └─────────────────┘                             │
-│                                                                    │
-│   Global Personas (available for all books):                       │
-│   ├── English Teacher (literary analysis)                         │
-│   ├── Language Tutor (vocabulary, grammar)                        │
-│   └── Reading Companion (general help)                            │
-│                                                                    │
+│ │
+│ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
+│ │ Jay Gatsby │ │ Nick │ │ Daisy │ │
+│ │ │ │ Carraway │ │ Buchanan │ │
+│ │ "Old sport, │ │ "I found │ │ "I hope │ │
+│ │ let me │ │ myself │ │ she'll be │ │
+│ │ tell you │ │ thinking │ │ a fool..." │ │
+│ │ about..." │ │ about..." │ │ │ │
+│ └─────────────┘ └─────────────┘ └─────────────┘ │
+│ │ │ │ │
+│ └──────────────────┼──────────────────┘ │
+│ ▼ │
+│ ┌─────────────────┐ │
+│ │ Persona Engine │ │
+│ │ ───────────── │ │
+│ │ • Base prompt │ │
+│ │ • Voice config │ │
+│ │ • TTS settings │ │
+│ │ • Boundaries │ │
+│ └─────────────────┘ │
+│ │
+│ Global Personas (available for all books): │
+│ ├── English Teacher (literary analysis) │
+│ ├── Language Tutor (vocabulary, grammar) │
+│ └── Reading Companion (general help) │
+│ │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -184,26 +184,26 @@ All the features expected from a modern audiobook app:
 
 ## Philosophy: Amplify, Don't Flatten
 
-> "Every word in a book is there for a reason—and every word NOT in a book is just as intentional."
+> "Every word in a book is there for a reason-and every word NOT in a book is just as intentional."
 
 ### What We're NOT Building
 
 ```
-❌ SparkNotes replacement
-❌ "Give me the summary" button
-❌ AI that spoils endings
-❌ Generic chatbot bolted onto an audiobook
-❌ AI-generated stories detached from original works
+ SparkNotes replacement
+ "Give me the summary" button
+ AI that spoils endings
+ Generic chatbot bolted onto an audiobook
+ AI-generated stories detached from original works
 ```
 
 ### What We ARE Building
 
 ```
-✅ Bridge into deeper understanding
-✅ AI that respects author's intent
-✅ Personas that stay in-character and in-context
-✅ Tool that makes you want to engage MORE with the text
-✅ Educational companion that promotes critical thinking
+ Bridge into deeper understanding
+ AI that respects author's intent
+ Personas that stay in-character and in-context
+ Tool that makes you want to engage MORE with the text
+ Educational companion that promotes critical thinking
 ```
 
 ### Author Partnership Philosophy
@@ -241,22 +241,22 @@ We work directly with authors to:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                    COMPETITIVE MATRIX                              │
+│ COMPETITIVE MATRIX │
 ├──────────────────┬───────────┬───────────┬───────────┬────────────┤
-│                  │  Audible  │ AI Story  │ ChatGPT   │ Echowright │
-│                  │  /Libby   │ Startups  │ + Books   │            │
+│ │ Audible │ AI Story │ ChatGPT │ Echowright │
+│ │ /Libby │ Startups │ + Books │ │
 ├──────────────────┼───────────┼───────────┼───────────┼────────────┤
-│ Real audiobooks  │    ✅     │    ❌     │    ❌     │     ✅     │
-│ AI companion     │    ❌     │    ✅     │    ✅     │     ✅     │
-│ Context-aware    │    ❌     │    ❌     │    ❌     │     ✅     │
-│ In-character     │    ❌     │    ❌     │    ❌     │     ✅     │
-│ No spoilers      │    N/A    │    ❌     │    ❌     │     ✅     │
-│ Author-approved  │    N/A    │    ❌     │    ❌     │     ✅     │
-│ Educational      │    ❌     │    ❌     │    ⚠️     │     ✅     │
+│ Real audiobooks │ │ │ │ │
+│ AI companion │ │ │ │ │
+│ Context-aware │ │ │ │ │
+│ In-character │ │ │ │ │
+│ No spoilers │ N/A │ │ │ │
+│ Author-approved │ N/A │ │ │ │
+│ Educational │ │ │ │ │
 └──────────────────┴───────────┴───────────┴───────────┴────────────┘
 ```
 
-**Our unfair advantage:** This isn't about having a smart AI. It's about building a *personalized interaction with the book*—grounded in real context, authorial intent, and careful prompt design.
+**Our unfair advantage:** This isn't about having a smart AI. It's about building a *personalized interaction with the book*-grounded in real context, authorial intent, and careful prompt design.
 
 ---
 
@@ -266,27 +266,27 @@ We work directly with authors to:
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│                    REVENUE MODEL                                   │
+│ REVENUE MODEL │
 ├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   1. CONSUMER SUBSCRIPTION                                         │
-│   ├── Free tier: Limited AI questions/month                       │
-│   ├── Premium ($8/mo): Unlimited AI, all personas                 │
-│   └── Annual ($72/yr): 25% discount                               │
-│                                                                    │
-│   2. PREMIUM PERSONAS                                              │
-│   ├── Author-created custom companions                            │
-│   └── Enhanced editions with exclusive content                    │
-│                                                                    │
-│   3. INSTITUTIONAL LICENSING                                       │
-│   ├── Schools and universities                                    │
-│   ├── Curriculum-aligned AI companions                            │
-│   └── Classroom dashboards and analytics                          │
-│                                                                    │
-│   4. AUTHOR PARTNERSHIPS                                           │
-│   ├── Revenue share on enhanced editions                          │
-│   └── Custom persona development services                         │
-│                                                                    │
+│ │
+│ 1. CONSUMER SUBSCRIPTION │
+│ ├── Free tier: Limited AI questions/month │
+│ ├── Premium ($8/mo): Unlimited AI, all personas │
+│ └── Annual ($72/yr): 25% discount │
+│ │
+│ 2. PREMIUM PERSONAS │
+│ ├── Author-created custom companions │
+│ └── Enhanced editions with exclusive content │
+│ │
+│ 3. INSTITUTIONAL LICENSING │
+│ ├── Schools and universities │
+│ ├── Curriculum-aligned AI companions │
+│ └── Classroom dashboards and analytics │
+│ │
+│ 4. AUTHOR PARTNERSHIPS │
+│ ├── Revenue share on enhanced editions │
+│ └── Custom persona development services │
+│ │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -316,49 +316,49 @@ SOM (Realistic Target):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         SYSTEM ARCHITECTURE                             │
+│ SYSTEM ARCHITECTURE │
 ├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   ┌─────────────────┐                                                   │
-│   │   Web Browser   │ ◄────────────────────────────────────────┐        │
-│   │   (Port 3000)   │                                          │        │
-│   └────────┬────────┘                                          │        │
-│            │                                                   │        │
-│            │ HTTP                                              │        │
-│            ▼                                                   │        │
-│   ┌─────────────────────────────────────────────────────────┐  │        │
-│   │                    API GATEWAY                          │  │        │
-│   │                    (Port 8000)                          │  │        │
-│   ├─────────────────────────────────────────────────────────┤  │        │
-│   │  • Authentication (JWT)                                 │  │        │
-│   │  • Book catalog & library management                    │  │        │
-│   │  • Credit-based purchase system                         │  │        │
-│   │  • Audio streaming (/audio/stream/{book}/{chapter})     │  │        │
-│   │  • Persona management                                   │  │        │
-│   └────────┬───────────────────────────────┬────────────────┘  │        │
-│            │                               │                   │        │
-│            ▼                               ▼                   │        │
-│   ┌─────────────────┐             ┌─────────────────┐         │        │
-│   │   PostgreSQL    │             │   LLM Gateway   │         │        │
-│   │   ───────────   │             │   (Port 8002)   │         │        │
-│   │   • Users       │             ├─────────────────┤         │        │
-│   │   • Books       │             │ Azure OpenAI    │◄────────┘        │
-│   │   • Purchases   │             │ (or Ollama)     │                  │
-│   │   • Personas    │             │                 │                  │
-│   │   • Progress    │             │ Semantic Cache  │                  │
-│   └─────────────────┘             └─────────────────┘                  │
-│                                                                         │
-│   ┌─────────────────────────────────────────────────────────┐          │
-│   │                    BOOK FILES                            │          │
-│   │   /book_files/                                          │          │
-│   │   ├── The Great Gatsby/                                 │          │
-│   │   │   ├── Chapter 1.mp3                                 │          │
-│   │   │   ├── Chapter 2.mp3                                 │          │
-│   │   │   └── personas/                                     │          │
-│   │   ├── Moby Dick/                                        │          │
-│   │   └── Alice in Wonderland/                              │          │
-│   └─────────────────────────────────────────────────────────┘          │
-│                                                                         │
+│ │
+│ ┌─────────────────┐ │
+│ │ Web Browser │ ◄────────────────────────────────────────┐ │
+│ │ (Port 3000) │ │ │
+│ └────────┬────────┘ │ │
+│ │ │ │
+│ │ HTTP │ │
+│ ▼ │ │
+│ ┌─────────────────────────────────────────────────────────┐ │ │
+│ │ API GATEWAY │ │ │
+│ │ (Port 8000) │ │ │
+│ ├─────────────────────────────────────────────────────────┤ │ │
+│ │ • Authentication (JWT) │ │ │
+│ │ • Book catalog & library management │ │ │
+│ │ • Credit-based purchase system │ │ │
+│ │ • Audio streaming (/audio/stream/{book}/{chapter}) │ │ │
+│ │ • Persona management │ │ │
+│ └────────┬───────────────────────────────┬────────────────┘ │ │
+│ │ │ │ │
+│ ▼ ▼ │ │
+│ ┌─────────────────┐ ┌─────────────────┐ │ │
+│ │ PostgreSQL │ │ LLM Gateway │ │ │
+│ │ ─────────── │ │ (Port 8002) │ │ │
+│ │ • Users │ ├─────────────────┤ │ │
+│ │ • Books │ │ Azure OpenAI │◄────────┘ │
+│ │ • Purchases │ │ (or Ollama) │ │
+│ │ • Personas │ │ │ │
+│ │ • Progress │ │ Semantic Cache │ │
+│ └─────────────────┘ └─────────────────┘ │
+│ │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ BOOK FILES │ │
+│ │ /book_files/ │ │
+│ │ ├── The Great Gatsby/ │ │
+│ │ │ ├── Chapter 1.mp3 │ │
+│ │ │ ├── Chapter 2.mp3 │ │
+│ │ │ └── personas/ │ │
+│ │ ├── Moby Dick/ │ │
+│ │ └── Alice in Wonderland/ │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -377,21 +377,21 @@ SOM (Realistic Target):
 
 ```
 Authentication:
-POST /auth/signup          - Create account
-POST /auth/signin          - Login, get JWT token
+POST /auth/signup - Create account
+POST /auth/signin - Login, get JWT token
 
 Bookstore:
-GET  /bookstore/browse     - List available books
-GET  /bookstore/user/library - User's purchased books
-GET  /bookstore/user/credits - Credit balance
-POST /bookstore/purchase   - Buy a book
+GET /bookstore/browse - List available books
+GET /bookstore/user/library - User's purchased books
+GET /bookstore/user/credits - Credit balance
+POST /bookstore/purchase - Buy a book
 
 Audio:
-GET  /audio/stream/{book}/{chapter}.mp3 - Stream audio
+GET /audio/stream/{book}/{chapter}.mp3 - Stream audio
 
 AI Chat:
-GET  /bookstore/books/{id}/personas - Get book's personas
-POST /complete             - AI completion (LLM Gateway)
+GET /bookstore/books/{id}/personas - Get book's personas
+POST /complete - AI completion (LLM Gateway)
 ```
 
 ---
@@ -401,49 +401,49 @@ POST /complete             - AI completion (LLM Gateway)
 ### Phase 1: MVP (Current)
 
 ```
-✅ Basic audiobook player with chapter navigation
-✅ AI chat with book personas
-✅ Credit-based purchase system
-✅ User authentication
-✅ Progress saving and resume
-✅ Web app interface
+ Basic audiobook player with chapter navigation
+ AI chat with book personas
+ Credit-based purchase system
+ User authentication
+ Progress saving and resume
+ Web app interface
 ```
 
 ### Phase 2: Enhanced AI
 
 ```
-⬜ Context engine (timestamp → text mapping)
-⬜ Spoiler prevention system
-⬜ Multiple persona types per book
-⬜ Conversation memory within session
-⬜ Voice input (speech-to-text)
+ Context engine (timestamp → text mapping)
+ Spoiler prevention system
+ Multiple persona types per book
+ Conversation memory within session
+ Voice input (speech-to-text)
 ```
 
 ### Phase 3: Voice Experience
 
 ```
-⬜ TTS responses in persona voice
-⬜ Hands-free voice interaction
-⬜ Wake word detection
-⬜ Ambient listening mode
+ TTS responses in persona voice
+ Hands-free voice interaction
+ Wake word detection
+ Ambient listening mode
 ```
 
 ### Phase 4: Platform Expansion
 
 ```
-⬜ iOS native app
-⬜ Android native app
-⬜ Offline mode with downloaded AI
-⬜ E-book support (not just audio)
+ iOS native app
+ Android native app
+ Offline mode with downloaded AI
+ E-book support (not just audio)
 ```
 
 ### Phase 5: Ecosystem
 
 ```
-⬜ Author dashboard for persona creation
-⬜ Institutional/classroom features
-⬜ Reading groups and social features
-⬜ Custom book imports
+ Author dashboard for persona creation
+ Institutional/classroom features
+ Reading groups and social features
+ Custom book imports
 ```
 
 ---
@@ -454,14 +454,14 @@ POST /complete             - AI completion (LLM Gateway)
 
 | Feature | Status |
 |---------|--------|
-| User registration/login | ✅ Working |
-| Book browsing | ✅ Working |
-| Credit purchases | ✅ Working |
-| Audio playback | ✅ Working |
-| Chapter navigation | ✅ Working |
-| Progress saving | ✅ Working |
-| AI chat | ✅ Working |
-| Persona system | ✅ Basic |
+| User registration/login | Working |
+| Book browsing | Working |
+| Credit purchases | Working |
+| Audio playback | Working |
+| Chapter navigation | Working |
+| Progress saving | Working |
+| AI chat | Working |
+| Persona system | Basic |
 
 ### Sample Content
 
@@ -523,15 +523,15 @@ When described to others, consistent reaction: **"aha" moment**. People immediat
 
 ### 4. Defensible Differentiation
 
-Not just "smart AI" but **personalized interaction with the book**—grounded in real context, authorial intent, and careful design.
+Not just "smart AI" but **personalized interaction with the book**-grounded in real context, authorial intent, and careful design.
 
 ---
 
 ## Vision Statement
 
-> In an age where AI tools increasingly reduce books to summaries, Echowright moves in the opposite direction. By making deep reading more interactive, it gives students and audiobook fans the ability to go beyond passive listening—to ask questions, get in-character commentary, and explore ideas in real time.
+> In an age where AI tools increasingly reduce books to summaries, Echowright moves in the opposite direction. By making deep reading more interactive, it gives students and audiobook fans the ability to go beyond passive listening-to ask questions, get in-character commentary, and explore ideas in real time.
 >
-> More than just a utility, Echowright is built to preserve the author's intent and do justice to the literary art—**amplifying meaning rather than flattening it**, enhancing comprehension without replacing the work itself.
+> More than just a utility, Echowright is built to preserve the author's intent and do justice to the literary art-**amplifying meaning rather than flattening it**, enhancing comprehension without replacing the work itself.
 >
 > It's an AI experience that respects the text while empowering the reader.
 

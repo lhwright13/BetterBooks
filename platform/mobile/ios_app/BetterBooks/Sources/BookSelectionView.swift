@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Screen 1: Choose a book — clean grid, echoWright branding, no auth
+/// Screen 1: Choose a book - clean grid, echoWright branding, no auth
 struct BookSelectionView: View {
     @EnvironmentObject var appState: AppState
     @State private var books: [Book] = []

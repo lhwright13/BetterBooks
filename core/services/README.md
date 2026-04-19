@@ -24,16 +24,16 @@ email_service = EmailService()
 
 # Send verification email
 await email_service.send_verification_email(
-    email="user@example.com",
-    verification_token="abc123",
-    user_name="John Doe"
+ email="user@example.com",
+ verification_token="abc123",
+ user_name="John Doe"
 )
 
 # Send welcome email
 await email_service.send_welcome_email(
-    email="user@example.com",
-    user_name="John Doe",
-    subscription_plan="premium"
+ email="user@example.com",
+ user_name="John Doe",
+ subscription_plan="premium"
 )
 ```
 
@@ -55,14 +55,14 @@ Email templates are stored in `templates/email/` and support:
 
 ```mermaid
 graph TD
-    A[API Endpoints] --> B[Email Service]
-    B --> C[SendGrid Provider]
-    B --> D[AWS SES Provider]
-    B --> E[Template Engine]
-    B --> F[Retry Logic]
-    F --> G[Error Logging]
-    E --> H[HTML Templates]
-    E --> I[Plain Text Templates]
+ A[API Endpoints] --> B[Email Service]
+ B --> C[SendGrid Provider]
+ B --> D[AWS SES Provider]
+ B --> E[Template Engine]
+ B --> F[Retry Logic]
+ F --> G[Error Logging]
+ E --> H[HTML Templates]
+ E --> I[Plain Text Templates]
 ```
 
 ## Adding New Services
@@ -94,32 +94,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 class NewService:
-    """Service for handling specific functionality"""
-    
-    def __init__(self):
-        self.config = self._load_config()
-    
-    def _load_config(self) -> Dict[str, Any]:
-        """Load service configuration"""
-        return {
-            'api_key': settings.NEW_SERVICE_API_KEY,
-            'timeout': settings.NEW_SERVICE_TIMEOUT,
-        }
-    
-    async def primary_method(self, param: str) -> bool:
-        """Main service method"""
-        try:
-            # Service implementation
-            result = await self._perform_operation(param)
-            logger.info(f"Service operation completed: {result}")
-            return True
-        except Exception as e:
-            logger.error(f"Service operation failed: {e}")
-            return False
-    
-    async def _perform_operation(self, param: str) -> Any:
-        """Private method for actual operation"""
-        pass
+ """Service for handling specific functionality"""
+
+ def __init__(self):
+ self.config = self._load_config()
+
+ def _load_config(self) -> Dict[str, Any]:
+ """Load service configuration"""
+ return {
+ 'api_key': settings.NEW_SERVICE_API_KEY,
+ 'timeout': settings.NEW_SERVICE_TIMEOUT,
+ }
+
+ async def primary_method(self, param: str) -> bool:
+ """Main service method"""
+ try:
+ # Service implementation
+ result = await self._perform_operation(param)
+ logger.info(f"Service operation completed: {result}")
+ return True
+ except Exception as e:
+ logger.error(f"Service operation failed: {e}")
+ return False
+
+ async def _perform_operation(self, param: str) -> Any:
+ """Private method for actual operation"""
+ pass
 ```
 
 ## Testing Services
@@ -133,24 +133,24 @@ from core.services.new_service import NewService
 
 @pytest.mark.asyncio
 async def test_new_service_success():
-    service = NewService()
-    
-    with patch('core.services.new_service.external_api') as mock_api:
-        mock_api.return_value = {"status": "success"}
-        
-        result = await service.primary_method("test_param")
-        assert result is True
-        mock_api.assert_called_once_with("test_param")
+ service = NewService()
+
+ with patch('core.services.new_service.external_api') as mock_api:
+ mock_api.return_value = {"status": "success"}
+
+ result = await service.primary_method("test_param")
+ assert result is True
+ mock_api.assert_called_once_with("test_param")
 
 @pytest.mark.asyncio
 async def test_new_service_failure():
-    service = NewService()
-    
-    with patch('core.services.new_service.external_api') as mock_api:
-        mock_api.side_effect = Exception("API Error")
-        
-        result = await service.primary_method("test_param")
-        assert result is False
+ service = NewService()
+
+ with patch('core.services.new_service.external_api') as mock_api:
+ mock_api.side_effect = Exception("API Error")
+
+ result = await service.primary_method("test_param")
+ assert result is False
 ```
 
 ## Error Handling
@@ -158,7 +158,7 @@ async def test_new_service_failure():
 All services follow standardized error handling:
 
 1. **Graceful Degradation:** Services should fail gracefully
-2. **Retry Logic:** Implement exponential backoff for transient failures  
+2. **Retry Logic:** Implement exponential backoff for transient failures 
 3. **Logging:** Comprehensive error logging with context
 4. **Monitoring:** Integration with application monitoring systems
 5. **Fallbacks:** Backup providers or alternative methods where possible

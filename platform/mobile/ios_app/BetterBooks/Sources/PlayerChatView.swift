@@ -174,7 +174,7 @@ struct PlayerChatView: View {
                 .font(EW.Fonts.heading(17))
                 .foregroundColor(EW.Colors.darkSoft)
 
-            Text("Press play to start listening. Ask me anything about \(book.title) — I'll keep it spoiler-free based on where you are.")
+            Text("Press play to start listening. Ask me anything about \(book.title) - I'll keep it spoiler-free based on where you are.")
                 .font(EW.Fonts.caption(14))
                 .foregroundColor(EW.Colors.gray)
                 .multilineTextAlignment(.center)

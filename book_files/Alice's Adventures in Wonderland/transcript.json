@@ -1,0 +1,309 @@
+{
+  "book_id": "alices-adventures-in-wonderland",
+  "title": "Alice's Adventures in Wonderland",
+  "author": "Lewis Carroll",
+  "total_chapters": 12,
+  "note": "Placeholder transcript. Run scripts/generate_transcripts.py for accurate timestamps.",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "Down the Rabbit-Hole",
+      "duration_seconds": 480,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 160.0,
+          "text": "Chapter begins with Alice sitting by the riverbank with her sister."
+        },
+        {
+          "index": 1,
+          "start": 160.0,
+          "end": 320.0,
+          "text": "Alice notices a white rabbit and follows it."
+        },
+        {
+          "index": 2,
+          "start": 320.0,
+          "end": 480.0,
+          "text": "Alice falls down the rabbit-hole into a long passage."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "title": "The Pool of Tears",
+      "duration_seconds": 520,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 170.0,
+          "text": "Alice discovers changes in her size after drinking from a bottle."
+        },
+        {
+          "index": 1,
+          "start": 170.0,
+          "end": 340.0,
+          "text": "Alice becomes upset and begins to cry."
+        },
+        {
+          "index": 2,
+          "start": 340.0,
+          "end": 520.0,
+          "text": "Alice encounters various creatures in the pool of her tears."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "title": "A Caucus-Race and a Long Tale",
+      "duration_seconds": 450,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 150.0,
+          "text": "Alice and the creatures attempt to dry off on the shore."
+        },
+        {
+          "index": 1,
+          "start": 150.0,
+          "end": 300.0,
+          "text": "The Dodo proposes a caucus-race to get dry."
+        },
+        {
+          "index": 2,
+          "start": 300.0,
+          "end": 450.0,
+          "text": "The Mouse tells a long tale about its history."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "title": "The Rabbit Sends in a Little Bill",
+      "duration_seconds": 550,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 180.0,
+          "text": "Alice encounters the White Rabbit again who mistakes her for his servant."
+        },
+        {
+          "index": 1,
+          "start": 180.0,
+          "end": 370.0,
+          "text": "Alice grows very large inside the Rabbit's house."
+        },
+        {
+          "index": 2,
+          "start": 370.0,
+          "end": 550.0,
+          "text": "Bill the Lizard is sent down the chimney to investigate."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "title": "Advice from a Caterpillar",
+      "duration_seconds": 500,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 170.0,
+          "text": "Alice meets a Caterpillar sitting on a mushroom."
+        },
+        {
+          "index": 1,
+          "start": 170.0,
+          "end": 340.0,
+          "text": "The Caterpillar questions Alice about her identity."
+        },
+        {
+          "index": 2,
+          "start": 340.0,
+          "end": 500.0,
+          "text": "Alice learns about the mushroom's properties from the Caterpillar."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "title": "Pig and Pepper",
+      "duration_seconds": 580,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 190.0,
+          "text": "Alice arrives at a house and meets a footman and a frog."
+        },
+        {
+          "index": 1,
+          "start": 190.0,
+          "end": 390.0,
+          "text": "Alice enters a kitchen full of pepper and meets the Duchess."
+        },
+        {
+          "index": 2,
+          "start": 390.0,
+          "end": 580.0,
+          "text": "Alice takes care of a baby that transforms into a pig."
+        }
+      ]
+    },
+    {
+      "chapter": 7,
+      "title": "A Mad Tea-Party",
+      "duration_seconds": 600,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 200.0,
+          "text": "Alice arrives at a tea party hosted by the March Hare and Hatter."
+        },
+        {
+          "index": 1,
+          "start": 200.0,
+          "end": 400.0,
+          "text": "The group engages in nonsensical conversation and riddles."
+        },
+        {
+          "index": 2,
+          "start": 400.0,
+          "end": 600.0,
+          "text": "Alice becomes frustrated with the strange tea party and leaves."
+        }
+      ]
+    },
+    {
+      "chapter": 8,
+      "title": "The Queen's Croquet-Ground",
+      "duration_seconds": 560,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 180.0,
+          "text": "Alice enters a garden where playing cards are painting roses."
+        },
+        {
+          "index": 1,
+          "start": 180.0,
+          "end": 370.0,
+          "text": "Alice meets the King and Queen of Hearts."
+        },
+        {
+          "index": 2,
+          "start": 370.0,
+          "end": 560.0,
+          "text": "Alice participates in a chaotic croquet game with live flamingos and hedgehogs."
+        }
+      ]
+    },
+    {
+      "chapter": 9,
+      "title": "The Mock Turtle's Story",
+      "duration_seconds": 540,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 180.0,
+          "text": "Alice speaks with the Duchess about morals."
+        },
+        {
+          "index": 1,
+          "start": 180.0,
+          "end": 360.0,
+          "text": "Alice meets the Gryphon who takes her to see the Mock Turtle."
+        },
+        {
+          "index": 2,
+          "start": 360.0,
+          "end": 540.0,
+          "text": "The Mock Turtle tells Alice about his education and past."
+        }
+      ]
+    },
+    {
+      "chapter": 10,
+      "title": "The Lobster Quadrille",
+      "duration_seconds": 480,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 160.0,
+          "text": "The Mock Turtle and Gryphon describe the Lobster Quadrille dance."
+        },
+        {
+          "index": 1,
+          "start": 160.0,
+          "end": 320.0,
+          "text": "Alice recites verses at the request of the creatures."
+        },
+        {
+          "index": 2,
+          "start": 320.0,
+          "end": 480.0,
+          "text": "Alice is called away to attend a trial."
+        }
+      ]
+    },
+    {
+      "chapter": 11,
+      "title": "Who Stole the Tarts?",
+      "duration_seconds": 420,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 140.0,
+          "text": "Alice arrives at a courtroom where the Knave of Hearts is on trial."
+        },
+        {
+          "index": 1,
+          "start": 140.0,
+          "end": 280.0,
+          "text": "Various witnesses are called to testify about the stolen tarts."
+        },
+        {
+          "index": 2,
+          "start": 280.0,
+          "end": 420.0,
+          "text": "Alice begins to grow larger during the proceedings."
+        }
+      ]
+    },
+    {
+      "chapter": 12,
+      "title": "Alice's Evidence",
+      "duration_seconds": 450,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 150.0,
+          "text": "Alice is called as a witness in the trial."
+        },
+        {
+          "index": 1,
+          "start": 150.0,
+          "end": 300.0,
+          "text": "The trial becomes increasingly chaotic and absurd."
+        },
+        {
+          "index": 2,
+          "start": 300.0,
+          "end": 450.0,
+          "text": "Alice awakens from her dream by the riverbank."
+        }
+      ]
+    }
+  ]
+}

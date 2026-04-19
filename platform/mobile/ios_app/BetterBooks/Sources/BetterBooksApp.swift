@@ -12,7 +12,7 @@ struct BetterBooksApp: App {
     }
 }
 
-/// Global app state — demo mode, no auth required
+/// Global app state - demo mode, no auth required
 @MainActor
 class AppState: ObservableObject {
     // Navigation

@@ -33,34 +33,34 @@ uvicorn main:app --reload
 ### User Registration
 ```bash
 curl -X POST localhost:8000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "john_doe",
-    "email": "john@example.com", 
-    "password": "secure_password123"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "username": "john_doe",
+ "email": "john@example.com", 
+ "password": "secure_password123"
+ }'
 ```
 
 ### User Login
 ```bash
 curl -X POST localhost:8000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "john@example.com",
-    "password": "secure_password123"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "email": "john@example.com",
+ "password": "secure_password123"
+ }'
 ```
 
 ### Get User Profile
 ```bash
 curl -X GET localhost:8000/auth/me \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Token Refresh
 ```bash
 curl -X POST localhost:8000/auth/refresh \
-  -H "Authorization: Bearer YOUR_REFRESH_TOKEN"
+ -H "Authorization: Bearer YOUR_REFRESH_TOKEN"
 ```
 
 ## API Endpoints
@@ -70,15 +70,15 @@ curl -X POST localhost:8000/auth/refresh \
 ```bash
 # Complete a prompt using the LLM
 curl -X POST localhost:8000/complete \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"prompt":"Tell me a joke"}'
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+ -d '{"prompt":"Tell me a joke"}'
 
 # Convert text to speech
 curl -X POST localhost:8000/tts \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -d '{"text":"Hello"}'
+ -H "Content-Type: application/json" \
+ -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+ -d '{"text":"Hello"}'
 ```
 
 ### Book Management
@@ -86,11 +86,11 @@ curl -X POST localhost:8000/tts \
 ```bash
 # List available books
 curl -X GET localhost:8000/books/list \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Stream book chapter
 curl -X GET localhost:8000/books/play/The%20Great%20Gatsby/Chapter%201.mp3 \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ## Rate Limiting
@@ -100,7 +100,7 @@ The API Gateway implements subscription-tiered rate limiting with different limi
 ### Subscription Tiers
 - **FREE**: Basic limits for trial users
 - **PREMIUM**: Higher limits for paying customers
-- **EDUCATIONAL**: Special rates for students and teachers  
+- **EDUCATIONAL**: Special rates for students and teachers 
 - **ADMIN**: Unrestricted access for platform administration
 
 ### Rate Limits by Operation Type
@@ -187,26 +187,26 @@ wscat -c "ws://localhost:8000/audio/voice-chat/shakespeare_tutor"
 ```bash
 # Get user engagement metrics
 curl -X GET "localhost:8000/analytics/users/user123/engagement?period=7d" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Get persona effectiveness
 curl -X GET "localhost:8000/analytics/personas/shakespeare_tutor/effectiveness?period=30d" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Get popular content
 curl -X GET "localhost:8000/analytics/content/popular?limit=10&period=7d" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+ -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ### Rate Limiting Status
 ```bash
 # Check current rate limit status
 curl -X GET "localhost:8000/admin/rate-limit-status?user_id=user123" \
-  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+ -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 
 # Reset rate limits (admin only)
 curl -X POST "localhost:8000/admin/rate-limit-reset?user_id=user123" \
-  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+ -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
 ## Health Checks
@@ -218,7 +218,7 @@ curl -X POST "localhost:8000/admin/rate-limit-reset?user_id=user123" \
 - **Ready**: `GET /health/ready` (Kubernetes readiness probe)
 - **Live**: `GET /health/live` (Kubernetes liveness probe)
 
-### Infrastructure Health Checks  
+### Infrastructure Health Checks 
 - **Rate Limiter**: `GET /admin/rate-limiter/health`
 - **Analytics**: `GET /admin/analytics/health`
 - **Audio Pipeline**: `GET /admin/audio/health`
@@ -230,24 +230,24 @@ The API Gateway now integrates with three major infrastructure components:
 
 ```mermaid
 graph TD
-    A[Mobile/Web Client] --> B[API Gateway]
-    B --> C[Rate Limiter]
-    B --> D[Analytics Collector]  
-    B --> E[Audio Processor]
-    
-    C --> F[Redis DB 2]
-    D --> G[Redis DB 1]
-    D --> H[PostgreSQL]
-    E --> I[Redis DB 3]
-    E --> J[TTS Service]
-    
-    B --> K[LLM Gateway]
-    B --> L[Context Service]
-    B --> M[TTS Service]
-    
-    N[WebSocket Connections] --> E
-    O[Real-time Analytics] --> D
-    P[Subscription Tiers] --> C
+ A[Mobile/Web Client] --> B[API Gateway]
+ B --> C[Rate Limiter]
+ B --> D[Analytics Collector] 
+ B --> E[Audio Processor]
+
+ C --> F[Redis DB 2]
+ D --> G[Redis DB 1]
+ D --> H[PostgreSQL]
+ E --> I[Redis DB 3]
+ E --> J[TTS Service]
+
+ B --> K[LLM Gateway]
+ B --> L[Context Service]
+ B --> M[TTS Service]
+
+ N[WebSocket Connections] --> E
+ O[Real-time Analytics] --> D
+ P[Subscription Tiers] --> C
 ```
 
 ### Database Usage
@@ -263,18 +263,18 @@ graph TD
 ```bash
 # Test rate limiting
 curl -X POST "localhost:8000/admin/test-rate-limit" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id": "test_user", "operation": "LLM_INTERACTION", "count": 25}'
+ -H "Content-Type: application/json" \
+ -d '{"user_id": "test_user", "operation": "LLM_INTERACTION", "count": 25}'
 
 # Test analytics collection
 curl -X POST "localhost:8000/admin/test-analytics" \
-  -H "Content-Type: application/json" \
-  -d '{"event_type": "AI_CONVERSATION_START", "user_id": "test_user"}'
+ -H "Content-Type: application/json" \
+ -d '{"event_type": "AI_CONVERSATION_START", "user_id": "test_user"}'
 
 # Test audio streaming
 curl -X POST "localhost:8000/admin/test-audio-tts" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Hello from EchoWright!", "voice": "neural_sarah"}'
+ -H "Content-Type: application/json" \
+ -d '{"text": "Hello from EchoWright!", "voice": "neural_sarah"}'
 ```
 
 ### Database Migrations

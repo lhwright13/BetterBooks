@@ -27,9 +27,19 @@ override.tf.json
 # Node modules
 node_modules/
 
-# Book files - MP3 audiobooks should not be committed
-book_files/
+# Book files: audio and cover images are not committed.
+# Persona JSON and transcript metadata under book_files/ ARE tracked.
+book_files/*
+!book_files/README.md
+!book_files/*/
+book_files/*/*
+!book_files/*/transcript.json
+!book_files/*/personas/
+!book_files/*/personas/*.json
 *.mp3
+*.m4a
+*.wav
+*.flac
 
 # Transcription cache
 transcript_cache/
@@ -45,7 +55,7 @@ transcript_cache/
 .DS_Store
 Thumbs.db
 
-# Claude Code local settings
+# Local tooling and editor configs
 .claude/
 
 # Environment and secrets
@@ -54,9 +64,24 @@ Thumbs.db
 .env.*.local
 *.pem
 *.key
+*.p12
+*.pfx
+*.keystore
+credentials*.json
+service-account*.json
+GoogleService-Info*.plist
+firebase-*.json
 
-# Project-specific exclusions
+# Local tooling docs (not published)
 CLAUDE.md
+PROJECT_STATUS.md
+
+# iOS / Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcuserdatad/
 
 # Logs
 *.log

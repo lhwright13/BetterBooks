@@ -152,16 +152,16 @@ The BetterBooks API Gateway is **largely functional** with most core endpoints w
 - **Endpoint:** `POST /bookstore/user/bookmarks`
 - **Error:** `"Failed to save bookmark"`
 - **Root Cause:** Schema mismatch between code and database
-  - Code uses `position` (float) but table has `position_seconds` (integer)
-  - Code uses `note` (singular) but table has `notes` (plural)
+ - Code uses `position` (float) but table has `position_seconds` (integer)
+ - Code uses `note` (singular) but table has `notes` (plural)
 - **Location:** `/platform/backend/services/api_gateway/db_utils.py` lines 1098-1101
 - **Fix:**
-  ```python
-  cur.execute("""
-      INSERT INTO user_bookmarks (id, user_id, book_id, position_seconds, notes, created_at)
-      VALUES (%s, %s, %s, %s, %s, NOW())
-  """, (bookmark_id, user_id, book_id, int(position), note))
-  ```
+ ```python
+ cur.execute("""
+ INSERT INTO user_bookmarks (id, user_id, book_id, position_seconds, notes, created_at)
+ VALUES (%s, %s, %s, %s, %s, NOW())
+ """, (bookmark_id, user_id, book_id, int(position), note))
+ ```
 
 #### Issue #2: Wishlist Retrieval Bug
 - **Severity:** High
@@ -214,19 +214,19 @@ The BetterBooks API Gateway is **largely functional** with most core endpoints w
 ## Database Integrity
 
 ```
-Table                   | Records
+Table | Records
 ------------------------|--------
-books                   | 3
-users                   | 18
-user_credits            | 14
-user_library            | 17
-user_purchases          | 16
-personas                | 6
-book_chapters           | 14
-book_categories         | 6
-user_wishlist           | 0
-user_reading_progress   | 2
-user_bookmarks          | 0
+books | 3
+users | 18
+user_credits | 14
+user_library | 17
+user_purchases | 16
+personas | 6
+book_chapters | 14
+book_categories | 6
+user_wishlist | 0
+user_reading_progress | 2
+user_bookmarks | 0
 ```
 
 Database properly initialized with sample data.

@@ -1,0 +1,522 @@
+{
+  "book_id": "odyssey",
+  "title": "The Odyssey",
+  "author": "Homer",
+  "total_chapters": 24,
+  "note": "Placeholder transcript. Run scripts/generate_transcripts.py for accurate timestamps.",
+  "chapters": [
+    {
+      "chapter_number": 1,
+      "title": "Book 1",
+      "duration_seconds": 1385,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 460,
+          "text": "The book opens with an invocation to the Muse and introduces the hero's situation after the fall of Troy."
+        },
+        {
+          "start_time": 460,
+          "end_time": 920,
+          "text": "This section describes the assembly of the gods and their discussion about the hero's fate."
+        },
+        {
+          "start_time": 920,
+          "end_time": 1385,
+          "text": "The narrative shifts to events at the hero's home and the challenges faced by his household."
+        }
+      ]
+    },
+    {
+      "chapter_number": 2,
+      "title": "Book 2",
+      "duration_seconds": 1403,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 470,
+          "text": "This section opens with preparations for an important assembly among the people."
+        },
+        {
+          "start_time": 470,
+          "end_time": 940,
+          "text": "The assembly convenes and various speakers address the gathered crowd about pressing matters."
+        },
+        {
+          "start_time": 940,
+          "end_time": 1403,
+          "text": "The chapter concludes with preparations for a voyage and divine assistance."
+        }
+      ]
+    },
+    {
+      "chapter_number": 3,
+      "title": "Book 3",
+      "duration_seconds": 1521,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 507,
+          "text": "The narrative follows characters arriving at a new location and witnessing religious ceremonies."
+        },
+        {
+          "start_time": 507,
+          "end_time": 1014,
+          "text": "This section describes hospitality customs and conversations about past events."
+        },
+        {
+          "start_time": 1014,
+          "end_time": 1521,
+          "text": "Stories are shared about what happened after the great war ended."
+        }
+      ]
+    },
+    {
+      "chapter_number": 4,
+      "title": "Book 4",
+      "duration_seconds": 2620,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 870,
+          "text": "The chapter opens with arrival at a grand palace during a celebration."
+        },
+        {
+          "start_time": 870,
+          "end_time": 1740,
+          "text": "This section contains stories about adventures in distant lands and encounters with supernatural beings."
+        },
+        {
+          "start_time": 1740,
+          "end_time": 2620,
+          "text": "The narrative shifts back to events at home and plots being hatched by antagonists."
+        }
+      ]
+    },
+    {
+      "chapter_number": 5,
+      "title": "Book 5",
+      "duration_seconds": 1673,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 557,
+          "text": "The gods convene again to discuss the hero's prolonged absence from home."
+        },
+        {
+          "start_time": 557,
+          "end_time": 1115,
+          "text": "This section describes the hero's situation on a remote island and his longing for home."
+        },
+        {
+          "start_time": 1115,
+          "end_time": 1673,
+          "text": "The hero constructs a vessel and sets out to sea, facing natural challenges."
+        }
+      ]
+    },
+    {
+      "chapter_number": 6,
+      "title": "Book 6",
+      "duration_seconds": 1373,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 457,
+          "text": "The hero arrives at a new land after surviving a storm at sea."
+        },
+        {
+          "start_time": 457,
+          "end_time": 915,
+          "text": "This section describes an encounter with a young princess and her attendants."
+        },
+        {
+          "start_time": 915,
+          "end_time": 1373,
+          "text": "The hero receives guidance on how to approach the local palace and seek help."
+        }
+      ]
+    },
+    {
+      "chapter_number": 7,
+      "title": "Book 7",
+      "duration_seconds": 1149,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 575,
+          "text": "The hero makes his way to the palace and marvels at its splendor."
+        },
+        {
+          "start_time": 575,
+          "end_time": 1149,
+          "text": "This section describes the reception by the king and queen and the hero's initial appeal for assistance."
+        }
+      ]
+    },
+    {
+      "chapter_number": 8,
+      "title": "Book 8",
+      "duration_seconds": 1813,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 600,
+          "text": "The chapter opens with preparations for athletic games and festivities."
+        },
+        {
+          "start_time": 600,
+          "end_time": 1200,
+          "text": "This section includes performances by a bard singing tales of heroes and gods."
+        },
+        {
+          "start_time": 1200,
+          "end_time": 1813,
+          "text": "The hero demonstrates his abilities and earns the admiration of his hosts."
+        }
+      ]
+    },
+    {
+      "chapter_number": 9,
+      "title": "Book 9",
+      "duration_seconds": 2304,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 768,
+          "text": "The hero begins recounting his adventures, starting with early encounters after leaving Troy."
+        },
+        {
+          "start_time": 768,
+          "end_time": 1536,
+          "text": "This section describes the famous encounter with a one-eyed giant and the clever escape."
+        },
+        {
+          "start_time": 1536,
+          "end_time": 2304,
+          "text": "The hero reveals his identity to his foe, leading to a curse that will haunt his journey."
+        }
+      ]
+    },
+    {
+      "chapter_number": 10,
+      "title": "Book 10",
+      "duration_seconds": 2224,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 740,
+          "text": "The narrative continues with the hero's visit to the keeper of the winds."
+        },
+        {
+          "start_time": 740,
+          "end_time": 1480,
+          "text": "This section describes encounters with hostile peoples and significant losses among the crew."
+        },
+        {
+          "start_time": 1480,
+          "end_time": 2224,
+          "text": "The hero and his men arrive at an island ruled by a powerful sorceress."
+        }
+      ]
+    },
+    {
+      "chapter_number": 11,
+      "title": "Book 11",
+      "duration_seconds": 2474,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 824,
+          "text": "The hero performs rituals to summon spirits of the dead at a sacred location."
+        },
+        {
+          "start_time": 824,
+          "end_time": 1648,
+          "text": "This section describes conversations with departed souls who share prophecies and memories."
+        },
+        {
+          "start_time": 1648,
+          "end_time": 2474,
+          "text": "The hero encounters famous figures from the past and learns of events that occurred during his absence."
+        }
+      ]
+    },
+    {
+      "chapter_number": 12,
+      "title": "Book 12",
+      "duration_seconds": 1804,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 600,
+          "text": "The hero receives warnings about dangers that lie ahead on his voyage."
+        },
+        {
+          "start_time": 600,
+          "end_time": 1200,
+          "text": "This section describes the passage past creatures who lure sailors to their doom with song."
+        },
+        {
+          "start_time": 1200,
+          "end_time": 1804,
+          "text": "The crew faces additional perils and tragedy strikes when divine warnings are ignored."
+        }
+      ]
+    },
+    {
+      "chapter_number": 13,
+      "title": "Book 13",
+      "duration_seconds": 1497,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 499,
+          "text": "The hero's tale concludes and his hosts provide gifts and transport."
+        },
+        {
+          "start_time": 499,
+          "end_time": 998,
+          "text": "This section describes the hero's arrival on his home island after years of wandering."
+        },
+        {
+          "start_time": 998,
+          "end_time": 1497,
+          "text": "A goddess appears in disguise and helps the hero plan his return to his household."
+        }
+      ]
+    },
+    {
+      "chapter_number": 14,
+      "title": "Book 14",
+      "duration_seconds": 2008,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 669,
+          "text": "The hero, disguised as a beggar, seeks shelter with a loyal servant."
+        },
+        {
+          "start_time": 669,
+          "end_time": 1338,
+          "text": "This section describes the humble hospitality offered and stories shared by the fire."
+        },
+        {
+          "start_time": 1338,
+          "end_time": 2008,
+          "text": "The hero tests his host's loyalty by telling invented tales about himself."
+        }
+      ]
+    },
+    {
+      "chapter_number": 15,
+      "title": "Book 15",
+      "duration_seconds": 1820,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 607,
+          "text": "The narrative shifts to the hero's son, who is prompted to return home."
+        },
+        {
+          "start_time": 607,
+          "end_time": 1214,
+          "text": "This section describes the young man's departure and his journey back."
+        },
+        {
+          "start_time": 1214,
+          "end_time": 1820,
+          "text": "The loyal servant shares his own history while awaiting important arrivals."
+        }
+      ]
+    },
+    {
+      "chapter_number": 16,
+      "title": "Book 16",
+      "duration_seconds": 1699,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 566,
+          "text": "Father and son are reunited in an emotional scene of recognition."
+        },
+        {
+          "start_time": 566,
+          "end_time": 1132,
+          "text": "This section describes the planning of revenge against those who have wronged the household."
+        },
+        {
+          "start_time": 1132,
+          "end_time": 1699,
+          "text": "The antagonists learn of developments and make their own counter-plans."
+        }
+      ]
+    },
+    {
+      "chapter_number": 17,
+      "title": "Book 17",
+      "duration_seconds": 1907,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 635,
+          "text": "The hero approaches his own home in disguise for the first time in many years."
+        },
+        {
+          "start_time": 635,
+          "end_time": 1270,
+          "text": "This section describes poignant encounters including a moment with an aged and faithful animal."
+        },
+        {
+          "start_time": 1270,
+          "end_time": 1907,
+          "text": "The hero enters his hall and faces insults and abuse from the arrogant antagonists."
+        }
+      ]
+    },
+    {
+      "chapter_number": 18,
+      "title": "Book 18",
+      "duration_seconds": 1355,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 677,
+          "text": "A confrontation occurs between the disguised hero and another beggar."
+        },
+        {
+          "start_time": 677,
+          "end_time": 1355,
+          "text": "This section describes continued tensions in the hall and warnings given to the antagonists."
+        }
+      ]
+    },
+    {
+      "chapter_number": 19,
+      "title": "Book 19",
+      "duration_seconds": 1838,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 613,
+          "text": "The hero has a private conversation with his wife, still maintaining his disguise."
+        },
+        {
+          "start_time": 613,
+          "end_time": 1226,
+          "text": "This section describes an old servant nearly recognizing the hero through a distinctive mark."
+        },
+        {
+          "start_time": 1226,
+          "end_time": 1838,
+          "text": "Dreams are interpreted and a contest is proposed that will decide the future."
+        }
+      ]
+    },
+    {
+      "chapter_number": 20,
+      "title": "Book 20",
+      "duration_seconds": 1340,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 670,
+          "text": "The hero spends a restless night contemplating the challenges ahead."
+        },
+        {
+          "start_time": 670,
+          "end_time": 1340,
+          "text": "This section describes omens and preparations as the day of reckoning approaches."
+        }
+      ]
+    },
+    {
+      "chapter_number": 21,
+      "title": "Book 21",
+      "duration_seconds": 1626,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 542,
+          "text": "The contest is announced and the famous weapon is brought forth."
+        },
+        {
+          "start_time": 542,
+          "end_time": 1084,
+          "text": "This section describes the antagonists attempting and failing the challenge."
+        },
+        {
+          "start_time": 1084,
+          "end_time": 1626,
+          "text": "The disguised hero requests a turn and succeeds where all others failed."
+        }
+      ]
+    },
+    {
+      "chapter_number": 22,
+      "title": "Book 22",
+      "duration_seconds": 1825,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 608,
+          "text": "The hero reveals his true identity and begins exacting justice."
+        },
+        {
+          "start_time": 608,
+          "end_time": 1216,
+          "text": "This section describes the fierce battle in the hall as the antagonists are overcome."
+        },
+        {
+          "start_time": 1216,
+          "end_time": 1825,
+          "text": "The household is cleansed and disloyal servants face consequences."
+        }
+      ]
+    },
+    {
+      "chapter_number": 23,
+      "title": "Book 23",
+      "duration_seconds": 1634,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 544,
+          "text": "News of the hero's return is brought to his wife, who remains cautious."
+        },
+        {
+          "start_time": 544,
+          "end_time": 1088,
+          "text": "This section describes the final test by which the wife confirms her husband's identity."
+        },
+        {
+          "start_time": 1088,
+          "end_time": 1634,
+          "text": "The reunited couple shares stories of their experiences during the long separation."
+        }
+      ]
+    },
+    {
+      "chapter_number": 24,
+      "title": "Book 24",
+      "duration_seconds": 2328,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 776,
+          "text": "The narrative follows the spirits of the fallen antagonists to the underworld."
+        },
+        {
+          "start_time": 776,
+          "end_time": 1552,
+          "text": "This section describes the hero's reunion with his aged father."
+        },
+        {
+          "start_time": 1552,
+          "end_time": 2328,
+          "text": "Conflict threatens but divine intervention brings peace and the epic concludes."
+        }
+      ]
+    }
+  ]
+}

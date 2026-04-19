@@ -1,0 +1,234 @@
+{
+  "book_id": "the-great-gatsby",
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "total_chapters": 9,
+  "note": "Timestamps are approximate. Run Whisper on audio files for accurate alignment.",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "Chapter 1",
+      "duration_seconds": 1290,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 35.0,
+          "text": "In my younger and more vulnerable years my father gave me some advice that I've been turning over in my mind ever since. Whenever you feel like criticizing anyone, he told me, just remember that all the people in this world haven't had the advantages that you've had."
+        },
+        {
+          "index": 1,
+          "start": 35.0,
+          "end": 70.0,
+          "text": "He didn't say any more, but we've always been unusually communicative in a reserved way, and I understood that he meant a great deal more than that. In consequence, I'm inclined to reserve all judgments, a habit that has opened up many curious natures to me and also made me the victim of not a few veteran bores."
+        },
+        {
+          "index": 2,
+          "start": 70.0,
+          "end": 110.0,
+          "text": "The abnormal mind is quick to detect and attach itself to this quality when it appears in a normal person, and so it came about that in college I was unjustly accused of being a politician, because I was privy to the secret griefs of wild, unknown men."
+        },
+        {
+          "index": 3,
+          "start": 110.0,
+          "end": 150.0,
+          "text": "Most of the confidences were unsought — frequently I have feigned sleep, preoccupation, or a hostile levity when I realized by some unmistakable sign that an intimate revelation was quivering on the horizon."
+        },
+        {
+          "index": 4,
+          "start": 150.0,
+          "end": 200.0,
+          "text": "Reserving judgments is a matter of infinite hope. I am still a little afraid of missing something if I forget that, as my father snobbishly suggested, and I snobbishly repeat, a sense of the fundamental decencies is parceled out unequally at birth."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "title": "Chapter 2",
+      "duration_seconds": 890,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 40.0,
+          "text": "About halfway between West Egg and New York the motor road hastily joins the railroad and runs beside it for a quarter of a mile, so as to shrink away from a certain desolate area of land."
+        },
+        {
+          "index": 1,
+          "start": 40.0,
+          "end": 85.0,
+          "text": "This is a valley of ashes — a fantastic farm where ashes grow like wheat into ridges and hills and grotesque gardens; where ashes take the forms of houses and chimneys and rising smoke and, finally, with a transcendent effort, of men who move dimly and already crumbling through the powdery air."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "title": "Chapter 3",
+      "duration_seconds": 1190,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 45.0,
+          "text": "There was music from my neighbor's house through the summer nights. In his blue gardens men and girls came and went like moths among the whisperings and the champagne and the stars."
+        },
+        {
+          "index": 1,
+          "start": 45.0,
+          "end": 90.0,
+          "text": "At high tide in the afternoon I watched his guests diving from the tower of his raft, or taking the sun on the hot sand of his beach while his two motorboats slit the waters of the Sound, drawing aquaplanes over cataracts of foam."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "title": "Chapter 4",
+      "duration_seconds": 1150,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 45.0,
+          "text": "The chapter opens with Nick recounting the various guests who attended Gatsby's parties that summer."
+        },
+        {
+          "index": 1,
+          "start": 45.0,
+          "end": 90.0,
+          "text": "Nick describes a car ride into New York with Gatsby, during which Gatsby shares details about his past."
+        },
+        {
+          "index": 2,
+          "start": 90.0,
+          "end": 140.0,
+          "text": "Jordan Baker reveals to Nick the history between Gatsby and Daisy, explaining their connection from years ago."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "title": "Chapter 5",
+      "duration_seconds": 980,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 40.0,
+          "text": "The chapter begins with preparations for an important meeting arranged by Nick at his cottage."
+        },
+        {
+          "index": 1,
+          "start": 40.0,
+          "end": 85.0,
+          "text": "Nick describes the awkward reunion between Gatsby and Daisy after many years apart."
+        },
+        {
+          "index": 2,
+          "start": 85.0,
+          "end": 130.0,
+          "text": "Gatsby gives a tour of his mansion, showing off his possessions to impress his guest."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "title": "Chapter 6",
+      "duration_seconds": 1020,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 45.0,
+          "text": "The chapter opens with Nick providing background on Gatsby's true origins and his transformation from James Gatz."
+        },
+        {
+          "index": 1,
+          "start": 45.0,
+          "end": 90.0,
+          "text": "Nick describes Tom Buchanan's visit to Gatsby's house and the growing tensions between the two men."
+        },
+        {
+          "index": 2,
+          "start": 90.0,
+          "end": 135.0,
+          "text": "The chapter concludes with reflections on Gatsby's romantic idealism and his pursuit of the past."
+        }
+      ]
+    },
+    {
+      "chapter": 7,
+      "title": "Chapter 7",
+      "duration_seconds": 1310,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 50.0,
+          "text": "The chapter opens on the hottest day of summer, with the group deciding to go into the city."
+        },
+        {
+          "index": 1,
+          "start": 50.0,
+          "end": 100.0,
+          "text": "Nick describes a confrontation between Tom and Gatsby at the Plaza Hotel, where hidden tensions erupt."
+        },
+        {
+          "index": 2,
+          "start": 100.0,
+          "end": 150.0,
+          "text": "The chapter concludes with a tragic accident on the road back from the city."
+        }
+      ]
+    },
+    {
+      "chapter": 8,
+      "title": "Chapter 8",
+      "duration_seconds": 1100,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 45.0,
+          "text": "The chapter opens with Nick visiting Gatsby the morning after the previous night's events."
+        },
+        {
+          "index": 1,
+          "start": 45.0,
+          "end": 90.0,
+          "text": "Gatsby recounts to Nick more details about his past relationship and his years of waiting."
+        },
+        {
+          "index": 2,
+          "start": 90.0,
+          "end": 135.0,
+          "text": "The chapter concludes with tragic consequences as events from the previous chapter reach their resolution."
+        }
+      ]
+    },
+    {
+      "chapter": 9,
+      "title": "Chapter 9",
+      "duration_seconds": 1250,
+      "chunks": [
+        {
+          "index": 0,
+          "start": 0.0,
+          "end": 45.0,
+          "text": "The chapter opens with Nick attempting to arrange a funeral and reaching out to Gatsby's acquaintances."
+        },
+        {
+          "index": 1,
+          "start": 45.0,
+          "end": 90.0,
+          "text": "Nick describes the sparse attendance at the funeral and his growing disillusionment with the East."
+        },
+        {
+          "index": 2,
+          "start": 90.0,
+          "end": 140.0,
+          "text": "Nick reflects on his experiences and the meaning of Gatsby's dream as he prepares to return to the Midwest."
+        }
+      ]
+    }
+  ]
+}

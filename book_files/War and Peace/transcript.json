@@ -1,0 +1,621 @@
+{
+  "book_id": "war-and-peace",
+  "title": "War and Peace",
+  "author": "Leo Tolstoy",
+  "total_chapters": 68,
+  "note": "Placeholder transcript. Run scripts/generate_transcripts.py for accurate timestamps.",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "Chapter 1",
+      "duration_seconds": 1090,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with a gathering at Anna Pavlovna's salon in St. Petersburg."},
+        {"start_seconds": 545, "text": "The conversation continues as guests discuss current affairs and social matters."}
+      ]
+    },
+    {
+      "chapter": 2,
+      "title": "Chapter 2",
+      "duration_seconds": 1080,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with Prince Vasili arriving and engaging in conversation."},
+        {"start_seconds": 540, "text": "The scene continues with introductions and social interactions among the guests."}
+      ]
+    },
+    {
+      "chapter": 3,
+      "title": "Chapter 3",
+      "duration_seconds": 1200,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with further developments at the salon."},
+        {"start_seconds": 600, "text": "The narrative explores the relationships between key characters."}
+      ]
+    },
+    {
+      "chapter": 4,
+      "title": "Chapter 4",
+      "duration_seconds": 1185,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with a shift in setting and new character introductions."},
+        {"start_seconds": 590, "text": "Family dynamics and personal concerns come to the forefront."}
+      ]
+    },
+    {
+      "chapter": 5,
+      "title": "Chapter 5",
+      "duration_seconds": 1320,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant events unfolding for the main characters."},
+        {"start_seconds": 660, "text": "Tensions rise as the plot advances through dialogue and action."}
+      ]
+    },
+    {
+      "chapter": 6,
+      "title": "Chapter 6",
+      "duration_seconds": 1120,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with domestic scenes and personal reflections."},
+        {"start_seconds": 560, "text": "Character motivations and backgrounds are further developed."}
+      ]
+    },
+    {
+      "chapter": 7,
+      "title": "Chapter 7",
+      "duration_seconds": 960,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with transitional events connecting storylines."},
+        {"start_seconds": 480, "text": "Relationships between characters evolve through their interactions."}
+      ]
+    },
+    {
+      "chapter": 8,
+      "title": "Chapter 8",
+      "duration_seconds": 1035,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with new developments in the ongoing narrative."},
+        {"start_seconds": 515, "text": "Social and political themes emerge through character dialogues."}
+      ]
+    },
+    {
+      "chapter": 9,
+      "title": "Chapter 9",
+      "duration_seconds": 1350,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with a significant gathering or event."},
+        {"start_seconds": 675, "text": "The complexities of aristocratic life are explored in depth."}
+      ]
+    },
+    {
+      "chapter": 10,
+      "title": "Chapter 10",
+      "duration_seconds": 1140,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with character introspection and personal struggles."},
+        {"start_seconds": 570, "text": "The narrative weaves together multiple character perspectives."}
+      ]
+    },
+    {
+      "chapter": 11,
+      "title": "Chapter 11",
+      "duration_seconds": 910,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with quieter moments and reflection."},
+        {"start_seconds": 455, "text": "Subtle developments advance the overarching plot."}
+      ]
+    },
+    {
+      "chapter": 12,
+      "title": "Chapter 12",
+      "duration_seconds": 1100,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with renewed activity and dialogue."},
+        {"start_seconds": 550, "text": "Key relationships are tested through unfolding events."}
+      ]
+    },
+    {
+      "chapter": 13,
+      "title": "Chapter 13",
+      "duration_seconds": 935,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with a focus on individual character journeys."},
+        {"start_seconds": 465, "text": "Personal decisions shape the direction of the story."}
+      ]
+    },
+    {
+      "chapter": 14,
+      "title": "Chapter 14",
+      "duration_seconds": 1250,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with escalating tensions and developments."},
+        {"start_seconds": 625, "text": "The narrative builds toward significant turning points."}
+      ]
+    },
+    {
+      "chapter": 15,
+      "title": "Chapter 15",
+      "duration_seconds": 1240,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with important revelations or confrontations."},
+        {"start_seconds": 620, "text": "Characters face consequences of earlier choices."}
+      ]
+    },
+    {
+      "chapter": 16,
+      "title": "Chapter 16",
+      "duration_seconds": 1350,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with expanded scope and new settings."},
+        {"start_seconds": 675, "text": "Multiple storylines converge and diverge."}
+      ]
+    },
+    {
+      "chapter": 17,
+      "title": "Chapter 17",
+      "duration_seconds": 920,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with intimate scenes and dialogue."},
+        {"start_seconds": 460, "text": "Character depth is revealed through personal moments."}
+      ]
+    },
+    {
+      "chapter": 18,
+      "title": "Chapter 18",
+      "duration_seconds": 1450,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with major plot developments."},
+        {"start_seconds": 725, "text": "The stakes are raised for multiple characters."}
+      ]
+    },
+    {
+      "chapter": 19,
+      "title": "Chapter 19",
+      "duration_seconds": 1060,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with transitional events and reflections."},
+        {"start_seconds": 530, "text": "Themes of duty and desire are explored."}
+      ]
+    },
+    {
+      "chapter": 20,
+      "title": "Chapter 20",
+      "duration_seconds": 1380,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant action or dialogue."},
+        {"start_seconds": 690, "text": "The interplay of personal and political concerns deepens."}
+      ]
+    },
+    {
+      "chapter": 21,
+      "title": "Chapter 21",
+      "duration_seconds": 1500,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with expansive scenes and multiple characters."},
+        {"start_seconds": 750, "text": "Complex social dynamics are portrayed in detail."}
+      ]
+    },
+    {
+      "chapter": 22,
+      "title": "Chapter 22",
+      "duration_seconds": 1260,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continuing developments in the plot."},
+        {"start_seconds": 630, "text": "Characters navigate challenging circumstances."}
+      ]
+    },
+    {
+      "chapter": 23,
+      "title": "Chapter 23",
+      "duration_seconds": 1250,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with emotional or dramatic moments."},
+        {"start_seconds": 625, "text": "Relationships are tested and transformed."}
+      ]
+    },
+    {
+      "chapter": 24,
+      "title": "Chapter 24",
+      "duration_seconds": 1220,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with a shift in focus or setting."},
+        {"start_seconds": 610, "text": "New challenges arise for the protagonists."}
+      ]
+    },
+    {
+      "chapter": 25,
+      "title": "Chapter 25",
+      "duration_seconds": 1500,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with extended scenes of significance."},
+        {"start_seconds": 750, "text": "Pivotal events shape the trajectory of the narrative."}
+      ]
+    },
+    {
+      "chapter": 26,
+      "title": "Chapter 26",
+      "duration_seconds": 1340,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with further exploration of themes."},
+        {"start_seconds": 670, "text": "Character arcs continue to develop and intersect."}
+      ]
+    },
+    {
+      "chapter": 27,
+      "title": "Chapter 27",
+      "duration_seconds": 1200,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with notable character interactions."},
+        {"start_seconds": 600, "text": "The broader social context influences individual choices."}
+      ]
+    },
+    {
+      "chapter": 28,
+      "title": "Chapter 28",
+      "duration_seconds": 1480,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with major developments unfolding."},
+        {"start_seconds": 740, "text": "The consequences of earlier events become apparent."}
+      ]
+    },
+    {
+      "chapter": 29,
+      "title": "Chapter 29",
+      "duration_seconds": 1230,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with characters facing new realities."},
+        {"start_seconds": 615, "text": "Adaptation and resilience are central themes."}
+      ]
+    },
+    {
+      "chapter": 30,
+      "title": "Chapter 30",
+      "duration_seconds": 1420,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with heightened drama and tension."},
+        {"start_seconds": 710, "text": "Critical decisions are made by key figures."}
+      ]
+    },
+    {
+      "chapter": 31,
+      "title": "Chapter 31",
+      "duration_seconds": 1370,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continuing narrative momentum."},
+        {"start_seconds": 685, "text": "The scope of the story expands further."}
+      ]
+    },
+    {
+      "chapter": 32,
+      "title": "Chapter 32",
+      "duration_seconds": 1460,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant plot progression."},
+        {"start_seconds": 730, "text": "Multiple threads of the story advance together."}
+      ]
+    },
+    {
+      "chapter": 33,
+      "title": "Chapter 33",
+      "duration_seconds": 1030,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with focused character moments."},
+        {"start_seconds": 515, "text": "Personal growth and change are highlighted."}
+      ]
+    },
+    {
+      "chapter": 34,
+      "title": "Chapter 34",
+      "duration_seconds": 945,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with quieter but meaningful scenes."},
+        {"start_seconds": 470, "text": "Subtle shifts in relationships occur."}
+      ]
+    },
+    {
+      "chapter": 35,
+      "title": "Chapter 35",
+      "duration_seconds": 1260,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with renewed focus on central conflicts."},
+        {"start_seconds": 630, "text": "The narrative builds toward climactic moments."}
+      ]
+    },
+    {
+      "chapter": 36,
+      "title": "Chapter 36",
+      "duration_seconds": 1490,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with extensive developments."},
+        {"start_seconds": 745, "text": "Key turning points reshape the story's direction."}
+      ]
+    },
+    {
+      "chapter": 37,
+      "title": "Chapter 37",
+      "duration_seconds": 1290,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with aftermath and reflection."},
+        {"start_seconds": 645, "text": "Characters process recent events and their implications."}
+      ]
+    },
+    {
+      "chapter": 38,
+      "title": "Chapter 38",
+      "duration_seconds": 1380,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continuing narrative threads."},
+        {"start_seconds": 690, "text": "New challenges and opportunities emerge."}
+      ]
+    },
+    {
+      "chapter": 39,
+      "title": "Chapter 39",
+      "duration_seconds": 960,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with transitional moments."},
+        {"start_seconds": 480, "text": "The story prepares for upcoming developments."}
+      ]
+    },
+    {
+      "chapter": 40,
+      "title": "Chapter 40",
+      "duration_seconds": 1345,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant events unfolding."},
+        {"start_seconds": 670, "text": "Character motivations are revealed and tested."}
+      ]
+    },
+    {
+      "chapter": 41,
+      "title": "Chapter 41",
+      "duration_seconds": 1360,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with escalating circumstances."},
+        {"start_seconds": 680, "text": "The weight of history and war becomes more present."}
+      ]
+    },
+    {
+      "chapter": 42,
+      "title": "Chapter 42",
+      "duration_seconds": 1015,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with personal and emotional content."},
+        {"start_seconds": 505, "text": "Individual stories remain central amid larger events."}
+      ]
+    },
+    {
+      "chapter": 43,
+      "title": "Chapter 43",
+      "duration_seconds": 1340,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continued plot development."},
+        {"start_seconds": 670, "text": "Connections between characters deepen."}
+      ]
+    },
+    {
+      "chapter": 44,
+      "title": "Chapter 44",
+      "duration_seconds": 905,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with specific character focus."},
+        {"start_seconds": 450, "text": "Important decisions are contemplated and made."}
+      ]
+    },
+    {
+      "chapter": 45,
+      "title": "Chapter 45",
+      "duration_seconds": 1270,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with narrative progression."},
+        {"start_seconds": 635, "text": "The interplay of fate and choice is explored."}
+      ]
+    },
+    {
+      "chapter": 46,
+      "title": "Chapter 46",
+      "duration_seconds": 1190,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with scenes of consequence."},
+        {"start_seconds": 595, "text": "Characters face the results of their actions."}
+      ]
+    },
+    {
+      "chapter": 47,
+      "title": "Chapter 47",
+      "duration_seconds": 1310,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with expanding narrative scope."},
+        {"start_seconds": 655, "text": "War and peace themes become more pronounced."}
+      ]
+    },
+    {
+      "chapter": 48,
+      "title": "Chapter 48",
+      "duration_seconds": 1365,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant character moments."},
+        {"start_seconds": 680, "text": "The emotional core of the story is revealed."}
+      ]
+    },
+    {
+      "chapter": 49,
+      "title": "Chapter 49",
+      "duration_seconds": 1440,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with dramatic developments."},
+        {"start_seconds": 720, "text": "Crucial events alter the lives of main characters."}
+      ]
+    },
+    {
+      "chapter": 50,
+      "title": "Chapter 50",
+      "duration_seconds": 1500,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with extended narrative exploration."},
+        {"start_seconds": 750, "text": "The full complexity of the story becomes apparent."}
+      ]
+    },
+    {
+      "chapter": 51,
+      "title": "Chapter 51",
+      "duration_seconds": 1500,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with major plot elements converging."},
+        {"start_seconds": 750, "text": "Historical and personal narratives intertwine."}
+      ]
+    },
+    {
+      "chapter": 52,
+      "title": "Chapter 52",
+      "duration_seconds": 1480,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continuing dramatic intensity."},
+        {"start_seconds": 740, "text": "The stakes for all characters remain high."}
+      ]
+    },
+    {
+      "chapter": 53,
+      "title": "Chapter 53",
+      "duration_seconds": 1445,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with profound developments."},
+        {"start_seconds": 720, "text": "Life-changing events occur for key figures."}
+      ]
+    },
+    {
+      "chapter": 54,
+      "title": "Chapter 54",
+      "duration_seconds": 1360,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with aftermath and transition."},
+        {"start_seconds": 680, "text": "Characters adapt to new circumstances."}
+      ]
+    },
+    {
+      "chapter": 55,
+      "title": "Chapter 55",
+      "duration_seconds": 1395,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continued story progression."},
+        {"start_seconds": 695, "text": "Resolution begins for some narrative threads."}
+      ]
+    },
+    {
+      "chapter": 56,
+      "title": "Chapter 56",
+      "duration_seconds": 1490,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with extensive character development."},
+        {"start_seconds": 745, "text": "The path toward conclusion becomes clearer."}
+      ]
+    },
+    {
+      "chapter": 57,
+      "title": "Chapter 57",
+      "duration_seconds": 1265,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with meaningful exchanges."},
+        {"start_seconds": 630, "text": "Personal resolutions are sought and found."}
+      ]
+    },
+    {
+      "chapter": 58,
+      "title": "Chapter 58",
+      "duration_seconds": 1405,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with significant narrative moments."},
+        {"start_seconds": 700, "text": "The themes of the novel reach fuller expression."}
+      ]
+    },
+    {
+      "chapter": 59,
+      "title": "Chapter 59",
+      "duration_seconds": 1305,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with approaching resolution."},
+        {"start_seconds": 650, "text": "Characters find their places in the emerging order."}
+      ]
+    },
+    {
+      "chapter": 60,
+      "title": "Chapter 60",
+      "duration_seconds": 1175,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with reflective passages."},
+        {"start_seconds": 585, "text": "The meaning of events is contemplated."}
+      ]
+    },
+    {
+      "chapter": 61,
+      "title": "Chapter 61",
+      "duration_seconds": 1415,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with continuing denouement."},
+        {"start_seconds": 705, "text": "Loose ends are addressed and tied."}
+      ]
+    },
+    {
+      "chapter": 62,
+      "title": "Chapter 62",
+      "duration_seconds": 1355,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with character conclusions."},
+        {"start_seconds": 675, "text": "Final positions and fates become clear."}
+      ]
+    },
+    {
+      "chapter": 63,
+      "title": "Chapter 63",
+      "duration_seconds": 1280,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with philosophical reflection."},
+        {"start_seconds": 640, "text": "The broader meaning of the narrative is explored."}
+      ]
+    },
+    {
+      "chapter": 64,
+      "title": "Chapter 64",
+      "duration_seconds": 1365,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with final developments."},
+        {"start_seconds": 680, "text": "The story moves toward its ultimate conclusion."}
+      ]
+    },
+    {
+      "chapter": 65,
+      "title": "Chapter 65",
+      "duration_seconds": 1130,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with penultimate scenes."},
+        {"start_seconds": 565, "text": "Resolution is achieved for central characters."}
+      ]
+    },
+    {
+      "chapter": 66,
+      "title": "Chapter 66",
+      "duration_seconds": 1290,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with culminating moments."},
+        {"start_seconds": 645, "text": "The emotional journey reaches its peak."}
+      ]
+    },
+    {
+      "chapter": 67,
+      "title": "Chapter 67",
+      "duration_seconds": 1430,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with final reflections and events."},
+        {"start_seconds": 715, "text": "The novel's themes are brought to completion."}
+      ]
+    },
+    {
+      "chapter": 68,
+      "title": "Chapter 68",
+      "duration_seconds": 1235,
+      "chunks": [
+        {"start_seconds": 0, "text": "This chapter opens with the concluding passages of the novel."},
+        {"start_seconds": 615, "text": "The story of War and Peace comes to its end."}
+      ]
+    }
+  ]
+}

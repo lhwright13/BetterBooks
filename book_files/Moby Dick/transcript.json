@@ -1,0 +1,757 @@
+{
+  "book_id": "moby-dick",
+  "title": "Moby Dick",
+  "author": "Herman Melville",
+  "total_chapters": 44,
+  "note": "Placeholder transcript. Run scripts/generate_transcripts.py for accurate timestamps.",
+  "chapters": [
+    {
+      "chapter": 1,
+      "title": "Chapter 1",
+      "duration_seconds": 850,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 425,
+          "text": "The chapter begins with an introduction to the narrative and its themes."
+        },
+        {
+          "start_time": 425,
+          "end_time": 850,
+          "text": "The chapter continues with further development of the opening scenes."
+        }
+      ]
+    },
+    {
+      "chapter": 2,
+      "title": "Chapter 2",
+      "duration_seconds": 780,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 390,
+          "text": "The chapter begins with the narrator's arrival at a new location."
+        },
+        {
+          "start_time": 390,
+          "end_time": 780,
+          "text": "The chapter continues with descriptions of the setting and atmosphere."
+        }
+      ]
+    },
+    {
+      "chapter": 3,
+      "title": "Chapter 3",
+      "duration_seconds": 920,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 460,
+          "text": "The chapter begins with new character introductions."
+        },
+        {
+          "start_time": 460,
+          "end_time": 920,
+          "text": "The chapter continues with dialogue and character interactions."
+        }
+      ]
+    },
+    {
+      "chapter": 4,
+      "title": "Chapter 4",
+      "duration_seconds": 680,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 340,
+          "text": "The chapter begins with morning scenes and preparations."
+        },
+        {
+          "start_time": 340,
+          "end_time": 680,
+          "text": "The chapter continues with character development and backstory."
+        }
+      ]
+    },
+    {
+      "chapter": 5,
+      "title": "Chapter 5",
+      "duration_seconds": 750,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 375,
+          "text": "The chapter begins with exploration of the local area."
+        },
+        {
+          "start_time": 375,
+          "end_time": 750,
+          "text": "The chapter continues with observations and reflections."
+        }
+      ]
+    },
+    {
+      "chapter": 6,
+      "title": "Chapter 6",
+      "duration_seconds": 820,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 410,
+          "text": "The chapter begins with descriptions of the whaling industry."
+        },
+        {
+          "start_time": 410,
+          "end_time": 820,
+          "text": "The chapter continues with historical and technical details."
+        }
+      ]
+    },
+    {
+      "chapter": 7,
+      "title": "Chapter 7",
+      "duration_seconds": 690,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 345,
+          "text": "The chapter begins with a visit to an important location."
+        },
+        {
+          "start_time": 345,
+          "end_time": 690,
+          "text": "The chapter continues with symbolic imagery and foreshadowing."
+        }
+      ]
+    },
+    {
+      "chapter": 8,
+      "title": "Chapter 8",
+      "duration_seconds": 880,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 440,
+          "text": "The chapter begins with a religious or ceremonial scene."
+        },
+        {
+          "start_time": 440,
+          "end_time": 880,
+          "text": "The chapter continues with thematic discourse and meditation."
+        }
+      ]
+    },
+    {
+      "chapter": 9,
+      "title": "Chapter 9",
+      "duration_seconds": 1050,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 525,
+          "text": "The chapter begins with an extended speech or sermon."
+        },
+        {
+          "start_time": 525,
+          "end_time": 1050,
+          "text": "The chapter continues with moral and philosophical themes."
+        }
+      ]
+    },
+    {
+      "chapter": 10,
+      "title": "Chapter 10",
+      "duration_seconds": 720,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 360,
+          "text": "The chapter begins with deepening friendships and bonds."
+        },
+        {
+          "start_time": 360,
+          "end_time": 720,
+          "text": "The chapter continues with personal revelations and trust."
+        }
+      ]
+    },
+    {
+      "chapter": 11,
+      "title": "Chapter 11",
+      "duration_seconds": 640,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 320,
+          "text": "The chapter begins with quiet moments and contemplation."
+        },
+        {
+          "start_time": 320,
+          "end_time": 640,
+          "text": "The chapter continues with character introspection."
+        }
+      ]
+    },
+    {
+      "chapter": 12,
+      "title": "Chapter 12",
+      "duration_seconds": 710,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 355,
+          "text": "The chapter begins with biographical details of a character."
+        },
+        {
+          "start_time": 355,
+          "end_time": 710,
+          "text": "The chapter continues with cultural and background information."
+        }
+      ]
+    },
+    {
+      "chapter": 13,
+      "title": "Chapter 13",
+      "duration_seconds": 780,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 390,
+          "text": "The chapter begins with preparations for departure."
+        },
+        {
+          "start_time": 390,
+          "end_time": 780,
+          "text": "The chapter continues with anticipation and planning."
+        }
+      ]
+    },
+    {
+      "chapter": 14,
+      "title": "Chapter 14",
+      "duration_seconds": 850,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 425,
+          "text": "The chapter begins with a description of the vessel."
+        },
+        {
+          "start_time": 425,
+          "end_time": 850,
+          "text": "The chapter continues with nautical details and history."
+        }
+      ]
+    },
+    {
+      "chapter": 15,
+      "title": "Chapter 15",
+      "duration_seconds": 670,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 335,
+          "text": "The chapter begins with crew organization and hierarchy."
+        },
+        {
+          "start_time": 335,
+          "end_time": 670,
+          "text": "The chapter continues with introduction of key crew members."
+        }
+      ]
+    },
+    {
+      "chapter": 16,
+      "title": "Chapter 16",
+      "duration_seconds": 1100,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 550,
+          "text": "The chapter begins with an important meeting with leadership."
+        },
+        {
+          "start_time": 550,
+          "end_time": 1100,
+          "text": "The chapter continues with negotiations and agreements."
+        }
+      ]
+    },
+    {
+      "chapter": 17,
+      "title": "Chapter 17",
+      "duration_seconds": 730,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 365,
+          "text": "The chapter begins with religious observances."
+        },
+        {
+          "start_time": 365,
+          "end_time": 730,
+          "text": "The chapter continues with cultural practices and rituals."
+        }
+      ]
+    },
+    {
+      "chapter": 18,
+      "title": "Chapter 18",
+      "duration_seconds": 890,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 445,
+          "text": "The chapter begins with signing on for the voyage."
+        },
+        {
+          "start_time": 445,
+          "end_time": 890,
+          "text": "The chapter continues with formal commitments and ceremonies."
+        }
+      ]
+    },
+    {
+      "chapter": 19,
+      "title": "Chapter 19",
+      "duration_seconds": 760,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 380,
+          "text": "The chapter begins with mysterious warnings and prophecies."
+        },
+        {
+          "start_time": 380,
+          "end_time": 760,
+          "text": "The chapter continues with ominous foreshadowing."
+        }
+      ]
+    },
+    {
+      "chapter": 20,
+      "title": "Chapter 20",
+      "duration_seconds": 680,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 340,
+          "text": "The chapter begins with final preparations before departure."
+        },
+        {
+          "start_time": 340,
+          "end_time": 680,
+          "text": "The chapter continues with loading supplies and equipment."
+        }
+      ]
+    },
+    {
+      "chapter": 21,
+      "title": "Chapter 21",
+      "duration_seconds": 820,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 410,
+          "text": "The chapter begins with the moment of departure."
+        },
+        {
+          "start_time": 410,
+          "end_time": 820,
+          "text": "The chapter continues with setting sail and leaving port."
+        }
+      ]
+    },
+    {
+      "chapter": 22,
+      "title": "Chapter 22",
+      "duration_seconds": 750,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 375,
+          "text": "The chapter begins with early days at sea."
+        },
+        {
+          "start_time": 375,
+          "end_time": 750,
+          "text": "The chapter continues with establishing shipboard routines."
+        }
+      ]
+    },
+    {
+      "chapter": 23,
+      "title": "Chapter 23",
+      "duration_seconds": 620,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 310,
+          "text": "The chapter begins with observations of the sea and weather."
+        },
+        {
+          "start_time": 310,
+          "end_time": 620,
+          "text": "The chapter continues with atmospheric descriptions."
+        }
+      ]
+    },
+    {
+      "chapter": 24,
+      "title": "Chapter 24",
+      "duration_seconds": 940,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 470,
+          "text": "The chapter begins with philosophical reflections on the profession."
+        },
+        {
+          "start_time": 470,
+          "end_time": 940,
+          "text": "The chapter continues with defense and analysis of the trade."
+        }
+      ]
+    },
+    {
+      "chapter": 25,
+      "title": "Chapter 25",
+      "duration_seconds": 700,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 350,
+          "text": "The chapter begins with historical and cultural context."
+        },
+        {
+          "start_time": 350,
+          "end_time": 700,
+          "text": "The chapter continues with examples from royalty and nobility."
+        }
+      ]
+    },
+    {
+      "chapter": 26,
+      "title": "Chapter 26",
+      "duration_seconds": 810,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 405,
+          "text": "The chapter begins with detailed character portraits of officers."
+        },
+        {
+          "start_time": 405,
+          "end_time": 810,
+          "text": "The chapter continues with leadership styles and personalities."
+        }
+      ]
+    },
+    {
+      "chapter": 27,
+      "title": "Chapter 27",
+      "duration_seconds": 870,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 435,
+          "text": "The chapter begins with descriptions of the diverse crew."
+        },
+        {
+          "start_time": 435,
+          "end_time": 870,
+          "text": "The chapter continues with individual crew member profiles."
+        }
+      ]
+    },
+    {
+      "chapter": 28,
+      "title": "Chapter 28",
+      "duration_seconds": 780,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 390,
+          "text": "The chapter begins with the first appearance of the captain."
+        },
+        {
+          "start_time": 390,
+          "end_time": 780,
+          "text": "The chapter continues with observations of command presence."
+        }
+      ]
+    },
+    {
+      "chapter": 29,
+      "title": "Chapter 29",
+      "duration_seconds": 650,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 325,
+          "text": "The chapter begins with nighttime scenes aboard ship."
+        },
+        {
+          "start_time": 325,
+          "end_time": 650,
+          "text": "The chapter continues with mood and atmosphere of darkness."
+        }
+      ]
+    },
+    {
+      "chapter": 30,
+      "title": "Chapter 30",
+      "duration_seconds": 720,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 360,
+          "text": "The chapter begins with smoking and contemplation."
+        },
+        {
+          "start_time": 360,
+          "end_time": 720,
+          "text": "The chapter continues with philosophical musings."
+        }
+      ]
+    },
+    {
+      "chapter": 31,
+      "title": "Chapter 31",
+      "duration_seconds": 690,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 345,
+          "text": "The chapter begins with revelations about the captain."
+        },
+        {
+          "start_time": 345,
+          "end_time": 690,
+          "text": "The chapter continues with deeper understanding of motivation."
+        }
+      ]
+    },
+    {
+      "chapter": 32,
+      "title": "Chapter 32",
+      "duration_seconds": 1150,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 575,
+          "text": "The chapter begins with scientific and taxonomic information."
+        },
+        {
+          "start_time": 575,
+          "end_time": 1150,
+          "text": "The chapter continues with comprehensive classification details."
+        }
+      ]
+    },
+    {
+      "chapter": 33,
+      "title": "Chapter 33",
+      "duration_seconds": 830,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 415,
+          "text": "The chapter begins with duties and responsibilities at sea."
+        },
+        {
+          "start_time": 415,
+          "end_time": 830,
+          "text": "The chapter continues with watchkeeping and observation."
+        }
+      ]
+    },
+    {
+      "chapter": 34,
+      "title": "Chapter 34",
+      "duration_seconds": 740,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 370,
+          "text": "The chapter begins with mealtime rituals aboard ship."
+        },
+        {
+          "start_time": 370,
+          "end_time": 740,
+          "text": "The chapter continues with social dynamics and hierarchy."
+        }
+      ]
+    },
+    {
+      "chapter": 35,
+      "title": "Chapter 35",
+      "duration_seconds": 900,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 450,
+          "text": "The chapter begins with high vantage point observations."
+        },
+        {
+          "start_time": 450,
+          "end_time": 900,
+          "text": "The chapter continues with meditation and reverie."
+        }
+      ]
+    },
+    {
+      "chapter": 36,
+      "title": "Chapter 36",
+      "duration_seconds": 980,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 490,
+          "text": "The chapter begins with a dramatic gathering of the crew."
+        },
+        {
+          "start_time": 490,
+          "end_time": 980,
+          "text": "The chapter continues with the revelation of the voyage's true purpose."
+        }
+      ]
+    },
+    {
+      "chapter": 37,
+      "title": "Chapter 37",
+      "duration_seconds": 660,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 330,
+          "text": "The chapter begins with private soliloquy and reflection."
+        },
+        {
+          "start_time": 330,
+          "end_time": 660,
+          "text": "The chapter continues with internal monologue and resolve."
+        }
+      ]
+    },
+    {
+      "chapter": 38,
+      "title": "Chapter 38",
+      "duration_seconds": 710,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 355,
+          "text": "The chapter begins with a different character's perspective."
+        },
+        {
+          "start_time": 355,
+          "end_time": 710,
+          "text": "The chapter continues with contrasting viewpoints and concerns."
+        }
+      ]
+    },
+    {
+      "chapter": 39,
+      "title": "Chapter 39",
+      "duration_seconds": 770,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 385,
+          "text": "The chapter begins with yet another character's thoughts."
+        },
+        {
+          "start_time": 385,
+          "end_time": 770,
+          "text": "The chapter continues with alternative views on the mission."
+        }
+      ]
+    },
+    {
+      "chapter": 40,
+      "title": "Chapter 40",
+      "duration_seconds": 950,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 475,
+          "text": "The chapter begins with crew celebrations and revelry."
+        },
+        {
+          "start_time": 475,
+          "end_time": 950,
+          "text": "The chapter continues with music, dance, and camaraderie."
+        }
+      ]
+    },
+    {
+      "chapter": 41,
+      "title": "Chapter 41",
+      "duration_seconds": 1080,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 540,
+          "text": "The chapter begins with the legend and history of the white whale."
+        },
+        {
+          "start_time": 540,
+          "end_time": 1080,
+          "text": "The chapter continues with tales of terror and obsession."
+        }
+      ]
+    },
+    {
+      "chapter": 42,
+      "title": "Chapter 42",
+      "duration_seconds": 1020,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 510,
+          "text": "The chapter begins with meditation on color and symbolism."
+        },
+        {
+          "start_time": 510,
+          "end_time": 1020,
+          "text": "The chapter continues with philosophical exploration of meaning."
+        }
+      ]
+    },
+    {
+      "chapter": 43,
+      "title": "Chapter 43",
+      "duration_seconds": 680,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 340,
+          "text": "The chapter begins with strange sounds and mysteries."
+        },
+        {
+          "start_time": 340,
+          "end_time": 680,
+          "text": "The chapter continues with unexplained phenomena aboard ship."
+        }
+      ]
+    },
+    {
+      "chapter": 44,
+      "title": "Chapter 44",
+      "duration_seconds": 860,
+      "chunks": [
+        {
+          "start_time": 0,
+          "end_time": 430,
+          "text": "The chapter begins with navigational charts and plotting."
+        },
+        {
+          "start_time": 430,
+          "end_time": 860,
+          "text": "The chapter continues with strategic planning for the hunt."
+        }
+      ]
+    }
+  ]
+}

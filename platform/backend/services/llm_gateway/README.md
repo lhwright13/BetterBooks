@@ -17,6 +17,6 @@ preprompt can be adjusted in `llm_config.json` at the repository root.
 
 ```bash
 curl -X POST localhost:8000/complete \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"Once upon a time"}'
+ -H "Content-Type: application/json" \
+ -d '{"prompt":"Once upon a time"}'
 ```

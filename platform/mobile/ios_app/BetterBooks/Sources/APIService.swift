@@ -107,7 +107,7 @@ actor APIService {
             throw APIError.httpError(statusCode: httpResponse.statusCode)
         }
 
-        // Parse JSON response — try multiple possible keys
+        // Parse JSON response - try multiple possible keys
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if let text = json["response"] as? String { return text }
             if let text = json["content"] as? String { return text }

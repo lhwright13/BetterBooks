@@ -2,30 +2,30 @@
 
 This module provides comprehensive authentication and authorization for the EchoWright audiobook platform. It supports JWT-based authentication, OAuth 2.0 (Google, Apple), email verification, and role-based access control (RBAC).
 
-## 🏗️ Architecture
+## Architecture
 
 ```mermaid
 graph TD
-    A[Client Request] --> B[FastAPI Route]
-    B --> C[HTTPBearer Security]
-    C --> D[JWT Token Validation]
-    D --> E[User Lookup]
-    E --> F[Role-Based Authorization]
-    F --> G[Protected Resource Access]
-    
-    H[Redis Cache] --> I[Session Management]
-    H --> J[Rate Limiting]
-    H --> K[Token Blacklisting]
-    
-    L[In-Memory Store] --> M[User Database]
-    L --> N[Password Hashing]
-    
-    O[Azure AD B2C] -.-> P[Future Integration]
-    P -.-> Q[Enterprise SSO]
-    P -.-> R[Multi-Factor Auth]
+ A[Client Request] --> B[FastAPI Route]
+ B --> C[HTTPBearer Security]
+ C --> D[JWT Token Validation]
+ D --> E[User Lookup]
+ E --> F[Role-Based Authorization]
+ F --> G[Protected Resource Access]
+
+ H[Redis Cache] --> I[Session Management]
+ H --> J[Rate Limiting]
+ H --> K[Token Blacklisting]
+
+ L[In-Memory Store] --> M[User Database]
+ L --> N[Password Hashing]
+
+ O[Azure AD B2C] -.-> P[Future Integration]
+ P -.-> Q[Enterprise SSO]
+ P -.-> R[Multi-Factor Auth]
 ```
 
-## 📁 Files Overview
+## Files Overview
 
 | File | Purpose | Time to Execute | Dependencies | Services Using |
 |------|---------|----------------|--------------|----------------|
@@ -33,7 +33,7 @@ graph TD
 | `api_routes.py` | FastAPI routes for auth endpoints (login, OAuth, email verification) | ~100-500ms per request | FastAPI, auth.py, EmailService | Web interface, mobile app |
 | `__init__.py` | Module exports and public interface | ~1ms | None | All services importing auth |
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -55,12 +55,12 @@ AZURE_AD_B2C_POLICY_NAME=B2C_1_signin_signup
 ### JWT Settings (in auth.py)
 
 ```python
-ACCESS_TOKEN_EXPIRE_MINUTES = 30    # Access token lifetime
-REFRESH_TOKEN_EXPIRE_DAYS = 7       # Refresh token lifetime
-JWT_ALGORITHM = "HS256"             # JWT signing algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = 30 # Access token lifetime
+REFRESH_TOKEN_EXPIRE_DAYS = 7 # Refresh token lifetime
+JWT_ALGORITHM = "HS256" # JWT signing algorithm
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Basic User Registration and Login
 
@@ -73,7 +73,7 @@ app.include_router(auth_router)
 
 @app.get("/protected")
 async def protected_endpoint(current_user: User = Depends(get_current_user)):
-    return {"message": f"Hello {current_user.username}!"}
+ return {"message": f"Hello {current_user.username}!"}
 ```
 
 ### 2. Role-Based Access Control
@@ -83,11 +83,11 @@ from core.auth import require_role, require_admin, UserRole
 
 @app.get("/admin-only")
 async def admin_endpoint(admin_user: User = Depends(require_admin)):
-    return {"message": "Admin access granted"}
+ return {"message": "Admin access granted"}
 
 @app.get("/user-content")
 async def user_endpoint(user: User = Depends(require_role(UserRole.USER))):
-    return {"content": "User-specific content"}
+ return {"content": "User-specific content"}
 ```
 
 ### 3. Rate Limiting
@@ -97,12 +97,12 @@ from core.auth import check_rate_limit
 
 @app.post("/api/expensive-operation")
 async def expensive_operation(current_user: User = Depends(get_current_user)):
-    # Allow 10 requests per hour
-    await check_rate_limit(current_user.id, "expensive_op", limit=10, window=3600)
-    return {"result": "Operation completed"}
+ # Allow 10 requests per hour
+ await check_rate_limit(current_user.id, "expensive_op", limit=10, window=3600)
+ return {"result": "Operation completed"}
 ```
 
-## 🔗 API Endpoints
+## API Endpoints
 
 ### Authentication Routes
 
@@ -128,49 +128,49 @@ async def expensive_operation(current_user: User = Depends(get_current_user)):
 #### Email Registration
 ```bash
 curl -X POST "http://localhost:8000/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "username": "johndoe",
-    "password": "securepass123"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "email": "user@example.com",
+ "username": "johndoe",
+ "password": "securepass123"
+ }'
 ```
 
 #### Email Login
 ```bash
 curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "securepass123"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "email": "user@example.com",
+ "password": "securepass123"
+ }'
 ```
 
 #### Google OAuth Sign-in
 ```bash
 curl -X POST "http://localhost:8000/auth/google/signin" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id_token": "GOOGLE_ID_TOKEN_HERE"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "id_token": "GOOGLE_ID_TOKEN_HERE"
+ }'
 ```
 
 #### Send Email Verification
 ```bash
 curl -X POST "http://localhost:8000/auth/email/send-verification" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com"
-  }'
+ -H "Content-Type: application/json" \
+ -d '{
+ "email": "user@example.com"
+ }'
 ```
 
 #### Access Protected Endpoint
 ```bash
 curl -X GET "http://localhost:8000/auth/me" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+ -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-## 🛡️ Security Features
+## Security Features
 
 ### Current Security Measures
 
@@ -197,52 +197,52 @@ JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
 await check_rate_limit(user_id, endpoint, limit=60, window=60)
 ```
 
-## 🐛 Known Issues & Fixes
+## Known Issues & Fixes
 
-### 🚨 Critical Issues (FIXED)
+### Critical Issues (FIXED)
 
-1. **~~Brand Inconsistency~~** ✅ FIXED
-   - ~~Problem: Referenced "EchoWright" instead of "BetterBooks"~~
-   - **Status**: Fixed in all files
+1. **~~Brand Inconsistency~~** FIXED
+ - ~~Problem: Referenced "EchoWright" instead of "BetterBooks"~~
+ - **Status**: Fixed in all files
 
-2. **~~Import Error~~** ✅ FIXED
-   - ~~Problem: Wrong import `from auth import get_user_by_id` in auth_routes.py:134~~
-   - **Status**: Fixed to `from core.auth.auth import get_user_by_id`
+2. **~~Import Error~~** FIXED
+ - ~~Problem: Wrong import `from auth import get_user_by_id` in auth_routes.py:134~~
+ - **Status**: Fixed to `from core.auth.auth import get_user_by_id`
 
-3. **~~Hardcoded Admin Password~~** ✅ IMPROVED
-   - ~~Problem: Default password "admin123"~~
-   - **Status**: Now uses environment variable with stronger default
+3. **~~Hardcoded Admin Password~~** IMPROVED
+ - ~~Problem: Default password "admin123"~~
+ - **Status**: Now uses environment variable with stronger default
 
-4. **~~JSON Serialization Error~~** ✅ FIXED
-   - ~~Problem: datetime objects not JSON serializable in User model~~
-   - **Status**: Added Config class with json_encoders to User model
+4. **~~JSON Serialization Error~~** FIXED
+ - ~~Problem: datetime objects not JSON serializable in User model~~
+ - **Status**: Added Config class with json_encoders to User model
 
-5. **~~Mobile Integration~~** ✅ COMPLETED
-   - **Status**: Full JWT authentication integrated with Flutter mobile app
-   - **Features**: Registration, login, token refresh, secure storage
-   - **Testing**: Comprehensive integration test suite created
+5. **~~Mobile Integration~~** COMPLETED
+ - **Status**: Full JWT authentication integrated with Flutter mobile app
+ - **Features**: Registration, login, token refresh, secure storage
+ - **Testing**: Comprehensive integration test suite created
 
-### ⚠️ Production Concerns (NEED ADDRESSING)
+### Production Concerns (NEED ADDRESSING)
 
-6. **In-Memory User Storage** 🔄 REQUIRES MIGRATION
-   - **Problem**: Users stored in `USERS_DB: Dict` (lost on restart)
-   - **Impact**: Data loss, no scalability
-   - **Solution**: Migrate to PostgreSQL or Azure Cosmos DB
-   - **Priority**: HIGH
+6. **In-Memory User Storage** REQUIRES MIGRATION
+ - **Problem**: Users stored in `USERS_DB: Dict` (lost on restart)
+ - **Impact**: Data loss, no scalability
+ - **Solution**: Migrate to PostgreSQL or Azure Cosmos DB
+ - **Priority**: HIGH
 
-7. **OAuth Implementation** 🔄 ENHANCEMENT NEEDED
-   - **Problem**: Google/Apple OAuth endpoints are stubs only
-   - **Impact**: No social login functionality
-   - **Solution**: Implement full OAuth 2.0 flows with token validation
-   - **Priority**: MEDIUM
+7. **OAuth Implementation** ENHANCEMENT NEEDED
+ - **Problem**: Google/Apple OAuth endpoints are stubs only
+ - **Impact**: No social login functionality
+ - **Solution**: Implement full OAuth 2.0 flows with token validation
+ - **Priority**: MEDIUM
 
-8. **No Azure Integration** 🔄 ENHANCEMENT NEEDED
-   - **Problem**: Missing Azure AD B2C integration
-   - **Impact**: No enterprise features (SSO, MFA)
-   - **Solution**: Implement Azure AD B2C (see recommendations below)
-   - **Priority**: MEDIUM
+8. **No Azure Integration** ENHANCEMENT NEEDED
+ - **Problem**: Missing Azure AD B2C integration
+ - **Impact**: No enterprise features (SSO, MFA)
+ - **Solution**: Implement Azure AD B2C (see recommendations below)
+ - **Priority**: MEDIUM
 
-## 🔮 Azure Integration Recommendations
+## Azure Integration Recommendations
 
 ### Phase 1: Azure AD B2C Integration
 
@@ -252,20 +252,20 @@ from azure.identity import DefaultAzureCredential
 from msal import ConfidentialClientApplication
 
 class AzureAuthProvider:
-    def __init__(self):
-        self.app = ConfidentialClientApplication(
-            client_id=os.getenv('AZURE_AD_B2C_CLIENT_ID'),
-            client_credential=os.getenv('AZURE_AD_B2C_CLIENT_SECRET'),
-            authority=f"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policy}"
-        )
-    
-    async def authenticate_user(self, auth_code: str) -> User:
-        # Implement Azure AD B2C token exchange
-        pass
-    
-    async def validate_azure_token(self, token: str) -> Dict:
-        # Validate Azure AD B2C tokens
-        pass
+ def __init__(self):
+ self.app = ConfidentialClientApplication(
+ client_id=os.getenv('AZURE_AD_B2C_CLIENT_ID'),
+ client_credential=os.getenv('AZURE_AD_B2C_CLIENT_SECRET'),
+ authority=f"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policy}"
+ )
+
+ async def authenticate_user(self, auth_code: str) -> User:
+ # Implement Azure AD B2C token exchange
+ pass
+
+ async def validate_azure_token(self, token: str) -> Dict:
+ # Validate Azure AD B2C tokens
+ pass
 ```
 
 ### Phase 2: Database Migration
@@ -273,15 +273,15 @@ class AzureAuthProvider:
 ```python
 # Recommended database schema (PostgreSQL)
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255),
-    azure_user_id VARCHAR(255), -- For Azure AD users
-    role VARCHAR(50) NOT NULL,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+ id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+ email VARCHAR(255) UNIQUE NOT NULL,
+ username VARCHAR(100) UNIQUE NOT NULL,
+ hashed_password VARCHAR(255),
+ azure_user_id VARCHAR(255), -- For Azure AD users
+ role VARCHAR(50) NOT NULL,
+ is_active BOOLEAN DEFAULT true,
+ created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+ updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX idx_users_email ON users(email);
@@ -291,18 +291,18 @@ CREATE INDEX idx_users_azure_id ON users(azure_user_id);
 ### Phase 3: Enhanced Security
 
 1. **Multi-Factor Authentication (MFA)**
-   - Azure AD B2C provides built-in MFA
-   - TOTP, SMS, Email verification
+ - Azure AD B2C provides built-in MFA
+ - TOTP, SMS, Email verification
 
 2. **Single Sign-On (SSO)**
-   - Integration with Microsoft 365
-   - SAML and OAuth 2.0 support
+ - Integration with Microsoft 365
+ - SAML and OAuth 2.0 support
 
 3. **Advanced Monitoring**
-   - Azure Application Insights integration
-   - Security event logging
+ - Azure Application Insights integration
+ - Security event logging
 
-## 📊 Performance & Cost Analysis
+## Performance & Cost Analysis
 
 ### Current Performance
 
@@ -323,16 +323,16 @@ CREATE INDEX idx_users_azure_id ON users(azure_user_id);
 ### Scalability Considerations
 
 1. **Current Limits**:
-   - In-memory storage: Single instance only
-   - No horizontal scaling
-   - Session data lost on restart
+ - In-memory storage: Single instance only
+ - No horizontal scaling
+ - Session data lost on restart
 
 2. **With Azure Integration**:
-   - Multi-region deployment
-   - Auto-scaling user database
-   - Persistent session management
+ - Multi-region deployment
+ - Auto-scaling user database
+ - Persistent session management
 
-## 🧪 Testing
+## Testing
 
 ### Run Basic Tests
 
@@ -342,22 +342,22 @@ from fastapi.testclient import TestClient
 from core.auth import auth_router
 
 def test_user_registration():
-    with TestClient(auth_router) as client:
-        response = client.post("/auth/register", json={
-            "email": "test@example.com",
-            "username": "testuser",
-            "password": "testpass123",
-            "role": "user"
-        })
-        assert response.status_code == 200
+ with TestClient(auth_router) as client:
+ response = client.post("/auth/register", json={
+ "email": "test@example.com",
+ "username": "testuser",
+ "password": "testpass123",
+ "role": "user"
+ })
+ assert response.status_code == 200
 
 def test_user_login():
-    # Test login functionality
-    pass
+ # Test login functionality
+ pass
 
 def test_protected_endpoint():
-    # Test JWT protection
-    pass
+ # Test JWT protection
+ pass
 ```
 
 ### Manual Testing
@@ -365,16 +365,16 @@ def test_protected_endpoint():
 ```bash
 # Test registration
 curl -X POST "http://localhost:8000/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@test.com", "username": "test", "password": "pass123"}'
+ -H "Content-Type: application/json" \
+ -d '{"email": "test@test.com", "username": "test", "password": "pass123"}'
 
 # Test login
 curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"email": "test@test.com", "password": "pass123"}'
+ -H "Content-Type: application/json" \
+ -d '{"email": "test@test.com", "password": "pass123"}'
 ```
 
-## 🚨 Production Deployment Checklist
+## Production Deployment Checklist
 
 ### Security
 - [ ] Change default admin password via `DEFAULT_ADMIN_PASSWORD` env var
@@ -403,7 +403,7 @@ curl -X POST "http://localhost:8000/auth/login" \
 - [ ] Set up alerting for failed logins
 - [ ] Monitor rate limiting effectiveness
 
-## 📞 Support
+## Support
 
 ### Common Issues
 
@@ -425,13 +425,13 @@ python -c "import jwt; print(jwt.decode('TOKEN', verify=False))"
 redis-cli ping
 ```
 
-## 🔄 Migration Path to Production
+## Migration Path to Production
 
 ### Phase 1: Immediate Fixes (1-2 days)
-1. ✅ Fix branding inconsistencies
-2. ✅ Fix import errors
-3. ✅ Improve admin password security
-4. 🔄 Add comprehensive testing
+1. Fix branding inconsistencies
+2. Fix import errors
+3. Improve admin password security
+4. Add comprehensive testing
 
 ### Phase 2: Database Migration (1-2 weeks)
 1. Set up PostgreSQL database
@@ -451,7 +451,7 @@ redis-cli ping
 3. Monitoring and alerting setup
 4. Documentation and training
 
-## 📈 Future Enhancements
+## Future Enhancements
 
 - **Social Login**: Google, GitHub, Microsoft OAuth
 - **API Key Management**: Service-to-service authentication

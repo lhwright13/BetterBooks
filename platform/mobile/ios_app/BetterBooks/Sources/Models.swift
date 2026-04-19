@@ -89,7 +89,7 @@ struct Persona: Codable, Identifiable, Hashable {
     static func == (lhs: Persona, rhs: Persona) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 
-    /// The type of persona — inferred from ID/name
+    /// The type of persona - inferred from ID/name
     var personaType: PersonaType {
         let n = name.lowercased()
         if n.contains("teacher") || n.contains("tutor") || n.contains("professor") || n.contains("guide") || n.contains("historian") || n.contains("narrator") {

@@ -10,31 +10,31 @@ Flutter audiobook app with AI chat capabilities. Built for iOS with plans for An
 ## User Flow
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Splash    │────▶│  Onboarding │────▶│    Auth     │
-│   Screen    │     │  (Welcome)  │     │  (Login)    │
-└─────────────┘     └─────────────┘     └──────┬──────┘
-                                               │
-                    ┌──────────────────────────┼──────────────────────────┐
-                    ▼                          ▼                          ▼
-             ┌─────────────┐           ┌─────────────┐           ┌─────────────┐
-             │   Discover  │           │   Library   │           │   Profile   │
-             │  (Browse)   │           │  (My Books) │           │  (Settings) │
-             └──────┬──────┘           └──────┬──────┘           └─────────────┘
-                    │                         │
-                    ▼                         ▼
-             ┌─────────────┐           ┌─────────────┐
-             │    Book     │           │   Player    │
-             │   Details   │           │   Screen    │
-             └──────┬──────┘           └─────────────┘
-                    │
-          ┌────────┴────────┐
-          ▼                 ▼
-   ┌─────────────┐   ┌─────────────┐
-   │  Purchase   │   │  AI Chat    │
-   │    Flow     │   │  (Voice/    │
-   └─────────────┘   │   Text)     │
-                     └─────────────┘
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ Splash │────▶│ Onboarding │────▶│ Auth │
+│ Screen │ │ (Welcome) │ │ (Login) │
+└─────────────┘ └─────────────┘ └──────┬──────┘
+ │
+ ┌──────────────────────────┼──────────────────────────┐
+ ▼ ▼ ▼
+ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+ │ Discover │ │ Library │ │ Profile │
+ │ (Browse) │ │ (My Books) │ │ (Settings) │
+ └──────┬──────┘ └──────┬──────┘ └─────────────┘
+ │ │
+ ▼ ▼
+ ┌─────────────┐ ┌─────────────┐
+ │ Book │ │ Player │
+ │ Details │ │ Screen │
+ └──────┬──────┘ └─────────────┘
+ │
+ ┌────────┴────────┐
+ ▼ ▼
+ ┌─────────────┐ ┌─────────────┐
+ │ Purchase │ │ AI Chat │
+ │ Flow │ │ (Voice/ │
+ └─────────────┘ │ Text) │
+ └─────────────┘
 ```
 
 ## Screen Inventory
@@ -88,14 +88,14 @@ Flutter audiobook app with AI chat capabilities. Built for iOS with plans for An
 
 ## API Endpoints Used
 ```
-POST /auth/signin          - Login
-POST /auth/signup          - Register
-GET  /bookstore/browse     - List books
-GET  /bookstore/user/library - User's books
-GET  /bookstore/user/credits - Credit balance
-POST /bookstore/purchase   - Buy book
-GET  /bookstore/books/{id}/personas - AI personas
-POST /complete             - AI chat (LLM Gateway)
+POST /auth/signin - Login
+POST /auth/signup - Register
+GET /bookstore/browse - List books
+GET /bookstore/user/library - User's books
+GET /bookstore/user/credits - Credit balance
+POST /bookstore/purchase - Buy book
+GET /bookstore/books/{id}/personas - AI personas
+POST /complete - AI chat (LLM Gateway)
 ```
 
 ## Tech Stack

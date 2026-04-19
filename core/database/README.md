@@ -2,25 +2,25 @@
 
 The `core/database` module provides comprehensive database management capabilities for BetterBooks, including connection pooling, migrations, indexing, and data models. This module serves as the foundation for all database operations across the application.
 
-## 📁 Module Structure
+## Module Structure
 
 ```mermaid
 graph TD
-    A[core/database/] --> B[__init__.py]
-    A --> C[database_manager.py]
-    A --> D[database_indexes.py]
-    A --> E[database_migrations.py]
-    A --> F[models/]
-    A --> G[migrations/]
-    F --> H[user.py]
-    G --> I[V001_initial_schema.sql]
-    G --> J[V002_book_tracking.sql]
-    G --> K[V003_performance_indexes.sql]
-    G --> L[V004_chapter_detection.sql]
-    G --> M[V005_user_identity_system.sql]
+ A[core/database/] --> B[__init__.py]
+ A --> C[database_manager.py]
+ A --> D[database_indexes.py]
+ A --> E[database_migrations.py]
+ A --> F[models/]
+ A --> G[migrations/]
+ F --> H[user.py]
+ G --> I[V001_initial_schema.sql]
+ G --> J[V002_book_tracking.sql]
+ G --> K[V003_performance_indexes.sql]
+ G --> L[V004_chapter_detection.sql]
+ G --> M[V005_user_identity_system.sql]
 ```
 
-## 🎯 Purpose & Functionality
+## Purpose & Functionality
 
 ### Core Components
 
@@ -42,7 +42,7 @@ graph TD
 | V004 | AI features | Chapter detection, Q&A, recommendations, analytics |
 | V005 | Identity system | Apple/Stripe integration, modern user management |
 
-## 🔌 Code Interactions
+## Code Interactions
 
 ### Internal Dependencies
 ```python
@@ -69,46 +69,46 @@ The database module is used by several other components:
 - `tests/unit/test_database_migrations.py` - Migration system tests
 - `tests/unit/test_indexing_strategy.py` - Index performance tests
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Connection Management
 ```mermaid
 graph LR
-    A[Application] --> B[DatabaseManager]
-    B --> C[Primary Pool]
-    B --> D[Replica Pool]
-    C --> E[PostgreSQL Primary]
-    D --> F[PostgreSQL Replica]
-    B --> G[Health Monitoring]
-    B --> H[Metrics Collection]
+ A[Application] --> B[DatabaseManager]
+ B --> C[Primary Pool]
+ B --> D[Replica Pool]
+ C --> E[PostgreSQL Primary]
+ D --> F[PostgreSQL Replica]
+ B --> G[Health Monitoring]
+ B --> H[Metrics Collection]
 ```
 
 ### Migration System
 ```mermaid
 graph TD
-    A[Migration Files] --> B[DatabaseMigrationManager]
-    B --> C[Checksum Validation]
-    B --> D[Dependency Checking]
-    B --> E[Schema Application]
-    E --> F[Rollback Support]
-    B --> G[Migration Tracking]
-    G --> H[schema_migrations table]
+ A[Migration Files] --> B[DatabaseMigrationManager]
+ B --> C[Checksum Validation]
+ B --> D[Dependency Checking]
+ B --> E[Schema Application]
+ E --> F[Rollback Support]
+ B --> G[Migration Tracking]
+ G --> H[schema_migrations table]
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### Database Connection
 ```python
 # Environment variables
 DATABASE_URL = "postgresql://user:pass@host:port/db"
-READ_REPLICA_URL = "postgresql://user:pass@replica:port/db"  # Optional
+READ_REPLICA_URL = "postgresql://user:pass@replica:port/db" # Optional
 
 # Configuration options
 DatabaseConfig(
-    min_connections=5,
-    max_connections=20,
-    connection_timeout=30.0,
-    enable_read_replica=True
+ min_connections=5,
+ max_connections=20,
+ connection_timeout=30.0,
+ enable_read_replica=True
 )
 ```
 
@@ -122,9 +122,9 @@ CREATE INDEX ON embeddings USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 ```
 
-## 🔥 Critical Security Issues
+## Critical Security Issues
 
-> ⚠️ **SECURITY ALERT**: Several critical vulnerabilities have been identified that must be fixed before production deployment.
+> **SECURITY ALERT**: Several critical vulnerabilities have been identified that must be fixed before production deployment.
 
 ### 1. SQL Injection Vulnerabilities
 **Locations**: `database_manager.py:477,481`, `database_indexes.py:267-280`
@@ -141,14 +141,14 @@ await self.execute_query(SQL("ANALYZE {}").format(Identifier(table)), fetch_all=
 **Location**: `database_manager.py:394-400`
 ```python
 # BROKEN CODE:
-if self.pool:  # self.pool doesn't exist!
+if self.pool: # self.pool doesn't exist!
 
 # FIX:
 if self.primary_pool:
-    health_info["pool_info"] = {
-        "size": self.primary_pool.size,
-        "available": self.primary_pool.available
-    }
+ health_info["pool_info"] = {
+ "size": self.primary_pool.size,
+ "available": self.primary_pool.available
+ }
 ```
 
 ### 3. Migration Rollback Injection
@@ -156,11 +156,11 @@ if self.primary_pool:
 ```python
 # DANGEROUS - Add validation:
 def validate_rollback_sql(self, sql: str) -> bool:
-    dangerous_keywords = ['DROP DATABASE', 'TRUNCATE', 'DELETE FROM users']
-    return not any(keyword in sql.upper() for keyword in dangerous_keywords)
+ dangerous_keywords = ['DROP DATABASE', 'TRUNCATE', 'DELETE FROM users']
+ return not any(keyword in sql.upper() for keyword in dangerous_keywords)
 ```
 
-## 🚀 Usage Examples
+## Usage Examples
 
 ### Basic Database Operations
 ```python
@@ -171,14 +171,14 @@ db_manager = await get_database_manager()
 
 # Execute queries
 result = await db_manager.execute_query(
-    "SELECT * FROM users WHERE email = %s", 
-    ("user@example.com",)
+ "SELECT * FROM users WHERE email = %s", 
+ ("user@example.com",)
 )
 
 # Use connection context manager
 async with database_connection() as conn:
-    cursor = await conn.execute("SELECT version()")
-    version = await cursor.fetchone()
+ cursor = await conn.execute("SELECT version()")
+ version = await cursor.fetchone()
 ```
 
 ### Migration Management
@@ -210,7 +210,7 @@ analysis = await index_manager.analyze_index_usage(db_manager)
 print(analysis['recommendations'])
 ```
 
-## 📊 Monitoring & Health Checks
+## Monitoring & Health Checks
 
 ### Health Check Endpoints
 ```python
@@ -230,7 +230,7 @@ print(f"Average query time: {metrics['average_query_time']:.3f}s")
 print(f"Slow queries: {metrics['slow_queries']}")
 ```
 
-## 🔮 Future Changes Needed
+## Future Changes Needed
 
 ### Immediate (Critical)
 1. **Fix SQL injection vulnerabilities** - Replace f-strings with parameterized queries
@@ -256,7 +256,7 @@ print(f"Slow queries: {metrics['slow_queries']}")
 3. **Advanced analytics queries** - Materialized views for reporting
 4. **Schema evolution automation** - Automated migration generation
 
-## 📋 Testing Strategy
+## Testing Strategy
 
 ### Unit Tests
 - `test_connection_pooling.py` - Connection management and pooling
@@ -269,7 +269,7 @@ print(f"Slow queries: {metrics['slow_queries']}")
 - Migration rollback scenarios
 - Connection pool stress testing
 
-## 🔒 Security Best Practices
+## Security Best Practices
 
 1. **Use parameterized queries** - Prevent SQL injection
 2. **Validate all inputs** - Table names, column names, user data
@@ -280,18 +280,18 @@ print(f"Slow queries: {metrics['slow_queries']}")
 7. **Implement backup encryption** - Secure backup storage
 8. **Network security** - VPC, firewalls, connection encryption
 
-## 📚 Dependencies
+## Dependencies
 
 ### Required Python Packages
 ```
-psycopg[binary]>=3.1.0    # PostgreSQL adapter
-psycopg-pool>=3.1.0       # Connection pooling
+psycopg[binary]>=3.1.0 # PostgreSQL adapter
+psycopg-pool>=3.1.0 # Connection pooling
 ```
 
 ### Database Extensions
 ```sql
-CREATE EXTENSION IF NOT EXISTS vector;      -- pgvector for embeddings
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- Query monitoring
+CREATE EXTENSION IF NOT EXISTS vector; -- pgvector for embeddings
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements; -- Query monitoring
 ```
 
 ### External Services
@@ -301,4 +301,4 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- Query monitoring
 
 ---
 
-> ⚠️ **Important**: This module contains critical security vulnerabilities that must be addressed before production deployment. See the "Critical Security Issues" section above for immediate actions required.
+> **Important**: This module contains critical security vulnerabilities that must be addressed before production deployment. See the "Critical Security Issues" section above for immediate actions required.
